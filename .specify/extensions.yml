@@ -1,0 +1,8 @@
+hooks:
+  after_implement:
+    - extension: medicia-review
+      command: review-changes
+      enabled: true
+      optional: false
+      description: Revisar la implementación con los subagentes de arquitectura, seguridad e interfaz.
+      prompt: Revisá los cambios de esta implementación con la skill review-changes.

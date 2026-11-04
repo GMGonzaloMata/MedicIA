@@ -1,0 +1,40 @@
+# Comandos con efectos externos o difíciles de revertir: siempre piden confirmación.
+# Comprobar con: codex execpolicy check --pretty --rules .codex/rules/default.rules -- <comando>
+
+prefix_rule(
+    pattern = ["git", "push"],
+    decision = "prompt",
+    justification = "Publicar cambios requiere confirmación.",
+    match = ["git push origin main"],
+    not_match = ["git status"],
+)
+
+prefix_rule(
+    pattern = ["terraform", ["apply", "destroy"]],
+    decision = "prompt",
+    justification = "Modificar infraestructura requiere confirmación.",
+    match = ["terraform apply", "terraform destroy"],
+    not_match = ["terraform plan"],
+)
+
+prefix_rule(
+    pattern = ["aws"],
+    decision = "prompt",
+    justification = "Los comandos de AWS pueden modificar recursos.",
+    match = ["aws s3 rm s3://bucket/file"],
+)
+
+prefix_rule(
+    pattern = ["npx", "prisma", "migrate"],
+    decision = "prompt",
+    justification = "Las migraciones modifican la base de datos.",
+    match = ["npx prisma migrate deploy"],
+    not_match = ["npx prisma generate"],
+)
+
+prefix_rule(
+    pattern = ["npx", "prisma", "db", "push"],
+    decision = "prompt",
+    justification = "Sincronizar el esquema modifica la base de datos.",
+    match = ["npx prisma db push"],
+)

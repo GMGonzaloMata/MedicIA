@@ -1,0 +1,9 @@
+# Mantiene los permisos habituales del workspace, pero impide leer archivos con secretos.
+default_permissions = "medicia"
+
+[permissions.medicia]
+extends = ":workspace"
+
+[permissions.medicia.filesystem.":workspace_roots"]
+# Se usa un patrón porque una ruta exacta hace que el sandbox cree `.env` si no existe.
+".env*" = "deny"
