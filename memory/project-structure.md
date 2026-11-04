@@ -36,13 +36,14 @@ Organizar la plataforma como un **monolito modular con Next.js full-stack**, sig
 │       └── ...
 │
 ├── prisma/                        # Esquema y migraciones de PostgreSQL
-├── tests/                         # Pruebas de integración y E2E
+├── tests/                         # Pruebas unitarias, de integración y E2E
 ├── memory/                        # Contexto estable del proyecto
 │   ├── platform-context.md
 │   ├── architecture.md
 │   ├── project-structure.md
 │   ├── design-patterns.md
-│   └── design.md
+│   ├── design.md
+│   └── coding-standards.md
 ├── specs/                         # Especificaciones por funcionalidad
 ├── .specify/                      # Configuración de Spec Kit
 ├── .claude/                       # Skills y agentes, para claude
@@ -60,14 +61,16 @@ src/modules/studies/
 │   └── ports/               # Interfaces de entrada y salida
 │       ├── in/
 │       └── out/
-└── infrastructure/
-    ├── repositories/        # Implementaciones con Prisma
-    └── adapters/            # Integraciones con servicios externos
+├── infrastructure/
+│   ├── repositories/        # Implementaciones con Prisma
+│   └── adapters/            # Integraciones con servicios externos
+└── composition.ts           # Conecta los casos de uso con sus implementaciones
 ```
 
 - **Domain:** contiene las entidades, objetos de valor y reglas de negocio.
 - **Application:** define los casos de uso y los puertos de entrada y salida.
 - **Infrastructure:** implementa los adaptadores que conectan la aplicación con tecnologías externas.
+- **Composition:** entrega los casos de uso ya conectados con sus implementaciones; `app/` los obtiene desde este archivo.
 - **Regla de dependencias:** el dominio no depende de las capas externas; los adaptadores dependen de los contratos definidos en el núcleo.
 
 ## Reglas de organización
@@ -78,7 +81,7 @@ src/modules/studies/
 - **Prisma** se reutiliza mediante un cliente compartido por proceso; las consultas del negocio se encapsulan donde corresponda.
 - **Multi-tenancy:** toda operación sensible valida la clínica autorizada. No se confía en el `tenant_id` enviado por el cliente.
 - **Modelos ML:** su entrenamiento y código Python/PyTorch viven en un proyecto o espacio de ML separado; esta aplicación consume inferencia mediante el adaptador de SageMaker.
-- **Tests:** unitarios cerca del código cuando convenga; integración y E2E en `tests/`.
+- **Tests:** todas las pruebas viven en `tests/`: unitarias en `tests/unit/` (replicando la estructura de `src/`), de integración en `tests/integration/` y E2E en `tests/e2e/`.
 - Evitar dependencias circulares, duplicación de lógica y nuevas abstracciones sin una necesidad concreta.
 
 La estructura puede evolucionar, pero cualquier cambio relevante debe mantenerse coherente con `memory/architecture.md`.
