@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node scripts/agent-hooks/stop-check.mjs",
+            "command": "node \"$(git rev-parse --show-toplevel)/scripts/agent-hooks/stop-check.mjs\"",
             "timeout": 300,
             "statusMessage": "Comprobando npm run check"
           }

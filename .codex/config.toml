@@ -4,6 +4,10 @@ default_permissions = "medicia"
 [permissions.medicia]
 extends = ":workspace"
 
+[permissions.medicia.filesystem]
+# Limita cuánto recorre el sandbox las carpetas al expandir `**` antes de iniciar cada proceso.
+glob_scan_max_depth = 3
+
 [permissions.medicia.filesystem.":workspace_roots"]
 # Se usa un patrón porque una ruta exacta hace que el sandbox cree `.env` si no existe.
-".env*" = "deny"
+"**/.env*" = "deny"

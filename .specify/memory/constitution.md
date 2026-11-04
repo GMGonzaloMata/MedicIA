@@ -85,7 +85,7 @@ a los pacientes y a las instituciones.
 - **Autenticación:** Amazon Cognito. La aplicación DEBE validar los JWT y autorizar cada operación.
 - **Archivos:** Amazon S3 con acceso privado.
 - **Inferencia:** Amazon SageMaker AI, consumido mediante un adaptador.
-- **Infraestructura:** Terraform.
+- **Infraestructura:** Terraform, gestionado en un repositorio separado.
 
 **Límites de responsabilidad.** El entrenamiento y el código Python/PyTorch de los modelos DEBEN vivir fuera de este repositorio.
 
@@ -101,6 +101,7 @@ a los pacientes y a las instituciones.
   - **Cambios simples:** estilos, textos o ajustes visuales sin lógica. NO requieren pruebas nuevas.
 - Toda operación sobre datos de una clínica DEBE tener una prueba de integración que verifique el rechazo del acceso desde otra clínica.
 - Todas las pruebas DEBEN ubicarse en `tests/`, incluidas las unitarias.
+- Solo el responsable del proyecto ejecuta, desde su terminal, `git commit` y los comandos de Prisma `migrate`, `db` y `generate`. Los agentes NO DEBEN ejecutarlos.
 
 ## Governance
 
@@ -126,4 +127,4 @@ aprobación del responsable del proyecto y actualizar los documentos de `memory/
 **Cumplimiento.** Toda revisión de planes y cambios DEBE verificar el cumplimiento de esta
 constitución. La complejidad adicional DEBE justificarse.
 
-**Version**: 1.4.0 | **Ratified**: 2026-11-04 | **Last Amended**: 2026-11-04
+**Version**: 1.5.0 | **Ratified**: 2026-11-04 | **Last Amended**: 2026-11-04

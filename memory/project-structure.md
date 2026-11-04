@@ -47,7 +47,7 @@ Organizar la plataforma como un **monolito modular con Next.js full-stack**, sig
 ├── specs/                         # Especificaciones por funcionalidad
 ├── .specify/                      # Configuración de Spec Kit
 ├── .claude/                       # Skills, subagentes, permisos y hooks de Claude Code
-├── .agents/                       # Skills de Codex e instrucciones compartidas de los revisores
+├── .agents/                       # Skills de Codex y criterios de los revisores
 ├── .codex/                        # Subagentes, reglas, permisos y hooks de Codex
 ├── .github/                       # Integración continua
 ├── scripts/agent-hooks/           # Hooks compartidos por los agentes

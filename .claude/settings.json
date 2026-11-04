@@ -21,26 +21,44 @@
     ],
     "ask": [
       "Bash(git push *)",
-      "Bash(terraform apply *)",
-      "Bash(terraform destroy *)",
       "Bash(aws *)",
-      "Bash(npx prisma migrate *)",
-      "Bash(npx prisma db push *)",
       "PowerShell(git push *)",
-      "PowerShell(terraform apply *)",
-      "PowerShell(terraform destroy *)",
-      "PowerShell(aws *)",
-      "PowerShell(npx prisma migrate *)",
-      "PowerShell(npx prisma db push *)"
+      "PowerShell(aws *)"
     ],
     "deny": [
-      "Read(./.env)",
-      "Read(./.env.*)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
       "Bash(cat .env*)",
-      "PowerShell(Get-Content .env*)"
+      "PowerShell(Get-Content .env*)",
+      "Bash(git commit *)",
+      "Bash(npx prisma migrate *)",
+      "Bash(npx prisma db *)",
+      "Bash(npx prisma generate *)",
+      "Bash(prisma migrate *)",
+      "Bash(prisma db *)",
+      "Bash(prisma generate *)",
+      "PowerShell(git commit *)",
+      "PowerShell(npx prisma migrate *)",
+      "PowerShell(npx prisma db *)",
+      "PowerShell(npx prisma generate *)",
+      "PowerShell(prisma migrate *)",
+      "PowerShell(prisma db *)",
+      "PowerShell(prisma generate *)"
     ]
   },
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/allow-read-only-git.mjs\"",
+            "onFailure": "block"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [

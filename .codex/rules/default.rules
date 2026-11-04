@@ -1,5 +1,6 @@
-# Comandos con efectos externos o difíciles de revertir: siempre piden confirmación.
 # Comprobar con: codex execpolicy check --pretty --rules .codex/rules/default.rules -- <comando>
+
+# Comandos con efectos externos: piden confirmación.
 
 prefix_rule(
     pattern = ["git", "push"],
@@ -10,31 +11,34 @@ prefix_rule(
 )
 
 prefix_rule(
-    pattern = ["terraform", ["apply", "destroy"]],
-    decision = "prompt",
-    justification = "Modificar infraestructura requiere confirmación.",
-    match = ["terraform apply", "terraform destroy"],
-    not_match = ["terraform plan"],
-)
-
-prefix_rule(
     pattern = ["aws"],
     decision = "prompt",
     justification = "Los comandos de AWS pueden modificar recursos.",
     match = ["aws s3 rm s3://bucket/file"],
 )
 
+# Comandos reservados: solo los ejecuta el responsable del proyecto desde su terminal.
+
 prefix_rule(
-    pattern = ["npx", "prisma", "migrate"],
-    decision = "prompt",
-    justification = "Las migraciones modifican la base de datos.",
-    match = ["npx prisma migrate deploy"],
-    not_match = ["npx prisma generate"],
+    pattern = ["git", "commit"],
+    decision = "forbidden",
+    justification = "Los commits los hace solo el responsable del proyecto.",
+    match = ["git commit -m mensaje"],
+    not_match = ["git status"],
 )
 
 prefix_rule(
-    pattern = ["npx", "prisma", "db", "push"],
-    decision = "prompt",
-    justification = "Sincronizar el esquema modifica la base de datos.",
-    match = ["npx prisma db push"],
+    pattern = ["npx", "prisma", ["migrate", "db", "generate"]],
+    decision = "forbidden",
+    justification = "Los comandos de Prisma los ejecuta solo el responsable del proyecto.",
+    match = ["npx prisma migrate deploy", "npx prisma db push", "npx prisma generate"],
+    not_match = ["npx prisma validate"],
+)
+
+prefix_rule(
+    pattern = ["prisma", ["migrate", "db", "generate"]],
+    decision = "forbidden",
+    justification = "Los comandos de Prisma los ejecuta solo el responsable del proyecto.",
+    match = ["prisma migrate dev", "prisma db push", "prisma generate"],
+    not_match = ["prisma validate"],
 )

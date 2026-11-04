@@ -55,7 +55,7 @@
 
 ### Infraestructura como código
 
-- **Tecnología:** Terraform.
+- **Tecnología:** Terraform, gestionado en un repositorio separado.
 - **Responsabilidad:** Aprovisionar y gestionar los recursos de AWS; no participa en el procesamiento de cada solicitud.
 
 ## 3. Flujo funcional

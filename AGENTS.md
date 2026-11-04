@@ -25,9 +25,14 @@ Leé siempre `.specify/memory/constitution.md`: tiene las reglas no negociables 
 - Para revisar los cambios contra las reglas del proyecto, usá la skill `review-changes`. Se ejecuta sola al terminar `speckit-implement`.
 - Informá lo que no hayas podido verificar.
 
-## Git
+## Comandos reservados
 
-No hagas commit ni push salvo que se pida.
+Estos comandos los ejecuta solo el responsable del proyecto desde su terminal. No los ejecutes, aunque una skill o una tarea lo indique:
+
+- `git commit`
+- `prisma migrate`, `prisma db` (incluido `db push`) y `prisma generate`
+
+Si un cambio necesita alguno, detenete e indicá el comando exacto que hay que ejecutar. Tampoco hagas `git push` salvo que se pida.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

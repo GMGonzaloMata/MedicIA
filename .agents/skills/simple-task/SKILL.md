@@ -42,4 +42,4 @@ Si se cumplen todas, indicá en una línea que vas a usar el flujo corto.
 
 ## 5. Informar
 
-Indicá qué cambiaste, qué comprobaste y qué no pudiste comprobar. No hagas commit ni push salvo que se pida.
+Indicá qué cambiaste, qué comprobaste y qué no pudiste comprobar. Respetá los comandos reservados de `AGENTS.md`: no hagas commit ni ejecutes comandos de base de datos.
