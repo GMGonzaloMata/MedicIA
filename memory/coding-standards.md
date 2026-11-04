@@ -79,7 +79,7 @@ Definir los criterios de código para cualquier persona o agente que modifique l
 
 - Los tipos de Prisma y las respuestas de AWS no salen de la infraestructura; se convierten a tipos del dominio.
 - Los repositorios de datos de una clínica reciben `tenantId` de forma explícita en cada operación.
-- Los módulos de infraestructura se marcan con `import 'server-only'` para evitar que lleguen al cliente. Fuera de Next.js, como en las pruebas, ese import debe reemplazarse con un mock.
+- Los módulos de infraestructura se marcan con `import 'server-only'` para evitar que lleguen al cliente. Fuera de Next.js ese import debe reemplazarse con un mock; en las pruebas ya lo hace `vitest.config.mts`.
 - Un nuevo tipo de estudio se incorpora registrando su procesador, no agregando `if` o `switch` en los casos de uso (ver `memory/design-patterns.md`).
 
 ### Server Actions y Route Handlers
@@ -136,6 +136,9 @@ Crear archivos y carpetas solo cuando aporten claridad real, sin dejar carpetas 
 
 ## Verificación
 
-- Ejecutar las validaciones exigidas por la constitución según el tipo de cambio.
+- Ejecutar `npm run check` antes de integrar un cambio: comprueba tipos, lint, pruebas con cobertura y build.
+- Ejecutar `npm run test:e2e` cuando un cambio afecte una vista o un flujo de usuario.
+- La cobertura se mide por archivo en `src/modules/`, `src/infrastructure/` y `src/shared/`, sin contar los puertos ni `composition.ts`.
+- Cubrir con pruebas E2E los Server Components `async`, porque Vitest no los soporta.
 - Si una validación no se puede ejecutar, informarlo con claridad.
 - Antes de terminar, revisar que el cambio responda al pedido y no afecte comportamiento no relacionado.

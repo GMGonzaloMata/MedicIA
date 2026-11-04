@@ -81,7 +81,7 @@ src/modules/studies/
 - **Prisma** se reutiliza mediante un cliente compartido por proceso; las consultas del negocio se encapsulan donde corresponda.
 - **Multi-tenancy:** toda operación sensible valida la clínica autorizada. No se confía en el `tenant_id` enviado por el cliente.
 - **Modelos ML:** su entrenamiento y código Python/PyTorch viven en un proyecto o espacio de ML separado; esta aplicación consume inferencia mediante el adaptador de SageMaker.
-- **Tests:** todas las pruebas viven en `tests/`: unitarias en `tests/unit/` (replicando la estructura de `src/`), de integración en `tests/integration/` y E2E en `tests/e2e/`.
+- **Tests:** todas las pruebas viven en `tests/`: unitarias en `tests/unit/` (replicando la estructura de `src/`), de integración en `tests/integration/` y E2E en `tests/e2e/`. Los archivos de apoyo compartidos van en `tests/support/`.
 - Evitar dependencias circulares, duplicación de lógica y nuevas abstracciones sin una necesidad concreta.
 
 La estructura puede evolucionar, pero cualquier cambio relevante debe mantenerse coherente con `memory/architecture.md`.

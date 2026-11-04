@@ -95,7 +95,7 @@ a los pacientes y a las instituciones.
 
 - Cada funcionalidad DEBE especificarse en `specs/` y seguir el flujo de Spec Kit: especificación, plan, tareas e implementación.
 - Cada plan DEBE superar el Constitution Check. Toda violación DEBE justificarse en el plan, en la sección prevista para ello, o la propuesta DEBE cambiarse.
-- Antes de integrar un cambio, `npm run lint` y `npm run build` DEBEN finalizar sin errores.
+- Antes de integrar un cambio, `npm run check` DEBE finalizar sin errores.
 - Las pruebas DEBEN ser proporcionales al riesgo del cambio:
   - **Tareas complejas:** las que tocan reglas de negocio, casos de uso, estados de análisis, autorización, persistencia o integraciones externas. El código nuevo o modificado DEBE alcanzar al menos 80 % de cobertura de líneas.
   - **Cambios simples:** estilos, textos o ajustes visuales sin lógica. NO requieren pruebas nuevas.
@@ -126,4 +126,4 @@ aprobación del responsable del proyecto y actualizar los documentos de `memory/
 **Cumplimiento.** Toda revisión de planes y cambios DEBE verificar el cumplimiento de esta
 constitución. La complejidad adicional DEBE justificarse.
 
-**Version**: 1.3.0 | **Ratified**: 2026-11-04 | **Last Amended**: 2026-11-04
+**Version**: 1.4.0 | **Ratified**: 2026-11-04 | **Last Amended**: 2026-11-04
