@@ -1,6 +1,10 @@
 import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
+import { config as loadEnvFile } from "dotenv";
 import { defineConfig } from "vitest/config";
+
+// Las pruebas de integración leen DATABASE_URL de .env.local; en CI viene del entorno.
+loadEnvFile({ path: ".env.local", quiet: true });
 
 export default defineConfig({
   plugins: [react()],
@@ -45,6 +49,9 @@ export default defineConfig({
           name: "integration",
           include: ["tests/integration/**/*.test.ts"],
           environment: "node",
+          // Verifica la base antes de correr y evita vaciarla desde dos archivos a la vez.
+          globalSetup: ["tests/support/integration-setup.ts"],
+          fileParallelism: false,
         },
       },
     ],

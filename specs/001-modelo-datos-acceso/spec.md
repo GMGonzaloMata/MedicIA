@@ -154,7 +154,7 @@ Suspender una clínica, desactivar a un integrante del personal, revocar el vín
 - **FR-014**: El modelo DEBE representar al paciente como un registro propio de cada clínica, con su documento (tipo y número), nombre, cuenta vinculada, estado (pendiente, vinculado o revocado), fechas de vinculación y de revocación, y sus fechas de creación y modificación.
 - **FR-015**: El tipo de documento DEBE ser uno de DNI, pasaporte u otro. La combinación de tipo y número DEBE ser única dentro de cada clínica y puede repetirse entre clínicas.
 - **FR-016**: Una cuenta DEBE tener a lo sumo un registro de paciente por clínica.
-- **FR-017**: La cuenta vinculada y el nombre DEBEN estar ausentes mientras el paciente esté pendiente. Un paciente vinculado DEBE tener ambos.
+- **FR-017**: La cuenta vinculada y el nombre DEBEN estar ausentes mientras el paciente esté pendiente. Un paciente vinculado DEBE tener ambos. Un paciente revocado DEBE conservar ambos, además de sus fechas de vinculación y de revocación.
 - **FR-018**: Revocar el vínculo de un paciente DEBE conservar su registro, su documento y su historial de asignaciones.
 - **FR-019**: Un paciente revocado DEBE poder volver a vincularse reutilizando su mismo registro.
 - **FR-020**: El modelo DEBE guardar del paciente únicamente su documento y su nombre; no almacena fecha de nacimiento ni datos clínicos.
@@ -169,7 +169,7 @@ Suspender una clínica, desactivar a un integrante del personal, revocar el vín
 **Integridad e historial**
 
 - **FR-025**: Las clínicas, las cuentas, las membresías, los pacientes y las asignaciones NO DEBEN eliminarse mientras otros registros dependan de ellos. Los cambios de estado reemplazan al borrado.
-- **FR-026**: Cada entidad DEBE registrar cuándo fue creada y, si puede modificarse, cuándo se modificó por última vez.
+- **FR-026**: Cada entidad DEBE registrar cuándo fue creada y, si puede modificarse, cuándo se modificó por última vez. En las asignaciones, el momento en que terminan queda registrado como su fecha de fin.
 - **FR-027**: Cada regla del modelo DEBE poder verificarse intentando violarla y comprobando que el intento es rechazado.
 
 ### Key Entities *(include if feature involves data)*

@@ -11,6 +11,23 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
+    # Las pruebas de integración necesitan una base de PostgreSQL real.
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: medicia
+          POSTGRES_PASSWORD: medicia
+          POSTGRES_DB: medicia
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U medicia -d medicia"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://medicia:medicia@localhost:5432/medicia
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -23,11 +40,19 @@ jobs:
         run: |
           diff -r .claude/skills/simple-task .agents/skills/simple-task
           diff -r .claude/skills/review-changes .agents/skills/review-changes
+      # Prisma no lee la base al generar el cliente, pero su configuración exige DATABASE_URL.
+      - name: Generar el cliente de Prisma y aplicar las migraciones
+        run: |
+          npx prisma generate
+          npx prisma migrate deploy
       - run: npm run check
 
   e2e:
     needs: check
     runs-on: ubuntu-latest
+    env:
+      # Las pruebas E2E no usan la base, pero el build revisa los tipos del cliente generado.
+      DATABASE_URL: postgresql://medicia:medicia@localhost:5432/medicia
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -35,5 +60,6 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - run: npx prisma generate
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e

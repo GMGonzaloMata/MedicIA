@@ -14,7 +14,7 @@ Esta guía explica cómo preparar el entorno y cómo comprobar que el modelo cum
 
 Se definen en `.env.local` (ignorado por git) y se documentan en `.env.example`.
 
-- `DATABASE_URL`: conexión a la base de PostgreSQL local de Docker, que se usa para probar la aplicación y para las pruebas de integración. La base de producción (Amazon RDS) no se configura acá: la define el servidor.
+- `DATABASE_URL`: con el `docker-compose.yml` del proyecto es `postgresql://medicia:medicia@localhost:5433/medicia` (puerto 5433, porque el 5432 suele estar ocupado por un PostgreSQL instalado en la máquina). Es la conexión a la base de PostgreSQL local de Docker, que se usa para probar la aplicación y para las pruebas de integración. La base de producción (Amazon RDS) no se configura acá: la define el servidor.
 
 **Importante:** las pruebas de integración vacían las tablas antes de cada prueba. Los datos que cargues a mano en la base de Docker se pierden cada vez que se ejecutan. Por eso las pruebas se niegan a correr si `DATABASE_URL` no apunta a un servidor local.
 

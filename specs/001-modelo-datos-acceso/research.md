@@ -14,7 +14,15 @@ Cada decisión indica qué se eligió, por qué y qué alternativas se descartar
 - **Razón:** es la configuración que usa la versión actual y evita depender de comportamientos retirados.
 - **Por qué no la 8:** Prisma 8 está en candidatas (`8.0.0-rc.33`), con cambios incompatibles en la configuración y en la forma de consultar. El modelo que sostiene el aislamiento entre clínicas no es un buen lugar para estrenar una candidata. La 7 sigue recibiendo correcciones y parches de seguridad durante 18 meses desde que la 8 sea estable. Se revisa la migración a la 8 cuando salga como versión final.
 - **Ventaja que se cede:** Prisma 8 declara índices parciales en el propio schema, lo que eliminaría el riesgo de R2. Con la 7 ese riesgo se mantiene y está cubierto por pruebas y por una alternativa.
-- **Verificación pendiente:** la primera tarea de implementación instala `7.10.1` y confirma los tres puntos de configuración contra su documentación antes de escribir el schema.
+- **Confirmado contra la documentación (T005):**
+  - Prisma 7 no carga las variables de entorno por sí solo: `prisma.config.ts` usa `dotenv` con la ruta explícita de `.env.local`.
+  - La URL de la base va en `prisma.config.ts` (`datasource.url`), no en el schema, que solo declara el `provider`.
+  - `prisma generate` falla si `DATABASE_URL` no está definida, aunque no se conecte. El CI la define (T007).
+  - El adaptador se crea con `new PrismaPg({ connectionString })` y se pasa al cliente.
+  - La versión instalada es `7.10.1`, con el compilador de consultas habilitado. La sintaxis `uuid(7)` del schema es válida (`prisma validate`).
+- **Verificado tras T018:** el cliente generado compila con el `target` ES2017 de `tsconfig.json`; `npm run typecheck` pasa sin cambios en la configuración de TypeScript.
+- **Puerto de la base local:** el contenedor se publica en el puerto 5433 porque un PostgreSQL instalado en Windows ocupaba el 5432 y las conexiones llegaban al servidor equivocado (error `P1000` de autenticación).
+- **Fuentes:** [referencia del archivo de configuración](https://www.prisma.io/docs/orm/v7/reference/prisma-config-reference), [guía de PostgreSQL](https://www.prisma.io/docs/v7/prisma-orm/quickstart/postgresql) y [guía de actualización a Prisma 7](https://www.prisma.io/docs/guides/upgrade-prisma-orm/v7).
 - **Alternativa descartada:** el generador anterior `prisma-client-js`. Está en retirada y generaba el cliente dentro de `node_modules`.
 - **Fuentes consultadas:** [guía oficial de PostgreSQL](https://www.prisma.io/docs/v7/prisma-orm/quickstart/postgresql) y [agregar Prisma a un proyecto existente](https://www.prisma.io/docs/v7/prisma-orm/add-to-existing-project/postgresql).
 
@@ -25,6 +33,8 @@ La spec exige que el propio modelo rechace las violaciones (FR-005, FR-027). Se 
 - **En el schema de Prisma:** tablas, columnas, enumeraciones, claves foráneas (incluidas las compuestas), unicidades simples y compuestas, e índices comunes.
 - **En el SQL de la migración, a mano:** restricciones `CHECK` e índices únicos parciales, que Prisma no puede declarar.
 - **En la aplicación (fuera de este paso):** las reglas que cruzan entidades o dependen de un flujo, listadas en los supuestos de la spec.
+
+**Resultado de la verificación (T019, Prisma 7.10.1):** una segunda migración generada con `--create-only` salió vacía. Prisma no propone eliminar los `CHECK` ni los índices parciales escritos a mano, así que la alternativa de la columna marcadora no hace falta por ahora. Las pruebas de integración siguen siendo la red de seguridad si una versión futura cambia ese comportamiento.
 
 **Riesgo conocido y mitigación:** Prisma puede tratar los índices parciales escritos a mano como diferencias respecto del schema y proponer eliminarlos en la próxima migración. Las restricciones `CHECK` no suelen verse afectadas. Por eso:
 - La primera tarea de implementación comprueba cómo se comporta la versión instalada con una segunda migración vacía.
@@ -74,6 +84,7 @@ La spec exige que el propio modelo rechace las violaciones (FR-005, FR-027). Se 
 ## R8. Asignaciones con historial
 
 - **Decisión:** una fila por período (clarificación 2). Unicidad parcial sobre `(membershipId, patientId)` donde `endedAt` es nulo, para impedir dos asignaciones activas de la misma pareja. `CHECK` de que `endedAt` y `endedByUserId` estén ambos presentes o ambos ausentes, y de que `endedAt` no sea anterior a `createdAt`.
+- **Reloj coherente (hallazgo de las pruebas):** `createdAt` toma por defecto la hora de la base (`CURRENT_TIMESTAMP`). Si la aplicación termina una asignación con su propio reloj, un desfase de milisegundos entre ambos puede violar `ended_at >= created_at`. Los casos de uso que creen y terminen asignaciones deben fijar `createdAt` y `endedAt` con el mismo reloj (el de la aplicación) en lugar de depender del valor por defecto de la base.
 - **Sin `updatedAt`:** la fila solo cambia al terminar, y ese momento ya queda en `endedAt`. Un campo adicional no aportaría información (FR-026 lo pide solo si la entidad puede modificarse de otra forma).
 
 ## R9. Borrado y estados

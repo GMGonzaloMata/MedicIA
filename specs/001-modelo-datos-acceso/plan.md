@@ -104,7 +104,9 @@ tests/
 
 ## Cambios de entorno asociados
 
-- `package.json`: dependencias nuevas.
+- `package.json`: dependencias nuevas (incluida `dotenv`) y los scripts `test:unit` y `test:integration`.
+- `tsconfig.json`: ajuste del `target` o exclusión de `generated/`, solo si T005 lo exige.
+- `memory/project-structure.md`: incluir `generated/prisma/`, `prisma.config.ts` y `docker-compose.yml`.
 - `vitest.config.mts`: archivo de preparación para el proyecto `integration`.
 - `.github/workflows/ci.yml`: servicio de PostgreSQL, generación del cliente y aplicación de migraciones en el job `check`, que hoy no tiene base de datos.
 - `.gitignore` y `eslint.config.mjs`: ignorar `generated/`.

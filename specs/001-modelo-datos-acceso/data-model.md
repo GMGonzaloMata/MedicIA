@@ -71,6 +71,7 @@ Registro de una persona dentro de una clínica.
   - `LINKED`: `userId`, `fullName` y `linkedAt` presentes; `revokedAt` nulo.
   - `REVOKED`: `userId`, `fullName`, `linkedAt` y `revokedAt` presentes.
   - `documentNumber` no vacío.
+  - `fullName`, si está presente, no vacío ni solo espacios.
 - **Índice:** `(userId)` para listar las clínicas de un paciente.
 - **No contiene:** fecha de nacimiento ni datos clínicos.
 - **Cubre:** FR-014 a FR-020.
@@ -125,6 +126,11 @@ Quedan fuera por decisión de la spec y se validarán en las funcionalidades que
 - Que una persona no sea personal y paciente de la misma clínica.
 - Que la asignación apunte a una membresía con rol de médico, activa, y a un paciente vinculado.
 - Que no se desactive al último administrador de una clínica.
+
+Reglas que deben cumplir los casos de uso y repositorios futuros, porque la base no las garantiza:
+- `createdByUserId` y `endedByUserId` de las asignaciones apuntan a cualquier cuenta de la plataforma. Se toman siempre de la sesión autenticada, nunca de la entrada del cliente.
+- Un paciente `REVOKED` conserva su `userId`, y una membresía `DEACTIVATED` o una clínica `SUSPENDED` siguen existiendo. Para autorizar hay que comprobar que el paciente esté `LINKED`, la membresía `ACTIVE` y la clínica `ACTIVE`, no solo que exista el vínculo.
+- Los repositorios no aceptan `isPlatformAdmin` ni `tenantId` en los datos de una actualización.
 
 ## Cómo se engancha lo que sigue
 

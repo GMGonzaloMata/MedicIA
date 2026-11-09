@@ -1,0 +1,24 @@
+# PostgreSQL local para probar la aplicación y para las pruebas de integración.
+# Las pruebas vacían las tablas: no cargues acá datos que quieras conservar.
+# Se publica en el puerto 5433 porque muchas máquinas ya tienen un PostgreSQL propio en el 5432,
+# y en ese caso la conexión llegaría al equivocado. Si cambiás el puerto, cambiá también DATABASE_URL.
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: medicia-db
+    environment:
+      POSTGRES_USER: medicia
+      POSTGRES_PASSWORD: medicia
+      POSTGRES_DB: medicia
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - medicia-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U medicia -d medicia"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  medicia-db-data:

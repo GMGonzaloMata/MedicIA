@@ -1,0 +1,146 @@
+// Modelo de datos de acceso multi-clínica.
+// Las restricciones CHECK y los índices parciales no se declaran acá: se agregan a mano
+// en el SQL de la migración (ver specs/001-modelo-datos-acceso/data-model.md).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+
+  @@map("tenant_status")
+}
+
+enum MembershipStatus {
+  ACTIVE
+  DEACTIVATED
+
+  @@map("membership_status")
+}
+
+enum PatientStatus {
+  PENDING
+  LINKED
+  REVOKED
+
+  @@map("patient_status")
+}
+
+enum DocumentType {
+  DNI
+  PASSPORT
+  OTHER
+
+  @@map("document_type")
+}
+
+// Clínica: frontera de aislamiento de todos los datos clínicos.
+model Tenant {
+  id        String       @id @default(uuid(7)) @db.Uuid
+  name      String
+  status    TenantStatus @default(ACTIVE)
+  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  memberships StaffMembership[]
+  patients    Patient[]
+  assignments DoctorPatientAssignment[]
+
+  @@map("tenants")
+}
+
+// Cuenta de una persona, global a la plataforma. No guarda contraseñas ni tokens.
+model User {
+  id                String   @id @default(uuid(7)) @db.Uuid
+  cognitoSub        String   @unique @map("cognito_sub")
+  email             String   @unique
+  fullName          String   @map("full_name")
+  isPlatformAdmin   Boolean  @default(false) @map("is_platform_admin")
+  sessionsValidFrom DateTime @default(now()) @map("sessions_valid_from") @db.Timestamptz(3)
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  memberships        StaffMembership[]
+  patients           Patient[]
+  assignmentsCreated DoctorPatientAssignment[] @relation("AssignmentCreatedBy")
+  assignmentsEnded   DoctorPatientAssignment[] @relation("AssignmentEndedBy")
+
+  @@map("users")
+}
+
+// Pertenencia de una cuenta al personal de una clínica.
+model StaffMembership {
+  id            String           @id @default(uuid(7)) @db.Uuid
+  tenantId      String           @map("tenant_id") @db.Uuid
+  userId        String           @map("user_id") @db.Uuid
+  isClinicAdmin Boolean          @default(false) @map("is_clinic_admin")
+  isDoctor      Boolean          @default(false) @map("is_doctor")
+  specialty     String?
+  licenseNumber String?          @map("license_number")
+  status        MembershipStatus @default(ACTIVE)
+  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  tenant      Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  user        User                      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  assignments DoctorPatientAssignment[]
+
+  @@unique([tenantId, userId])
+  @@unique([tenantId, licenseNumber])
+  @@unique([tenantId, id])
+  @@index([userId])
+  @@map("staff_memberships")
+}
+
+// Registro de una persona dentro de una clínica. Solo guarda documento y nombre.
+model Patient {
+  id             String        @id @default(uuid(7)) @db.Uuid
+  tenantId       String        @map("tenant_id") @db.Uuid
+  userId         String?       @map("user_id") @db.Uuid
+  documentType   DocumentType  @map("document_type")
+  documentNumber String        @map("document_number")
+  fullName       String?       @map("full_name")
+  status         PatientStatus @default(PENDING)
+  linkedAt       DateTime?     @map("linked_at") @db.Timestamptz(3)
+  revokedAt      DateTime?     @map("revoked_at") @db.Timestamptz(3)
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  tenant      Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  user        User?                     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  assignments DoctorPatientAssignment[]
+
+  @@unique([tenantId, documentType, documentNumber])
+  @@unique([tenantId, userId])
+  @@unique([tenantId, id])
+  @@index([userId])
+  @@map("patients")
+}
+
+// Un período de atención de un paciente por un médico. Las terminadas se conservan como historial.
+model DoctorPatientAssignment {
+  id              String    @id @default(uuid(7)) @db.Uuid
+  tenantId        String    @map("tenant_id") @db.Uuid
+  membershipId    String    @map("membership_id") @db.Uuid
+  patientId       String    @map("patient_id") @db.Uuid
+  createdByUserId String    @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  endedAt         DateTime? @map("ended_at") @db.Timestamptz(3)
+  endedByUserId   String?   @map("ended_by_user_id") @db.Uuid
+
+  tenant     Tenant          @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  membership StaffMembership @relation(fields: [tenantId, membershipId], references: [tenantId, id], onDelete: Restrict)
+  patient    Patient         @relation(fields: [tenantId, patientId], references: [tenantId, id], onDelete: Restrict)
+  createdBy  User            @relation("AssignmentCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  endedBy    User?           @relation("AssignmentEndedBy", fields: [endedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, membershipId, patientId, createdAt])
+  @@map("doctor_patient_assignments")
+}
