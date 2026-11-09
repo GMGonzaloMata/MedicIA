@@ -1,3 +1,17 @@
+<!--
+Sync Impact Report (temporal: se elimina antes del commit)
+- Version change: 1.6.0 -> 1.6.1 (PATCH)
+- Motivo del PATCH: 1.6.0 incorporó Terraform en `infra/` sin contemplar que `terraform test`
+  solo lee pruebas dentro del directorio de su configuración (verificado con `-test-directory`
+  apuntando fuera del módulo). La enmienda completa esa regla sin cambiar ningún principio.
+- Principios modificados: ninguno.
+- Secciones modificadas: "Flujo de desarrollo y controles de calidad" (regla de ubicación de pruebas).
+- Secciones agregadas: ninguna.
+- Secciones eliminadas: ninguna.
+- Documentos sincronizados: `memory/project-structure.md` (regla "Tests").
+- TODOs pendientes: ninguno.
+-->
+
 # MedicIA Constitution
 
 ## Core Principles
@@ -100,7 +114,7 @@ a los pacientes y a las instituciones.
   - **Tareas complejas:** las que tocan reglas de negocio, casos de uso, estados de análisis, autorización, persistencia o integraciones externas. El código nuevo o modificado DEBE alcanzar al menos 80 % de cobertura de líneas.
   - **Cambios simples:** estilos, textos o ajustes visuales sin lógica. NO requieren pruebas nuevas.
 - Toda operación sobre datos de una clínica DEBE tener una prueba de integración que verifique el rechazo del acceso desde otra clínica.
-- Todas las pruebas DEBEN ubicarse en `tests/`, incluidas las unitarias.
+- Todas las pruebas DEBEN ubicarse en `tests/`, incluidas las unitarias. Excepción: las pruebas de Terraform (`.tftest.hcl`) DEBEN ubicarse en la carpeta `tests/` de su propio módulo o raíz dentro de `infra/`, porque `terraform test` solo lee pruebas dentro del directorio de su configuración.
 - Solo el responsable del proyecto ejecuta, desde su terminal, `git commit` y los comandos de Prisma `migrate`, `db` y `generate`. Los agentes NO DEBEN ejecutarlos.
 
 ## Governance
@@ -127,4 +141,4 @@ aprobación del responsable del proyecto y actualizar los documentos de `memory/
 **Cumplimiento.** Toda revisión de planes y cambios DEBE verificar el cumplimiento de esta
 constitución. La complejidad adicional DEBE justificarse.
 
-**Version**: 1.6.0 | **Ratified**: 2026-11-04 | **Last Amended**: 2026-11-09
+**Version**: 1.6.1 | **Ratified**: 2026-11-04 | **Last Amended**: 2026-11-09

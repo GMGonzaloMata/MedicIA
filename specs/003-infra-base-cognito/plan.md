@@ -40,7 +40,7 @@ El enfoque técnico, resuelto en [research.md](research.md):
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-Constitución v1.6.0.
+Constitución v1.6.1.
 
 - **I. Apoyo clínico, no diagnóstico:** no aplica. No se genera ni presenta ningún resultado clínico.
 - **II. Aislamiento multi-tenant:** no aplica, no hay datos de clínicas. Se respeta el espíritu con mínimo privilegio: el usuario de la aplicación solo puede fijar contraseñas en un grupo, y el rol de CI no lee otros buckets, para no exponer datos clínicos futuros. **Pasa.**
@@ -51,6 +51,7 @@ Constitución v1.6.0.
 - **VIII. Código limpio, tipado y verificable:** no hay código de aplicación. El código HCL se verifica con formato, validación, `tflint`, `trivy` y pruebas. **Pasa.**
 - **Stack aprobado:** infraestructura con Terraform en `infra/`, con estado remoto cifrado y con bloqueo, nunca en git, y los comandos `apply`, `destroy`, `import` y `state` solo del responsable. **Pasa.**
 - **Flujo de calidad:** la funcionalidad sigue Spec Kit. `npm run check` no cambia, porque no se toca código de la aplicación. Las pruebas proporcionales al riesgo son las de Terraform, que cubren cada punto del contrato. Las pruebas de aislamiento entre clínicas no aplican. **Pasa.**
+- **Ubicación de las pruebas:** la regla de que todas las pruebas viven en `tests/` tiene una excepción para las de Terraform desde la v1.6.1, porque `terraform test` solo lee pruebas dentro del directorio de su configuración (verificado). Las de esta funcionalidad quedan en `infra/modules/identity/tests/` y `infra/bootstrap/tests/`. **Pasa.**
 - **Comandos reservados:** el plan no usa `git commit` ni comandos de Prisma. **Pasa.**
 
 **Resultado:** sin violaciones. No hace falta la sección de complejidad.
