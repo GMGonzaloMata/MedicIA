@@ -235,3 +235,25 @@ Se ejecutó la revisión de seguridad (`security-reviewer`) y la de infraestruct
 - `environments/dev`: 1 cambio en el lugar (el límite en `medicia-dev-app`). `aws iam get-user` devuelve `medicia-dev-boundary`.
 - Prueba directa del `Deny`: `iam:CreatePolicyVersion` sobre la política del operador desde `terraform-dev` falla con "explicit deny in an identity-based policy".
 - `iam:SimulatePrincipalPolicy` ya no está permitido para `terraform-dev` (antes lo cubría `AdministratorAccess`). No se agregó: las simulaciones requieren la vía de administración.
+
+### T051: segunda revisión de seguridad (2026-11-09)
+
+Sin hallazgos bloqueantes: el operador ya no puede escalar por IAM (crear usuarios o roles sin límite, quitar límites, editar sus políticas, `PassRole`, `Attach*`). Dos importantes y tres sugerencias:
+
+- **Corregido: el operador podía escribir la política del bucket del estado** (`s3:PutBucketPolicy`, `s3:DeleteBucketPolicy`, `s3:PutBucketPublicAccessBlock`). Con eso podía darse acceso al estado, que contiene secretos, saltándose el límite (el límite no recorta lo que concede una política de recurso a un usuario). Se quitaron del Allow: esos cambios van por la vía de administración. Prueba nueva `operador_sin_vias_laterales_de_escalada`, con mutación verificada.
+- **Corregido: la guarda de "no aplicar"** leía solo `*.yml`. Ahora lee `.yml` y `.yaml` y suma `refresh`, `taint`, `untaint` y `workspace new|delete`. Limitación conocida: no detecta un comando partido en dos líneas.
+- **Corregido: prueba de comodines** que ahora rechaza cualquier `*` salvo `cognito-idp:*` (antes dejaba pasar `iam:Create*`).
+- **Decisión:** `iam:UpdateAssumeRolePolicy` pasó fuera de la condición del límite, porque no hay certeza de que IAM admita `iam:PermissionsBoundary` en esa acción y es seguro igual (todo rol `medicia-dev-*` nace con el límite). Si IAM no la informa, el cambio del sujeto de GitHub habría fallado con `AccessDenied`.
+- **Aceptado, para más adelante:** un solo límite para dos principales hace que el techo de cada uno sea la suma de ambos (el operador podría darle al rol de plan `AdminSetUserPassword`, o a la app lectura del estado). Separar en dos límites antes de producción.
+- **Aceptado, para más adelante:** la vía de administración pone `AdministratorAccess` a `terraform-dev`, cuya clave no usa MFA. Reemplazarla por un rol de administración con MFA, fuera del prefijo.
+- **A validar en la cuenta:** que no exista ningún usuario o rol `medicia-dev-*` sin el límite (el operador puede crear claves para cualquiera de ellos), y que `terraform-dev` no tenga otras políticas ni grupos.
+- La revisión de infraestructura sigue sin poder correr con el `infra-reviewer` oficial (no registrado en esta sesión); se usó un agente general con sus criterios.
+
+### Corrección: la vía de administración (2026-11-09)
+
+El procedimiento documentado ("adjuntar `AdministratorAccess` a `terraform-dev`") era incorrecto. Al intentar aplicar la corrección de la política del operador con `AdministratorAccess` puesto, el `apply` falló con "explicit deny in an identity-based policy": el `Deny` de la política del operador gana incluso a `AdministratorAccess`. Lo correcto es **reemplazar** la política del operador por `AdministratorAccess` durante el cambio y volver a adjuntar la del operador al terminar. Corregido en `infra/README.md`. El fallo no dejó cambios (el `apply` se rechazó antes de modificar), y confirma que el `Deny` funciona.
+
+### Segunda tanda de seguridad aplicada (2026-11-09)
+
+- Aplicada con la vía de administración corregida (política del operador reemplazada por `AdministratorAccess` durante el cambio y restaurada después). La política del operador ya no incluye `s3:PutBucketPolicy`, `s3:DeleteBucketPolicy` ni `s3:PutBucketPublicAccessBlock`, y `iam:UpdateAssumeRolePolicy` quedó sin condición.
+- Con `terraform-dev` otra vez solo con `medicia-dev-terraform-operator`: `plan` de `infra/bootstrap` y de `infra/environments/dev` dan "No changes".

@@ -145,8 +145,9 @@ jobs:
 
       - name: Guarda de no aplicar (FR-018)
         run: |
-          # Admite opciones entre terraform y el subcomando, como -chdir=...
-          if grep -nE 'terraform([[:space:]]+-[^[:space:]]+)*[[:space:]]+(apply|destroy|import|state|force-unlock)([[:space:]]|$)' .github/workflows/*.yml; then
+          # Admite opciones entre terraform y el subcomando, como -chdir=..., y los archivos .yml y .yaml.
+          # Cubre también subcomandos que escriben el estado. No detecta un comando partido en dos líneas.
+          if grep -rnE --include='*.yml' --include='*.yaml' 'terraform([[:space:]]+-[^[:space:]]+)*[[:space:]]+(apply|destroy|import|state|force-unlock|refresh|taint|untaint|workspace[[:space:]]+(new|delete))([[:space:]]|$)' .github/workflows; then
             echo "::error::Los flujos no pueden aplicar, destruir, importar ni tocar el estado."
             exit 1
           fi

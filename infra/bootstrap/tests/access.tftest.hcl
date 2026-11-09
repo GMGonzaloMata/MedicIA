@@ -157,7 +157,7 @@ run "politica_del_operador_sin_comodines" {
   assert {
     condition = alltrue([
       for a in flatten([for s in jsondecode(aws_iam_policy.operator.policy).Statement : s.Action]) :
-      a != "*" && !startswith(a, "*") && (!endswith(a, ":*") || a == "cognito-idp:*")
+      !strcontains(a, "*") || a == "cognito-idp:*"
     ])
     error_message = "El operador no puede tener acciones ni servicios con comodín, salvo cognito-idp:*."
   }
@@ -299,7 +299,6 @@ run "operador_solo_crea_o_modifica_con_limite" {
           "iam:CreateRole",
           "iam:PutUserPolicy",
           "iam:PutRolePolicy",
-          "iam:UpdateAssumeRolePolicy",
           "iam:PutUserPermissionsBoundary",
           "iam:PutRolePermissionsBoundary",
         ], a)
@@ -348,3 +347,25 @@ run "operador_no_edita_sus_politicas_de_acceso" {
     error_message = "Debe haber un Deny de quitar el límite de permisos a usuarios y roles."
   }
 }
+
+# Acciones que permitirían darse acceso por una vía lateral: la política del bucket del estado
+# (el estado contiene secretos), pasar roles o adjuntar políticas administradas.
+run "operador_sin_vias_laterales_de_escalada" {
+  command = plan
+
+  assert {
+    condition = alltrue([
+      for a in flatten([
+        for s in jsondecode(aws_iam_policy.operator.policy).Statement : s.Action if s.Effect == "Allow"
+      ]) :
+      !contains([
+        "s3:PutBucketPolicy",
+        "s3:DeleteBucketPolicy",
+        "s3:PutBucketPublicAccessBlock",
+        "iam:PassRole",
+      ], a) && !startswith(a, "iam:Attach") && !startswith(a, "iam:Detach")
+    ])
+    error_message = "El operador no puede escribir la política del bucket del estado, pasar roles ni adjuntar políticas administradas."
+  }
+}
+

@@ -26,12 +26,13 @@ resource "aws_iam_policy" "operator" {
     Version = "2012-10-17"
     Statement = [
       {
-        # Infra/bootstrap administra el propio bucket: el plan lee toda su configuración
-        # y el apply la modifica. Sin crear ni borrar el bucket (eso queda protegido).
+        # Infra/bootstrap administra el propio bucket: el plan lee toda su configuración y el apply
+        # cambia versionado, cifrado, etiquetas y ciclo de vida. La política del bucket y el bloqueo de
+        # acceso público NO están acá: con ellas el operador podría darse acceso al estado (que contiene
+        # secretos) saltándose el límite. Esos cambios van por la vía de administración (README).
         Sid    = "GestionarElBucketDelEstado"
         Effect = "Allow"
         Action = [
-          "s3:DeleteBucketPolicy",
           "s3:GetAccelerateConfiguration",
           "s3:GetBucketAcl",
           "s3:GetBucketCORS",
@@ -49,8 +50,6 @@ resource "aws_iam_policy" "operator" {
           "s3:GetLifecycleConfiguration",
           "s3:GetReplicationConfiguration",
           "s3:ListBucket",
-          "s3:PutBucketPolicy",
-          "s3:PutBucketPublicAccessBlock",
           "s3:PutBucketTagging",
           "s3:PutBucketVersioning",
           "s3:PutEncryptionConfiguration",
@@ -134,19 +133,20 @@ resource "aws_iam_policy" "operator" {
           "iam:ListRoleTags",
           "iam:TagRole",
           "iam:UntagRole",
+          "iam:UpdateAssumeRolePolicy",
           "iam:UpdateRole",
         ]
         Resource = ["arn:aws:iam::${var.account_id}:role/${local.iam_prefix}*"]
       },
       {
-        # Crear un rol, darle una política, cambiar quién lo asume o ponerle un límite solo se permite con la política límite.
+        # Crear un rol, darle una política o ponerle un límite solo se permite con la política límite.
+        # Cambiar quién asume un rol (UpdateAssumeRolePolicy) no lleva condición: todo rol medicia-dev-* nace con el límite.
         Sid    = "CrearRolesIamConLimite"
         Effect = "Allow"
         Action = [
           "iam:CreateRole",
           "iam:PutRolePermissionsBoundary",
           "iam:PutRolePolicy",
-          "iam:UpdateAssumeRolePolicy",
         ]
         Resource = ["arn:aws:iam::${var.account_id}:role/${local.iam_prefix}*"]
         Condition = {
