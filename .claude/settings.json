@@ -43,7 +43,23 @@
       "PowerShell(npx prisma generate *)",
       "PowerShell(prisma migrate *)",
       "PowerShell(prisma db *)",
-      "PowerShell(prisma generate *)"
+      "PowerShell(prisma generate *)",
+      "Bash(terraform apply *)",
+      "Bash(terraform destroy *)",
+      "Bash(terraform import *)",
+      "Bash(terraform state *)",
+      "Bash(tofu apply *)",
+      "Bash(tofu destroy *)",
+      "Bash(tofu import *)",
+      "Bash(tofu state *)",
+      "PowerShell(terraform apply *)",
+      "PowerShell(terraform destroy *)",
+      "PowerShell(terraform import *)",
+      "PowerShell(terraform state *)",
+      "PowerShell(tofu apply *)",
+      "PowerShell(tofu destroy *)",
+      "PowerShell(tofu import *)",
+      "PowerShell(tofu state *)"
     ]
   },
   "hooks": {

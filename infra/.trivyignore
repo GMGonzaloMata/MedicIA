@@ -1,0 +1,12 @@
+# Excepciones del análisis de seguridad (trivy). Cada una explica su motivo.
+# Se agregan solo con una justificación y se revisan al crear el entorno de producción.
+
+# AWS-0132: el bucket del estado usa cifrado SSE-S3 (AES256) y no una clave propia de KMS.
+# Una clave propia cuesta unos 1 USD al mes y rompería el objetivo de costo del entorno de
+# desarrollo (SC-007). El bucket es privado, versionado y exige TLS. Producción usará KMS (R3).
+AWS-0132
+
+# AWS-0089: el bucket del estado no registra sus accesos en otro bucket.
+# En desarrollo lo usa una sola persona y el registro duplicaría el almacenamiento y el costo.
+# Producción registrará los accesos con CloudTrail (R11).
+AWS-0089

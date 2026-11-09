@@ -1,6 +1,6 @@
 # Reglas comunes de revisión
 
-Estas reglas valen para los tres revisores de MedicIA, tanto en Claude Code como en Codex.
+Estas reglas valen para los revisores de MedicIA, tanto en Claude Code como en Codex.
 
 ## Límites
 

@@ -55,8 +55,11 @@
 
 ### Infraestructura como código
 
-- **Tecnología:** Terraform, gestionado en un repositorio separado.
+- **Tecnología:** Terraform, en la carpeta `infra/` de este repositorio.
 - **Responsabilidad:** Aprovisionar y gestionar los recursos de AWS; no participa en el procesamiento de cada solicitud.
+- **Estado:** vive en un backend remoto cifrado y con bloqueo, nunca en git. Cada entorno (desarrollo y producción) tiene el suyo.
+- **Comandos reservados:** `terraform apply`, `destroy`, `import` y `state` los ejecuta solo el responsable del proyecto.
+- **Revisión:** los cambios de `infra/` los revisa `infra-reviewer` (criterios en `.agents/reviewers/infrastructure.md`), y las skills `terraform-style-guide`, `terraform-test` y `terraform-skill` guían el estilo, las pruebas y el diagnóstico.
 
 ## 3. Flujo funcional
 

@@ -1,0 +1,92 @@
+# Acceso de solo lectura para el plan que corre en CI (FR-017, FR-018).
+# GitHub se identifica con un token de corta duración: no hay claves de AWS guardadas en GitHub.
+
+locals {
+  github_oidc_host = "token.actions.githubusercontent.com"
+
+  # Se arman con cadenas conocidas, no con atributos de otros recursos, para poder decodificarlos en las pruebas.
+  github_oidc_provider_arn = "arn:aws:iam::${var.account_id}:oidc-provider/${local.github_oidc_host}"
+}
+
+resource "aws_iam_openid_connect_provider" "github" {
+  url            = "https://${local.github_oidc_host}"
+  client_id_list = ["sts.amazonaws.com"]
+}
+
+resource "aws_iam_role" "plan" {
+  name        = "medicia-${var.environment}-plan"
+  description = "Plan de solo lectura de infra/ desde las propuestas de cambio de GitHub. No puede modificar nada."
+
+  # Sujeto y audiencia exactos con StringEquals: un repositorio renombrado o recreado no obtiene acceso.
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Principal = {
+          Federated = local.github_oidc_provider_arn
+        }
+        Condition = {
+          StringEquals = {
+            "${local.github_oidc_host}:aud" = "sts.amazonaws.com"
+            "${local.github_oidc_host}:sub" = var.github_oidc_subject
+          }
+        }
+      },
+    ]
+  })
+
+  depends_on = [aws_iam_openid_connect_provider.github]
+}
+
+resource "aws_iam_role_policy" "plan_read" {
+  name = "lectura-del-plan"
+  role = aws_iam_role.plan.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "ListarElBucketDelEstado"
+        Effect   = "Allow"
+        Action   = ["s3:ListBucket"]
+        Resource = [local.state_bucket_arn]
+      },
+      {
+        Sid      = "LeerElEstadoDelEntorno"
+        Effect   = "Allow"
+        Action   = ["s3:GetObject"]
+        Resource = ["${local.state_bucket_arn}/environments/${var.environment}/*"]
+      },
+      {
+        # Acciones que usa el refresco del grupo de usuarios y su cliente. Una por una, sin comodines.
+        Sid    = "LeerCognito"
+        Effect = "Allow"
+        Action = [
+          "cognito-idp:DescribeUserPool",
+          "cognito-idp:DescribeUserPoolClient",
+          "cognito-idp:GetUserPoolMfaConfig",
+          "cognito-idp:ListTagsForResource",
+          "cognito-idp:ListUserPoolClients",
+          "cognito-idp:ListUserPools",
+        ]
+        Resource = ["arn:aws:cognito-idp:${var.region}:${var.account_id}:userpool/*"]
+      },
+      {
+        # Acciones que usa el refresco del usuario de la aplicación, su política y su clave.
+        Sid    = "LeerIamDelEntorno"
+        Effect = "Allow"
+        Action = [
+          "iam:GetUser",
+          "iam:GetUserPolicy",
+          "iam:ListAccessKeys",
+          "iam:ListAttachedUserPolicies",
+          "iam:ListUserPolicies",
+          "iam:ListUserTags",
+        ]
+        Resource = ["arn:aws:iam::${var.account_id}:user/medicia-${var.environment}-*"]
+      },
+    ]
+  })
+}

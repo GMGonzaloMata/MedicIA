@@ -188,7 +188,7 @@ Las tareas T074 y T075 se agregaron después del análisis (speckit-analyze) y p
 - [X] T069 [P] Actualizar `memory/project-structure.md`: `proxy.ts` y `src/app/_lib/` en la estructura general, y la regla de que las cookies y las redirecciones viven en `src/app/`.
 - [X] T070 Ejecutar `npm run check` y corregir lo que falle. Confirmar la cobertura de al menos 80 % de líneas por archivo en `src/modules/users`, `src/infrastructure/aws/cognito` y `src/shared/utils`. Ejecutar `npm run test:e2e` y comprobar que pasa en los tres proyectos.
 - [X] T071 Revisar la interfaz en las seis combinaciones (escritorio, tablet y móvil, claro y oscuro): tokens semánticos sin colores fijos, foco visible, recorrido completo con teclado, errores con texto además de color, sin desbordes (constitución VII, FR-030). Corregir lo que falle.
-- [ ] T072 [Responsable] Verificar con un grupo de usuarios de Cognito de desarrollo, cuando exista (pasos de [quickstart.md](quickstart.md)). Registrar en `research.md` el resultado de los puntos marcados **a verificar**: SDK sin credenciales de AWS (R3), respuesta ante una cuenta sin verificar (R4) y cookie `Secure` en `http://localhost` (R10). Si algún resultado contradice el plan, volver a `speckit-plan`.
+- [X] T072 [Responsable] Verificar con un grupo de usuarios de Cognito de desarrollo, cuando exista (pasos de [quickstart.md](quickstart.md)). Registrar en `research.md` el resultado de los puntos marcados **a verificar**: SDK sin credenciales de AWS (R3), respuesta ante una cuenta sin verificar (R4) y cookie `Secure` en `http://localhost` (R10). Si algún resultado contradice el plan, volver a `speckit-plan`. Cerrada con la funcionalidad 003 (`specs/003-infra-base-cognito/`, T021 y T032) y verificada con el servicio real el 2026-11-09.
 - [X] T073 Ejecutar la guía de [quickstart.md](quickstart.md) y marcar cada recorrido. Informar lo que no se haya podido verificar (CI en GitHub y Cognito real).
 
 ---
@@ -201,10 +201,10 @@ Las tareas T074 y T075 se agregaron después del análisis (speckit-analyze) y p
 - [X] T077 Adaptador de Cognito: contraseña provisional aleatoria en `SignUpCommand` y `AdminSetUserPassword` (`Permanent: true`) tras `ConfirmSignUp`. Proveedor simulado con la misma semántica.
 - [X] T078 Pantallas: quitar la contraseña de `/sign-up` y pedirla junto con el código en el segundo paso y en `/verify-email`. Acciones `sign-up` y `confirm-account`.
 - [X] T079 Pruebas: regresión del pre-secuestro con el simulado (el intruso se registra primero, la dueña verifica; la contraseña del intruso falla y la de la dueña sirve), adaptador de Cognito, esquemas, casos de uso y E2E de registro.
-- [ ] T080 [Responsable] Agregar `cognito-idp:AdminSetUserPassword` al rol del servidor (Terraform) y disponer credenciales de AWS en desarrollo antes de probar con Cognito real (T072).
+- [X] T080 [Responsable] Agregar `cognito-idp:AdminSetUserPassword` al rol del servidor (Terraform) y disponer credenciales de AWS en desarrollo antes de probar con Cognito real (T072). Cerrada con la funcionalidad 003 (`specs/003-infra-base-cognito/`, T021 y T032) y verificada con el servicio real el 2026-11-09.
 - [X] T081 Repetir la contraseña al elegirla (verificación y restablecimiento) con coincidencia exacta, validada en el esquema.
 - [X] T082 Política de contraseña de 8 a 128 caracteres con al menos una mayúscula, en `src/modules/users/domain/password-policy.ts` (R13): esquemas, proveedor simulado, mensajes y contraseña provisional de Cognito.
-- [ ] T083 [Responsable] Configurar el grupo de usuarios de Cognito con la misma política cuando se cree: longitud mínima 8, exigir mayúsculas y nada más.
+- [X] T083 [Responsable] Configurar el grupo de usuarios de Cognito con la misma política cuando se cree: longitud mínima 8, exigir mayúsculas y nada más. Cerrada con la funcionalidad 003 (`specs/003-infra-base-cognito/`, T021 y T032) y verificada con el servicio real el 2026-11-09.
 
 ---
 
