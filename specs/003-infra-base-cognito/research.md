@@ -163,3 +163,15 @@ Se registran a medida que se cierran las tareas de [tasks.md](tasks.md).
   - **Aserciones con conjuntos:** las listas de atributos y flujos se comparan con `toset(...)`, porque comparar una lista con una tupla literal falla por tipos.
   - **Plan real de solo lectura contra AWS (`environments/dev`):** `Plan: 5 to add, 0 to change, 0 to destroy`. Crea el grupo (`medicia-dev`, nivel `ESSENTIALS`, protección `ACTIVE`, sin segundo factor), el cliente (con secreto, solo `ALLOW_USER_PASSWORD_AUTH`, token de identidad de 5 minutos, `prevent_user_existence_errors` en `ENABLED`), el usuario `medicia-dev-app`, su política y su clave de acceso. El proveedor real aceptó todos los valores, incluido el esquema de atributos con restricciones de longitud.
   - **Bloqueo de versiones:** `.terraform.lock.hcl` con `hashicorp/aws` 6.72.0 y los hashes de Linux y Windows en `bootstrap`, `environments/dev` y también en `modules/identity`, para que la prueba del módulo en CI use la misma versión.
+- **T027 a T029, servicio de identidad creado (2026-11-09):**
+  - **Aplicación:** el responsable aplicó `environments/dev` con `5 to add, 0 to change, 0 to destroy` (grupo, cliente, usuario, política y clave de acceso).
+  - **Repetición:** `terraform plan -detailed-exitcode` informa `No changes` y código de salida 0 (SC-002). El bloque `schema` no genera cambios perpetuos: queda resuelto ese pendiente de R6.
+  - **Cognito real, consultado en solo lectura:**
+    - Hay 1 grupo en `sa-east-1` con 1 cliente, y no tiene dominio (`Domain` nulo): no existe interfaz alojada (FR-010).
+    - Grupo: nivel `ESSENTIALS`, `DeletionProtection` en `ACTIVE`, `MfaConfiguration` en `OFF`, ingreso con `email` y verificación automática de `email`, sin distinguir mayúsculas (`CaseSensitive` en `false`), registro abierto (`AllowAdminCreateUserOnly` en `false`).
+    - Contraseña: mínimo 8, `RequireUppercase` en `true` y las otras tres reglas en `false`, igual que la política de la aplicación.
+    - Atributos obligatorios: `email` y `name`; `sub` aparece también porque Cognito lo exige siempre.
+    - Cliente: único, con secreto, solo `ALLOW_USER_PASSWORD_AUTH`, `PreventUserExistenceErrors` en `ENABLED` y token de identidad de 5 minutos.
+  - **Consola (verificado por el responsable):** un solo grupo `medicia-dev`, un solo cliente `medicia-dev-app`, sin dominio. El usuario IAM `medicia-dev-app` tiene una única política en línea (`cognito-set-user-password`), sin acceso a la consola y con una clave de acceso activa y sin usar.
+  - **Pendiente con el servicio real:** que `USER_PASSWORD_AUTH` funcione en el nivel `ESSENTIALS` en un ingreso real. Se comprueba en T032.
+  - **Detalle nuevo:** la consola de Cognito tiene una pestaña "Secretos del cliente", que permite administrar secretos sin recrear el cliente. Se evalúa para la guía de recuperación del secreto (T047).
