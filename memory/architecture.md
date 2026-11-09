@@ -57,7 +57,10 @@
 
 - **Tecnología:** Terraform, en la carpeta `infra/` de este repositorio.
 - **Responsabilidad:** Aprovisionar y gestionar los recursos de AWS; no participa en el procesamiento de cada solicitud.
-- **Estado:** vive en un backend remoto cifrado y con bloqueo, nunca en git. Cada entorno (desarrollo y producción) tiene el suyo.
+- **Estado:** vive en un bucket de S3 privado, cifrado, versionado y con bloqueo nativo, nunca en git. Cada entorno (desarrollo y producción) tiene el suyo. El estado contiene secretos (el secreto del cliente de Cognito y la clave de la aplicación), así que su acceso se limita a lo mínimo.
+- **Organización:** `infra/bootstrap/` crea el bucket del estado y los accesos; `infra/modules/identity/` define el servicio de identidad; `infra/environments/dev/` es el entorno de desarrollo.
+- **Revisión en CI:** el flujo `.github/workflows/infra.yml` corre en cambios de `infra/`. Un trabajo estático, sin credenciales de AWS, comprueba formato, validación, `tflint`, pruebas, `trivy` y guardas. Un trabajo de plan, solo en propuestas de este repositorio, asume por OIDC un rol de solo lectura y muestra el plan. Ningún flujo aplica cambios.
+- **Accesos:** la aplicación local usa un usuario de IAM que solo puede fijar contraseñas en el grupo de usuarios; el responsable aplica con una política de mínimo privilegio (`medicia-dev-terraform-operator`), no con permisos de administrador.
 - **Comandos reservados:** `terraform apply`, `destroy`, `import` y `state` los ejecuta solo el responsable del proyecto.
 - **Revisión:** los cambios de `infra/` los revisa `infra-reviewer` (criterios en `.agents/reviewers/infrastructure.md`), y las skills `terraform-style-guide`, `terraform-test` y `terraform-skill` guían el estilo, las pruebas y el diagnóstico.
 
