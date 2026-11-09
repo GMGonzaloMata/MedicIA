@@ -36,6 +36,8 @@ La spec exige que el propio modelo rechace las violaciones (FR-005, FR-027). Se 
 
 **Resultado de la verificación (T019, Prisma 7.10.1):** una segunda migración generada con `--create-only` salió vacía. Prisma no propone eliminar los `CHECK` ni los índices parciales escritos a mano, así que la alternativa de la columna marcadora no hace falta por ahora. Las pruebas de integración siguen siendo la red de seguridad si una versión futura cambia ese comportamiento.
 
+**Verificación repetida (2026-11-09, funcionalidad 002, T008):** con la tabla `sessions` y sus cinco `CHECK` ya aplicados, una nueva migración con `--create-only` volvió a salir vacía (`-- This is an empty migration.`). Prisma 7.10.1 sigue sin proponer eliminar las restricciones manuales.
+
 **Riesgo conocido y mitigación:** Prisma puede tratar los índices parciales escritos a mano como diferencias respecto del schema y proponer eliminarlos en la próxima migración. Las restricciones `CHECK` no suelen verse afectadas. Por eso:
 - La primera tarea de implementación comprueba cómo se comporta la versión instalada con una segunda migración vacía.
 - Cada restricción manual tiene su prueba de integración (SC-006), de modo que una eliminación accidental hace fallar la verificación.

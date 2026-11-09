@@ -9,7 +9,9 @@ Organizar la plataforma como un **monolito modular con Next.js full-stack**, sig
 ```
 /
 ├── src/
+│   ├── proxy.ts                   # Comprobación optimista de sesión (no consulta la base)
 │   ├── app/                       # Next.js App Router
+│   │   ├── _lib/                  # Cookie de sesión y contexto de acceso para pantallas y acciones
 │   │   ├── (auth)/                # Pantallas de acceso
 │   │   ├── (dashboard)/           # Pantallas de la plataforma
 │   │   └── api/v1/               # API REST (Route Handlers)
@@ -84,6 +86,7 @@ src/modules/studies/
 - **`app/`** contiene rutas, layouts, Server Components, Server Actions y Route Handlers; no concentra lógica de negocio.
 - **`modules/`** organiza el negocio por capacidades. Los casos de uso coordinan operaciones; el dominio no depende de Next.js, Prisma ni SDK de AWS.
 - **`infrastructure/`** contiene integraciones compartidas. Los adaptadores específicos de un módulo pueden permanecer dentro de ese módulo.
+- **Cookies y redirecciones** viven solo en `src/app/` (Server Actions, Route Handlers y `_lib/`). Los módulos no importan `next/*`: reciben y devuelven datos simples.
 - **Prisma** se reutiliza mediante un cliente compartido por proceso; las consultas del negocio se encapsulan donde corresponda.
 - **Multi-tenancy:** toda operación sensible valida la clínica autorizada. No se confía en el `tenant_id` enviado por el cliente.
 - **Modelos ML:** su entrenamiento y código Python/PyTorch viven en un proyecto o espacio de ML separado; esta aplicación consume inferencia mediante el adaptador de SageMaker.

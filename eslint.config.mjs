@@ -118,8 +118,9 @@ const eslintConfig = defineConfig([
     },
   },
   namingRule(["**/*.{ts,tsx}"]),
-  // Los SDK de AWS definen sus parámetros en PascalCase.
-  namingRule(["src/**/infrastructure/**/*.ts"], [
+  // Los SDK de AWS definen sus parámetros en PascalCase, y los tokens de Cognito sus campos en
+  // snake_case. Las pruebas de ese adaptador construyen esos mismos datos.
+  namingRule(["src/**/infrastructure/**/*.ts", "tests/unit/infrastructure/aws/**/*.ts"], [
     { selector: "objectLiteralProperty", format: null },
   ]),
   presentationRule,

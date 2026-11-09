@@ -1,4 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
+import { config as loadEnvFile } from "dotenv";
+
+// Las pruebas E2E leen DATABASE_URL de .env.local para preparar datos; en CI viene del entorno.
+loadEnvFile({ path: ".env.local", quiet: true });
 
 const BASE_URL = "http://localhost:3000";
 const BUILD_TIMEOUT_MS = 180_000;
@@ -26,5 +30,11 @@ export default defineConfig({
     url: BASE_URL,
     reuseExistingServer: !isContinuousIntegration,
     timeout: BUILD_TIMEOUT_MS,
+    // El servidor de pruebas usa el proveedor de identidad simulado, sin AWS, y la misma base
+    // local que las pruebas de integración.
+    env: {
+      IDENTITY_PROVIDER: "fake",
+      ...(process.env.DATABASE_URL ? { DATABASE_URL: process.env.DATABASE_URL } : {}),
+    },
   },
 });
