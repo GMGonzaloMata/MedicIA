@@ -113,6 +113,18 @@ describe("confirmAccountSchema y resetPasswordSchema", () => {
     expect(result.success).toBe(isAllowed);
   });
 
+  it("muestra una sola vez el mensaje de la política aunque se incumplan varias partes", () => {
+    const result = confirmAccountSchema.safeParse({
+      email: "a@example.com",
+      code: "123456",
+      password: "corta",
+      passwordConfirmation: "corta",
+    });
+    const messages = result.error?.issues.map((issue) => issue.message) ?? [];
+
+    expect(messages).toHaveLength(1);
+  });
+
   it("rechaza una contraseña repetida que no coincide, y marca el campo de la repetición", () => {
     const confirm = confirmAccountSchema.safeParse({
       email: "a@example.com",

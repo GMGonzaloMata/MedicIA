@@ -4,7 +4,7 @@ import {
   PASSWORD_MAX_LENGTH,
   PASSWORD_MIN_LENGTH,
   PASSWORD_POLICY_HINT,
-  hasUppercaseLetter,
+  meetsPasswordPolicy,
 } from "../../domain/password-policy";
 
 export { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, PASSWORD_POLICY_HINT };
@@ -27,9 +27,9 @@ const fullNameField = z
 // La política se aplica al elegir una contraseña, no al ingresar con una existente.
 const newPasswordField = z
   .string()
-  .min(PASSWORD_MIN_LENGTH, { error: `La contraseña debe tener ${PASSWORD_POLICY_HINT.toLowerCase()}` })
-  .max(PASSWORD_MAX_LENGTH, { error: `La contraseña debe tener ${PASSWORD_POLICY_HINT.toLowerCase()}` })
-  .refine(hasUppercaseLetter, { error: `La contraseña debe tener ${PASSWORD_POLICY_HINT.toLowerCase()}` })
+  // Una sola regla para toda la política, para que una contraseña que incumple varias partes
+  // muestre el mensaje una vez y no repetido.
+  .refine(meetsPasswordPolicy, { error: `La contraseña debe tener ${PASSWORD_POLICY_HINT.toLowerCase()}` })
   // Cognito rechaza espacios al inicio o al final, y lo haría después de consumir el código (R18).
   .refine((value) => value === value.trim(), {
     error: "La contraseña no puede empezar ni terminar con espacios.",

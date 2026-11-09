@@ -38,14 +38,14 @@ Cada una intenta violar la regla y espera el rechazo, nombrando la restricción 
 
 ## Recorridos de punta a punta (E2E)
 
-1. **Registro:** `/sign-up` → código `000000` → mensaje de cuenta verificada → `/sign-in` (US1).
+1. **Registro:** `/sign-up` con nombre y correo → código `000000` y la contraseña elegida, repetida y con al menos 8 caracteres y una mayúscula (R18) → mensaje de cuenta verificada → `/sign-in` (US1).
 2. **Primer ingreso sin clínica:** ingresar con la cuenta nueva → `/no-access` con el mensaje de invitación (US2).
 3. **Una clínica:** con un vínculo creado en la base, ingresar entra directo a `/` mostrando la clínica (US2).
 4. **Varias clínicas:** ingresar muestra `/select-clinic`; elegir una; cambiar a otra desde el encabezado (US2).
 5. **Ruta protegida:** abrir `/` sin sesión redirige a `/sign-in?next=/`; tras ingresar vuelve a `/`. Un `next` externo (`https://...` o `//host`) se ignora (US3).
 6. **Pérdida de acceso en caliente:** con la sesión abierta, suspender la clínica en la base y recargar lleva a `/no-access` o a la selección (US3).
 7. **Cierre de sesión:** `signOut` lleva a `/sign-in` y la ruta protegida deja de abrirse (US4).
-8. **Recuperación:** `/forgot-password` → código `000000` → nueva contraseña → una sesión abierta en otro contexto del navegador deja de valer (US4).
+8. **Recuperación:** `/forgot-password` → código `000000` → nueva contraseña, repetida → una sesión abierta en otro contexto del navegador deja de valer (US4).
 9. **Mensajes uniformes:** el ingreso con un correo inexistente y con una contraseña incorrecta muestran el mismo texto (SC-004).
 10. **Interfaz:** cada pantalla se ve y se usa con teclado en escritorio, tablet y móvil, en modo claro y oscuro (FR-030).
 
