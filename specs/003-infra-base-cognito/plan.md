@@ -84,18 +84,22 @@ infra/
 ├── .tflint.hcl                    # Configuración de tflint con el complemento de AWS
 ├── .trivyignore                   # Excepciones del análisis, cada una con su motivo
 ├── bootstrap/                     # Se aplica una vez por cuenta
-│   ├── versions.tf                # Versión de Terraform y del proveedor
+│   ├── terraform.tf                # Versión de Terraform y del proveedor
 │   ├── providers.tf               # Región, allowed_account_ids y default_tags
 │   ├── variables.tf
+│   ├── locals.tf                  # Nombre del bucket del estado
 │   ├── state-bucket.tf            # Bucket del estado y su política
 │   ├── github-oidc.tf             # Proveedor de GitHub y rol de plan de solo lectura
 │   ├── operator-policy.tf         # Política del operador
 │   ├── outputs.tf
 │   ├── backend.tf.example         # Se copia a backend.tf en la fase 2 del arranque
+│   ├── tests/
+│   │   ├── state-bucket.tftest.hcl  # Pruebas del bucket del estado
+│   │   └── access.tftest.hcl        # Pruebas del rol de plan y la política del operador
 │   └── .terraform.lock.hcl
 ├── modules/
 │   └── identity/                  # Grupo de usuarios, cliente y usuario de la aplicación
-│       ├── versions.tf
+│       ├── terraform.tf
 │       ├── variables.tf
 │       ├── main.tf
 │       ├── outputs.tf
@@ -103,7 +107,7 @@ infra/
 │           └── identity.tftest.hcl
 └── environments/
     └── dev/                       # Raíz del entorno de desarrollo
-        ├── versions.tf
+        ├── terraform.tf
         ├── providers.tf
         ├── backend.tf             # Backend s3 con use_lockfile
         ├── main.tf                # Llama a modules/identity

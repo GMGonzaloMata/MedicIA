@@ -31,7 +31,7 @@
 
 ## Notes
 
-- Esta funcionalidad es de infraestructura: nombra Terraform, la región de AWS y el servicio de identidad porque son el objeto mismo de la funcionalidad y vienen de la constitución v1.6.0 y del contrato de la 002. No se dictan nombres de recursos, estructura de módulos ni el backend concreto: eso queda para el plan.
+- Esta funcionalidad es de infraestructura: nombra Terraform, la región de AWS y el servicio de identidad porque son el objeto mismo de la funcionalidad y vienen de la constitución v1.6.1 y del contrato de la 002. No se dictan nombres de recursos, estructura de módulos ni el backend concreto: eso queda para el plan.
 - El único usuario directo es el responsable del proyecto, por lo que "no técnico" se interpreta como legible sin conocer el código de Terraform.
 - Ningún criterio de éxito depende de una tecnología concreta, salvo el costo mensual (SC-007) y el recorrido de la funcionalidad 002 (SC-006), que son verificables desde afuera.
 - Sin marcadores de aclaración: los supuestos (región, cuenta de desarrollo, un solo operador, secreto en el archivo local de entorno) están registrados en la sección Assumptions y pueden refinarse en `speckit-clarify`.

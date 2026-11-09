@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: User description: "Infraestructura base como código (carpeta `infra/` de este repositorio). Primera entrega: que el responsable del proyecto pueda crear y mantener, de forma reproducible y revisable, el entorno de desarrollo en AWS con el almacenamiento remoto, cifrado y con bloqueo, del estado de la infraestructura, y el servicio de identidad (grupo de usuarios de Amazon Cognito) configurado exactamente como exige el contrato de la funcionalidad 002, sin guardar secretos en el repositorio, con las reglas de la constitución v1.6.0 y con revisión automática en CI. Quedan fuera: S3 de estudios, RDS, EC2, SageMaker, el entorno de producción, el correo con SES y el dominio."
+**Input**: User description: "Infraestructura base como código (carpeta `infra/` de este repositorio). Primera entrega: que el responsable del proyecto pueda crear y mantener, de forma reproducible y revisable, el entorno de desarrollo en AWS con el almacenamiento remoto, cifrado y con bloqueo, del estado de la infraestructura, y el servicio de identidad (grupo de usuarios de Amazon Cognito) configurado exactamente como exige el contrato de la funcionalidad 002, sin guardar secretos en el repositorio, con las reglas de la constitución v1.6.1 y con revisión automática en CI. Quedan fuera: S3 de estudios, RDS, EC2, SageMaker, el entorno de producción, el correo con SES y el dominio."
 
 ## Clarifications
 
@@ -167,7 +167,7 @@ Cada cambio dentro de `infra/` se revisa antes de llegar a la rama principal: co
 - **Identidad de trabajo del responsable:** hoy el perfil local de la cuenta usa una clave de acceso de la cuenta raíz, lo que no se admite: se borra esa clave y se crea un usuario IAM propio de Terraform, con segundo factor y una clave guardada solo en la máquina del responsable (nunca en el repositorio). Como la cuenta ya es de pago, se puede migrar a credenciales temporales (IAM Identity Center) en una etapa posterior.
 - **Un solo operador:** una única persona aplica la infraestructura, desde su máquina y con su identidad de trabajo. No hay despliegue automático.
 - **Dónde guarda la aplicación el secreto en desarrollo:** en el archivo local de entorno del responsable, que ya está excluido del repositorio. Un gestor de secretos se evalúa con el entorno de producción.
-- **Herramienta:** Terraform, según la constitución v1.6.0. El diseño de los módulos y el backend concreto se deciden en el plan.
+- **Herramienta:** Terraform, según la constitución v1.6.1. El diseño de los módulos y el backend concreto se deciden en el plan.
 - **Correo de verificación:** se usa el remitente por defecto del servicio de identidad, con su tope diario bajo. El correo con SES llega con la funcionalidad de invitaciones.
 - **Recursos fuera de alcance:** el almacenamiento de estudios, la base de datos, el servidor de la aplicación, la inferencia, el entorno de producción y el dominio propio se especifican por separado.
 - **Idioma:** los documentos y la guía están en español rioplatense.

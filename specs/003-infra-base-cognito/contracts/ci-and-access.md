@@ -20,10 +20,10 @@ No usa credenciales de AWS. Pasos, en orden:
 4. `tflint` con el complemento de AWS, en cada directorio.
 5. `terraform test` en `modules/identity`.
 6. `trivy config infra` y `trivy fs --scanners secret infra`, con `.trivyignore`.
-7. Búsqueda de archivos prohibidos: falla si `git ls-files` incluye `*.tfstate`, `*.tfstate.*`, `*.tfplan`, `*.tfvars` o `.terraform/`, o si el contenido versionado coincide con el patrón de un identificador de clave de acceso (`AKIA` más 16 caracteres) o con una clave privada.
+7. Búsqueda de archivos prohibidos: falla si `git ls-files` incluye `*.tfstate`, `*.tfstate.*`, `*.tfplan`, `*.tfvars` o `.terraform/`, o si el contenido versionado coincide con el patrón de un identificador de clave de acceso (`AKIA` más 16 caracteres) o con una clave privada. La búsqueda se limita a `infra/` y `.github/`, y los patrones se escriben con clases de caracteres para que el propio flujo no coincida.
 8. Comprobar que cada raíz tenga su `.terraform.lock.hcl` versionado.
-9. Guarda del contrato: falla si `infra/` contiene `aws_cognito_user_pool_domain`, `aws_cognito_identity_provider` o más de un `aws_cognito_user_pool_client`.
-10. Guarda de no aplicar: falla si algún archivo de `.github/workflows/` contiene `terraform apply`, `destroy`, `import` o `state`.
+9. Guarda del contrato: falla si `infra/` contiene una declaración `resource "aws_cognito_user_pool_domain"` o `resource "aws_cognito_identity_provider"`, o más de una `resource "aws_cognito_user_pool_client"`.
+10. Guarda de no aplicar: falla si algún archivo de `.github/workflows/` contiene `terraform apply`, `destroy`, `import` o `state`. Los patrones se escriben con clases de caracteres para que la guarda no coincida con su propio texto.
 11. Guarda de etiquetas: falla si `providers.tf` de `bootstrap` o de `environments/dev` no declara `default_tags` con `Project`, `Environment` y `ManagedBy`.
 
 Si cualquier paso falla, la propuesta no puede incorporarse (historia 4, escenario 2).

@@ -50,3 +50,18 @@ next-env.d.ts
 
 # configuración personal de Claude Code
 /.claude/settings.local.json
+
+# terraform: el estado, los planes guardados y las variables nunca se versionan.
+# El archivo de bloqueo de versiones (.terraform.lock.hcl) SÍ se versiona.
+*.tfstate
+*.tfstate.*
+.terraform/
+*.tfplan
+crash.log
+crash.*.log
+*.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
