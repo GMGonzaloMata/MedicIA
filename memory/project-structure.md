@@ -38,6 +38,10 @@ Organizar la plataforma como un **monolito modular con Next.js full-stack**, sig
 │       └── ...
 │
 ├── infra/                         # Terraform: recursos de AWS (estado remoto, nunca en git)
+│   ├── bootstrap/                 # Bucket del estado, rol de plan de CI y política del operador
+│   ├── modules/identity/          # Grupo de usuarios de Cognito, cliente y usuario de la aplicación
+│   ├── environments/dev/          # Entorno de desarrollo (usa los módulos)
+│   └── README.md                  # Guía de uso y operación
 ├── prisma/                        # Esquema y migraciones de PostgreSQL
 ├── prisma.config.ts               # Conexión y rutas de Prisma
 ├── generated/prisma/              # Cliente generado de Prisma (ignorado por git)
@@ -55,7 +59,7 @@ Organizar la plataforma como un **monolito modular con Next.js full-stack**, sig
 ├── .claude/                       # Skills, subagentes, permisos y hooks de Claude Code
 ├── .agents/                       # Skills de Codex y criterios de los revisores
 ├── .codex/                        # Subagentes, reglas, permisos y hooks de Codex
-├── .github/                       # Integración continua
+├── .github/                       # Integración continua (workflows: ci.yml e infra.yml)
 ├── scripts/agent-hooks/           # Hooks compartidos por los agentes
 └── AGENTS.md                      # Instrucciones generales para agentes
 ```
