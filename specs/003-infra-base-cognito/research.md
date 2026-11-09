@@ -257,3 +257,7 @@ El procedimiento documentado ("adjuntar `AdministratorAccess` a `terraform-dev`"
 
 - Aplicada con la vía de administración corregida (política del operador reemplazada por `AdministratorAccess` durante el cambio y restaurada después). La política del operador ya no incluye `s3:PutBucketPolicy`, `s3:DeleteBucketPolicy` ni `s3:PutBucketPublicAccessBlock`, y `iam:UpdateAssumeRolePolicy` quedó sin condición.
 - Con `terraform-dev` otra vez solo con `medicia-dev-terraform-operator`: `plan` de `infra/bootstrap` y de `infra/environments/dev` dan "No changes".
+
+### Flujo real con el límite de permisos (2026-11-09)
+
+Con `medicia-dev-app` ya limitado por `medicia-dev-boundary`, se borró la cuenta del responsable en Cognito (el grupo quedó vacío; la base local no tenía filas con ese correo) y se repitió el recorrido real: registro con código por correo, elección de contraseña e ingreso. Funcionó. Confirma que `AdminSetUserPassword` sigue permitida bajo el límite.
