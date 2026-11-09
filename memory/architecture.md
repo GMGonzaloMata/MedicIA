@@ -36,7 +36,7 @@
 ### Autenticación
 
 - **Tecnología:** Amazon Cognito.
-- **Responsabilidad:** Inicio de sesión y emisión de tokens; la aplicación valida los JWT y autoriza las operaciones.
+- **Responsabilidad:** Registro, verificación del correo, inicio de sesión y recuperación de contraseña. La aplicación valida el JWT que emite Cognito al iniciar sesión y lo descarta; después mantiene su propia sesión en la base de datos, con una cookie opaca, y autoriza cada operación contra esa sesión y los vínculos vigentes de la persona.
 
 ### Base de datos
 
