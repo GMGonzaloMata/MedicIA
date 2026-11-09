@@ -8,6 +8,14 @@
 
 **Input**: User description: "Ingreso y sesión: que una persona pueda crear una cuenta con correo verificado, iniciar y cerrar sesión, recuperar su contraseña, y elegir la clínica activa entre aquellas a las que pertenece (como personal o como paciente vinculado). Una cuenta sin ninguna clínica ve un estado vacío indicando que necesita una invitación. Cada solicitud posterior debe poder identificar quién es la persona y en qué clínica trabaja, revalidando en el servidor que la pertenencia siga vigente (clínica activa, membresía activa, paciente vinculado). Quedan fuera: invitaciones y vinculación, gestión de clínicas y usuarios, carga de estudios y análisis."
 
+## Clarifications
+
+### Session 2026-11-09
+
+- Q: ¿Se puede cambiar de clínica sin cerrar sesión, o la clínica se elige una sola vez al ingresar? → A: Se puede cambiar desde la sesión, con la clínica activa siempre visible, y se revalida la pertenencia en cada cambio.
+- Q: ¿Cuánto puede estar abierta una sesión por inactividad y en total? → A: 30 minutos de inactividad y 12 horas como máximo.
+- Q: ¿Qué ve un administrador de plataforma que no pertenece a ninguna clínica? → A: Ingresa normalmente y ve el mismo estado vacío que una cuenta sin clínica; su panel propio queda para la funcionalidad de gestión de clínicas.
+
 ## User Scenarios & Testing *(mandatory)*
 
 Los usuarios de esta funcionalidad son todas las personas que usan la plataforma: personal de las clínicas (administradores y médicos) y pacientes. Todas entran por la misma puerta y, una vez dentro, trabajan en el contexto de una clínica a la vez. Esta funcionalidad no incluye lo que se hace dentro de cada clínica; solo cómo se entra, cómo se sale y cómo la plataforma sabe, en cada solicitud, quién es la persona y a qué clínica pertenece lo que está haciendo.
@@ -125,7 +133,7 @@ La persona puede cerrar su sesión en cualquier momento, y si olvidó su contras
 - **FR-009**: Ante credenciales inválidas, el mensaje DEBE ser el mismo para un correo inexistente y para una contraseña incorrecta.
 - **FR-010**: Tras intentos fallidos repetidos sobre una cuenta, la plataforma DEBE bloquear temporalmente nuevos intentos, con el mismo comportamiento visible para cuentas existentes y no existentes.
 - **FR-011**: La persona DEBE poder cerrar sesión desde cualquier pantalla protegida, y la sesión DEBE dejar de ser válida de inmediato.
-- **FR-012**: La sesión DEBE vencer por inactividad y por un tiempo máximo total, tras lo cual se exige iniciar sesión de nuevo.
+- **FR-012**: La sesión DEBE vencer a los 30 minutos de inactividad y a las 12 horas desde el ingreso como máximo, tras lo cual se exige iniciar sesión de nuevo.
 - **FR-013**: Una persona sin sesión válida que intenta abrir una pantalla o ejecutar una acción protegida DEBE ser llevada a iniciar sesión. Al ingresar, DEBE volver al destino original solo si es una dirección interna de la plataforma.
 
 **Recuperación de contraseña**
@@ -139,7 +147,7 @@ La persona puede cerrar su sesión en cualquier momento, y si olvidó su contras
 - **FR-017**: Tras ingresar, la plataforma DEBE ofrecer las clínicas a las que la persona pertenece de forma vigente: como personal, con membresía activa en una clínica activa; o como paciente, con vínculo vigente en una clínica activa. No DEBE ofrecer clínicas suspendidas, membresías desactivadas ni vínculos de paciente pendientes o revocados.
 - **FR-018**: La lista DEBE mostrar el nombre de cada clínica y el tipo de vínculo de la persona en ella (personal o paciente).
 - **FR-019**: Si la persona tiene una sola clínica vigente, DEBE entrar directamente a ella. Si no tiene ninguna, DEBE ver un estado vacío que explique que necesita una invitación de una clínica y le permita cerrar sesión.
-- **FR-020**: La persona DEBE poder cambiar de clínica activa entre las de su lista sin cerrar sesión. Desde el cambio, nada de la clínica anterior DEBE quedar disponible en la sesión.
+- **FR-020**: La persona DEBE poder cambiar de clínica activa entre las de su lista sin cerrar sesión, y el nombre de la clínica activa DEBE estar siempre visible. En cada cambio, la plataforma DEBE revalidar que la pertenencia siga vigente. Desde el cambio, nada de la clínica anterior DEBE quedar disponible en la sesión.
 - **FR-021**: Cada sesión DEBE tener su propia clínica activa, independiente de las demás sesiones de la misma persona.
 - **FR-022**: Elegir una clínica a la que la persona no pertenece de forma vigente DEBE rechazarse sin revelar si la clínica existe.
 
@@ -187,9 +195,7 @@ La persona puede cerrar su sesión en cualquier momento, y si olvidó su contras
 - **Proveedor de identidad:** la verificación del correo, el almacenamiento de contraseñas y los códigos los resuelve el servicio de identidad aprobado en la constitución. La plataforma no guarda contraseñas ni códigos.
 - **Política de contraseña:** longitud mínima de 12 caracteres, sin exigir combinaciones de tipos de caracteres. Se confirmará en el plan.
 - **Intentos y vencimientos:** los límites de intentos fallidos y la duración de los códigos de verificación y recuperación los define el servicio de identidad con sus valores recomendados. La spec exige que existan, no fija los números.
-- **Duración de la sesión (a confirmar):** por tratarse de datos clínicos, se propone vencer a los 30 minutos de inactividad y a las 12 horas como máximo.
-- **Cambio de clínica (a confirmar):** se propone permitir cambiar de clínica desde la sesión, sin cerrarla, revalidando la pertenencia en cada cambio.
-- **Administrador de plataforma (a confirmar):** su panel y su ingreso a la gestión de clínicas quedan fuera de esta funcionalidad. Mientras tanto, ve el estado vacío si no pertenece a ninguna clínica.
+- **Administrador de plataforma:** su panel y su acceso a la gestión de clínicas quedan fuera de esta funcionalidad. Hasta entonces ingresa como cualquier cuenta y, si no pertenece a ninguna clínica, ve el mismo estado vacío.
 - **Idioma:** los textos están en español rioplatense.
 - **Cuentas ya existentes:** se asume que el modelo de datos de acceso (spec 001) ya está disponible y es la fuente de las pertenencias vigentes.
 - **Cambio de correo:** modificar el correo de una cuenta queda para otra funcionalidad.

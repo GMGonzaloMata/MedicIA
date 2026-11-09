@@ -31,5 +31,5 @@
 
 ## Notes
 
-- Tres supuestos quedan marcados "a confirmar" en la spec (duración de la sesión, cambio de clínica sin cerrar sesión, alcance del administrador de plataforma). No son marcadores de aclaración pendientes: tienen un valor por defecto y se confirman en `speckit-clarify`.
+- Los tres supuestos "a confirmar" (duración de la sesión, cambio de clínica sin cerrar sesión, alcance del administrador de plataforma) se resolvieron en `speckit-clarify` el 2026-11-09.
 - La política de contraseña y los límites de intentos y vencimientos se dejan al plan, porque dependen del servicio de identidad.
