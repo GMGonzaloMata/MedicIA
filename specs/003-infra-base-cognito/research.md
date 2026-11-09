@@ -151,3 +151,4 @@ Se registran a medida que se cierran las tareas de [tasks.md](tasks.md).
   - **Identidad:** `aws sts get-caller-identity` con el perfil `medicia-dev` devuelve la cuenta `896618135592` y el usuario `terraform-dev`, no la raíz. Cumple.
   - **Cuenta raíz:** `AccountMFAEnabled` igual a 1 y `AccountAccessKeysPresent` igual a 0. Tiene MFA y no tiene claves de acceso. Cumple.
   - **Alerta de costos:** existe el presupuesto `medicia-dev-mensual`, de 20 USD, con periodo mensual. Cumple.
+- **T006, limpieza de la cuenta (2026-11-09):** el responsable confirmó haberla hecho. Verificado en solo lectura: el único perfil local es `medicia-dev` (ya no existe `default`), y el único usuario IAM de la cuenta es `terraform-dev` (`santiDev` fue eliminado).
