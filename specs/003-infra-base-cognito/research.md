@@ -152,3 +152,9 @@ Se registran a medida que se cierran las tareas de [tasks.md](tasks.md).
   - **Cuenta raíz:** `AccountMFAEnabled` igual a 1 y `AccountAccessKeysPresent` igual a 0. Tiene MFA y no tiene claves de acceso. Cumple.
   - **Alerta de costos:** existe el presupuesto `medicia-dev-mensual`, de 20 USD, con periodo mensual. Cumple.
 - **T006, limpieza de la cuenta (2026-11-09):** el responsable confirmó haberla hecho. Verificado en solo lectura: el único perfil local es `medicia-dev` (ya no existe `default`), y el único usuario IAM de la cuenta es `terraform-dev` (`santiDev` fue eliminado).
+- **T015 y T016, arranque del estado remoto (2026-11-09):**
+  - **Fase 1:** el `plan` propuso 6 recursos a crear, 0 a cambiar y 0 a destruir (bucket, versionado, cifrado, bloqueo de acceso público, ciclo de vida y política). El `apply` terminó con `Apply complete! Resources: 6 added, 0 changed, 0 destroyed.` La regla de ciclo de vida tardó 1 minuto en crearse.
+  - **Fase 2:** `init -migrate-state` copió el estado al bucket (`bootstrap/terraform.tfstate`, 11.414 bytes, el mismo tamaño que el archivo local). El versionado del bucket está en `Enabled`. Se borraron el estado local y su copia.
+  - **Repetición:** `terraform plan` informó `No changes`, es decir, 0 cambios (SC-002).
+  - **Bloqueo con dos procesos:** no se probó. Queda sin verificar de forma práctica; el bloqueo está configurado con `use_lockfile = true` y se comprobará la primera vez que dos operaciones coincidan o en el simulacro de recreación (T052).
+- **T017, sin estado en el repositorio (2026-11-09):** `git ls-files` no lista ningún `*.tfstate*`, `*.tfplan`, `*.tfvars` ni `.terraform/`. `git status` solo muestra `infra/bootstrap/backend.tf` como archivo nuevo. No queda ningún archivo de estado local.
