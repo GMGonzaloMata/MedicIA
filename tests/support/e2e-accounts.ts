@@ -19,7 +19,8 @@ export async function createVerifiedAccount(page: Page, database: E2eDatabase) {
 
   // La contraseña se elige en el segundo paso, junto con el código (R18).
   await page.getByLabel("Código de verificación").fill(FAKE_CODE);
-  await page.getByLabel("Contraseña").fill(E2E_PASSWORD);
+  await page.getByLabel("Elegí tu contraseña").fill(E2E_PASSWORD);
+  await page.getByLabel("Repetí tu contraseña").fill(E2E_PASSWORD);
   await page.getByRole("button", { name: "Verificar correo" }).click();
   // Esperar el aviso (y no solo la URL) asegura que ya se muestra la pantalla de ingreso nueva.
   await expect(page.getByText("Tu cuenta quedó verificada. Ya podés ingresar.")).toBeVisible();

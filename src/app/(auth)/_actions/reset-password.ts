@@ -15,6 +15,7 @@ export async function resetPassword(
     email: readText(formData, "email"),
     code: readText(formData, "code"),
     newPassword: readText(formData, "newPassword"),
+    newPasswordConfirmation: readText(formData, "newPasswordConfirmation"),
   };
   const values = { email: input.email };
   const parsed = resetPasswordSchema.safeParse(input);

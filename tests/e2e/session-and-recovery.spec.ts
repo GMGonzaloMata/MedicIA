@@ -68,6 +68,7 @@ test("(b) recuperar la contraseña invalida la sesión abierta en otro navegador
   await requestRecovery(recoveryPage, email);
   await recoveryPage.getByLabel("Código de verificación").fill(FAKE_CODE);
   await recoveryPage.getByLabel("Contraseña nueva").fill(NEW_PASSWORD);
+  await recoveryPage.getByLabel("Repetí la contraseña").fill(NEW_PASSWORD);
   await recoveryPage.getByRole("button", { name: "Cambiar contraseña" }).click();
   await expect(recoveryPage.getByText("Cambiaste tu contraseña. Ingresá con la nueva.")).toBeVisible();
 
@@ -92,6 +93,7 @@ test("(c) un código incorrecto no cambia nada", async ({ page }) => {
   await requestRecovery(page, email);
   await page.getByLabel("Código de verificación").fill("999999");
   await page.getByLabel("Contraseña nueva").fill(NEW_PASSWORD);
+  await page.getByLabel("Repetí la contraseña").fill(NEW_PASSWORD);
   await page.getByRole("button", { name: "Cambiar contraseña" }).click();
   await expect(page.locator("form").getByRole("alert")).toHaveText(INVALID_CODE);
 

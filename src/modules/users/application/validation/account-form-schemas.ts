@@ -48,11 +48,19 @@ export const signUpSchema = z.object({
   email: emailField,
 });
 
-export const confirmAccountSchema = z.object({
-  email: emailField,
-  code: verificationCodeField,
-  password: newPasswordField,
-});
+export const PASSWORDS_MISMATCH_MESSAGE = "Las contraseñas no coinciden.";
+
+export const confirmAccountSchema = z
+  .object({
+    email: emailField,
+    code: verificationCodeField,
+    password: newPasswordField,
+    passwordConfirmation: z.string(),
+  })
+  .refine((input) => input.password === input.passwordConfirmation, {
+    path: ["passwordConfirmation"],
+    error: PASSWORDS_MISMATCH_MESSAGE,
+  });
 
 export const resendConfirmationCodeSchema = z.object({ email: emailField });
 
@@ -63,8 +71,14 @@ export const signInSchema = z.object({
 
 export const requestPasswordResetSchema = z.object({ email: emailField });
 
-export const resetPasswordSchema = z.object({
-  email: emailField,
-  code: verificationCodeField,
-  newPassword: newPasswordField,
-});
+export const resetPasswordSchema = z
+  .object({
+    email: emailField,
+    code: verificationCodeField,
+    newPassword: newPasswordField,
+    newPasswordConfirmation: z.string(),
+  })
+  .refine((input) => input.newPassword === input.newPasswordConfirmation, {
+    path: ["newPasswordConfirmation"],
+    error: PASSWORDS_MISMATCH_MESSAGE,
+  });

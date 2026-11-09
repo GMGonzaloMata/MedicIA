@@ -65,12 +65,21 @@ export function VerifyEmailForm({ initialEmail, introMessage }: VerifyEmailFormP
       <FormField
         id="password"
         name="password"
-        label="Contraseña"
+        label="Elegí tu contraseña"
         type="password"
         autoComplete="new-password"
         maxLength={PASSWORD_MAX_LENGTH}
-        hint={PASSWORD_POLICY_HINT}
+        hint={`Con esta contraseña vas a ingresar. ${PASSWORD_POLICY_HINT}`}
         errors={failure?.fieldErrors?.password}
+      />
+      <FormField
+        id="passwordConfirmation"
+        name="passwordConfirmation"
+        label="Repetí tu contraseña"
+        type="password"
+        autoComplete="new-password"
+        maxLength={PASSWORD_MAX_LENGTH}
+        errors={failure?.fieldErrors?.passwordConfirmation}
       />
       {/* No usa SubmitButton: este formulario tiene dos envíos y solo debe mostrarse "Verificando…" al verificar. */}
       <button

@@ -34,7 +34,8 @@ test("(a) una cuenta nueva sin clínicas ve el estado vacío con la explicación
   await page.getByLabel("Correo electrónico").fill(email);
   await page.getByRole("button", { name: "Crear cuenta" }).click();
   await page.getByLabel("Código de verificación").fill(FAKE_CODE);
-  await page.getByLabel("Contraseña").fill(PASSWORD);
+  await page.getByLabel("Elegí tu contraseña").fill(PASSWORD);
+  await page.getByLabel("Repetí tu contraseña").fill(PASSWORD);
   await page.getByRole("button", { name: "Verificar correo" }).click();
 
   await expect(page.getByText("Tu cuenta quedó verificada. Ya podés ingresar.")).toBeVisible();

@@ -58,6 +58,15 @@ export function ResetPasswordForm({ initialEmail, introMessage }: ResetPasswordF
         hint={PASSWORD_POLICY_HINT}
         errors={failure?.fieldErrors?.newPassword}
       />
+      <FormField
+        id="newPasswordConfirmation"
+        name="newPasswordConfirmation"
+        label="Repetí la contraseña"
+        type="password"
+        autoComplete="new-password"
+        maxLength={PASSWORD_MAX_LENGTH}
+        errors={failure?.fieldErrors?.newPasswordConfirmation}
+      />
       <SubmitButton pendingLabel="Cambiando…">Cambiar contraseña</SubmitButton>
     </form>
   );

@@ -15,6 +15,7 @@ export async function confirmAccount(
     email: readText(formData, "email"),
     code: readText(formData, "code"),
     password: readText(formData, "password"),
+    passwordConfirmation: readText(formData, "passwordConfirmation"),
   };
   const values = { email: input.email };
   const parsed = confirmAccountSchema.safeParse(input);

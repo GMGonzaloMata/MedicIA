@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   PASSWORD_POLICY_HINT,
+  PASSWORDS_MISMATCH_MESSAGE,
   confirmAccountSchema,
   requestPasswordResetSchema,
   resendConfirmationCodeSchema,
@@ -22,15 +23,15 @@ describe("signUpSchema", () => {
   it("no recorta la contraseña pero rechaza espacios al inicio o al final", () => {
     const inner = `${VALID_PASSWORD} con espacios`;
 
-    expect(confirmAccountSchema.parse({ email: "a@example.com", code: "123456", password: inner }).password).toBe(
+    expect(confirmAccountSchema.parse({ email: "a@example.com", code: "123456", password: inner, passwordConfirmation: inner }).password).toBe(
       inner,
     );
     for (const password of [` ${VALID_PASSWORD}`, `${VALID_PASSWORD} `]) {
-      expect(confirmAccountSchema.safeParse({ email: "a@example.com", code: "123456", password }).success).toBe(
+      expect(confirmAccountSchema.safeParse({ email: "a@example.com", code: "123456", password, passwordConfirmation: password }).success).toBe(
         false,
       );
       expect(
-        resetPasswordSchema.safeParse({ email: "a@example.com", code: "123456", newPassword: password }).success,
+        resetPasswordSchema.safeParse({ email: "a@example.com", code: "123456", newPassword: password, newPasswordConfirmation: password }).success,
       ).toBe(false);
     }
   });
@@ -45,6 +46,7 @@ describe("signUpSchema", () => {
       email: "a@example.com",
       code: "123456",
       password: "a".repeat(length),
+      passwordConfirmation: "a".repeat(length),
     });
 
     expect(result.success).toBe(isValid);
@@ -69,7 +71,7 @@ describe("signUpSchema", () => {
   });
 
   it("incluye la política de contraseña en el mensaje de error", () => {
-    const result = confirmAccountSchema.safeParse({ email: "a@example.com", code: "123456", password: "corta" });
+    const result = confirmAccountSchema.safeParse({ email: "a@example.com", code: "123456", password: "corta", passwordConfirmation: "corta" });
 
     expect(result.success).toBe(false);
     expect(JSON.stringify(result.error?.issues)).toContain("12");
@@ -86,15 +88,41 @@ describe("confirmAccountSchema y resetPasswordSchema", () => {
     { code: "12345a", isValid: false },
     { code: "", isValid: false },
   ])("el código '$code' es válido: $isValid", ({ code, isValid }) => {
-    expect(confirmAccountSchema.safeParse({ email: "a@example.com", code, password: VALID_PASSWORD }).success).toBe(isValid);
+    expect(confirmAccountSchema.safeParse({ email: "a@example.com", code, password: VALID_PASSWORD, passwordConfirmation: VALID_PASSWORD }).success).toBe(isValid);
     expect(
-      resetPasswordSchema.safeParse({ email: "a@example.com", code, newPassword: VALID_PASSWORD }).success,
+      resetPasswordSchema.safeParse({ email: "a@example.com", code, newPassword: VALID_PASSWORD, newPasswordConfirmation: VALID_PASSWORD }).success,
     ).toBe(isValid);
+  });
+
+  it("rechaza una contraseña repetida que no coincide, y marca el campo de la repetición", () => {
+    const confirm = confirmAccountSchema.safeParse({
+      email: "a@example.com",
+      code: "123456",
+      password: VALID_PASSWORD,
+      passwordConfirmation: `${VALID_PASSWORD}x`,
+    });
+    const reset = resetPasswordSchema.safeParse({
+      email: "a@example.com",
+      code: "123456",
+      newPassword: VALID_PASSWORD,
+      newPasswordConfirmation: "",
+    });
+
+    expect(confirm.success).toBe(false);
+    expect(confirm.error?.issues[0]).toMatchObject({
+      path: ["passwordConfirmation"],
+      message: PASSWORDS_MISMATCH_MESSAGE,
+    });
+    expect(reset.success).toBe(false);
+    expect(reset.error?.issues[0]).toMatchObject({
+      path: ["newPasswordConfirmation"],
+      message: PASSWORDS_MISMATCH_MESSAGE,
+    });
   });
 
   it("aplica la política a la contraseña nueva", () => {
     expect(
-      resetPasswordSchema.safeParse({ email: "a@example.com", code: "123456", newPassword: "corta" }).success,
+      resetPasswordSchema.safeParse({ email: "a@example.com", code: "123456", newPassword: "corta", newPasswordConfirmation: "corta" }).success,
     ).toBe(false);
   });
 });
