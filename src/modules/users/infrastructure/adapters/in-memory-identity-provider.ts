@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 import type {
   IdentityProvider,
@@ -62,21 +62,23 @@ export function createInMemoryIdentityProvider(
   const accounts = new Map<string, FakeAccount>();
 
   return {
-    async signUp({ email, password, fullName }) {
-      assertValidPassword(password);
-
+    async signUp({ email, fullName }) {
+      // Como en Cognito, la cuenta nace con una contraseña provisional que nadie conoce (R18).
       if (!accounts.has(email)) {
-        accounts.set(email, { password, fullName, isConfirmed: false });
+        accounts.set(email, { password: randomUUID(), fullName, isConfirmed: false });
       }
     },
 
-    async confirmSignUp({ email, code }) {
+    async confirmSignUp({ email, code, password }) {
       const account = accounts.get(email);
 
-      if (!account || code !== FAKE_VERIFICATION_CODE) {
+      // Como en Cognito, confirmar una cuenta ya verificada falla y no cambia su contraseña.
+      if (!account || account.isConfirmed || code !== FAKE_VERIFICATION_CODE) {
         throw new IdentityError("INVALID_CODE");
       }
 
+      assertValidPassword(password);
+      account.password = password;
       account.isConfirmed = true;
     },
 

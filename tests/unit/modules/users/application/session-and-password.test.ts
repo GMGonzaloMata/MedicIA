@@ -52,8 +52,8 @@ describe("signOut", () => {
 describe("requestPasswordReset", () => {
   it("responde igual exista o no la cuenta", async () => {
     const identity = createInMemoryIdentityProvider({});
-    await identity.signUp({ email: EMAIL, password: OLD_PASSWORD, fullName: "Persona" });
-    await identity.confirmSignUp({ email: EMAIL, code: FAKE_VERIFICATION_CODE });
+    await identity.signUp({ email: EMAIL, fullName: "Persona" });
+    await identity.confirmSignUp({ email: EMAIL, code: FAKE_VERIFICATION_CODE, password: OLD_PASSWORD });
     const request = createRequestPasswordReset({ identity });
 
     const existing = await request({ email: " Persona@Example.com " });
@@ -71,8 +71,8 @@ describe("resetPassword", () => {
   beforeEach(async () => {
     identity = createInMemoryIdentityProvider({});
     users = new InMemoryUserRepository();
-    await identity.signUp({ email: EMAIL, password: OLD_PASSWORD, fullName: "Persona" });
-    await identity.confirmSignUp({ email: EMAIL, code: FAKE_VERIFICATION_CODE });
+    await identity.signUp({ email: EMAIL, fullName: "Persona" });
+    await identity.confirmSignUp({ email: EMAIL, code: FAKE_VERIFICATION_CODE, password: OLD_PASSWORD });
     await users.upsertFromIdentity({
       subject: "sub-1",
       email: EMAIL,

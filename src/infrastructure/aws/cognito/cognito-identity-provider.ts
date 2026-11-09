@@ -1,6 +1,7 @@
 import "server-only";
 
 import {
+  AdminSetUserPasswordCommand,
   CognitoIdentityProviderClient,
   ConfirmForgotPasswordCommand,
   ConfirmSignUpCommand,
@@ -9,6 +10,8 @@ import {
   ResendConfirmationCodeCommand,
   SignUpCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
+import { randomBytes } from "node:crypto";
+
 import { CognitoJwtVerifier } from "aws-jwt-verify";
 import { z } from "zod";
 
@@ -72,6 +75,11 @@ const idTokenClaimsSchema = z.object({
   name: z.string().min(1),
 });
 
+// 256 bits aleatorios: cumple cualquier política de longitud y nadie, tampoco la aplicación, los conserva.
+function temporaryPassword(): string {
+  return randomBytes(32).toString("base64url");
+}
+
 function errorName(error: unknown): string {
   return error instanceof Error ? error.name : "UnknownError";
 }
@@ -105,14 +113,32 @@ export function buildCognitoIdentityProvider(
     );
   }
 
+  // Si la contraseña elegida fue rechazada, la cuenta ya está verificada: se la deja con una
+  // contraseña aleatoria desconocida, para que no conserve ninguna que otra persona haya elegido antes.
+  async function discardKnownPassword(email: string): Promise<void> {
+    try {
+      await client.send(
+        new AdminSetUserPasswordCommand({
+          UserPoolId: config.userPoolId,
+          Username: email,
+          Password: temporaryPassword(),
+          Permanent: true,
+        }),
+      );
+    } catch (error) {
+      logFailure("confirmSignUp.discardPassword", error);
+    }
+  }
+
   return {
-    async signUp({ email, password, fullName }) {
+    async signUp({ email, fullName }) {
       try {
         await client.send(
           new SignUpCommand({
             ClientId: config.clientId,
             Username: email,
-            Password: password,
+            // Contraseña provisional que nadie conoce: la definitiva la elige quien confirma (R18).
+            Password: temporaryPassword(),
             SecretHash: secretHashFor(email),
             UserAttributes: [
               { Name: "email", Value: email },
@@ -138,15 +164,11 @@ export function buildCognitoIdentityProvider(
           return;
         }
 
-        if (INVALID_PASSWORD_ERRORS.has(name)) {
-          throw new IdentityError("INVALID_PASSWORD");
-        }
-
         throw unavailable("signUp", error);
       }
     },
 
-    async confirmSignUp({ email, code }) {
+    async confirmSignUp({ email, code, password }) {
       try {
         await client.send(
           new ConfirmSignUpCommand({
@@ -162,6 +184,28 @@ export function buildCognitoIdentityProvider(
         }
 
         throw unavailable("confirmSignUp", error);
+      }
+
+      // Recién con el correo verificado se fija la contraseña elegida (R18). Si esto falla, la cuenta
+      // queda verificada con una contraseña que nadie conoce (si hace falta se vuelve a fijar una
+      // aleatoria) y se recupera con "olvidé mi contraseña".
+      try {
+        await client.send(
+          new AdminSetUserPasswordCommand({
+            UserPoolId: config.userPoolId,
+            Username: email,
+            Password: password,
+            Permanent: true,
+          }),
+        );
+      } catch (error) {
+        if (INVALID_PASSWORD_ERRORS.has(errorName(error))) {
+          logFailure("confirmSignUp.setPassword", error);
+          await discardKnownPassword(email);
+          throw new IdentityError("INVALID_PASSWORD");
+        }
+
+        throw unavailable("confirmSignUp.setPassword", error);
       }
     },
 

@@ -14,19 +14,25 @@ const VALID_PASSWORD = "a".repeat(12);
 
 describe("signUpSchema", () => {
   it("recorta y pasa a minúsculas el correo, y recorta el nombre", () => {
-    const parsed = signUpSchema.parse({
-      fullName: "  Persona Uno  ",
-      email: "  Persona@Example.COM ",
-      password: VALID_PASSWORD,
-    });
+    const parsed = signUpSchema.parse({ fullName: "  Persona Uno  ", email: "  Persona@Example.COM " });
 
-    expect(parsed).toEqual({ fullName: "Persona Uno", email: "persona@example.com", password: VALID_PASSWORD });
+    expect(parsed).toEqual({ fullName: "Persona Uno", email: "persona@example.com" });
   });
 
-  it("no recorta la contraseña", () => {
-    const password = ` ${VALID_PASSWORD} `;
+  it("no recorta la contraseña pero rechaza espacios al inicio o al final", () => {
+    const inner = `${VALID_PASSWORD} con espacios`;
 
-    expect(signUpSchema.parse({ fullName: "Persona", email: "a@example.com", password }).password).toBe(password);
+    expect(confirmAccountSchema.parse({ email: "a@example.com", code: "123456", password: inner }).password).toBe(
+      inner,
+    );
+    for (const password of [` ${VALID_PASSWORD}`, `${VALID_PASSWORD} `]) {
+      expect(confirmAccountSchema.safeParse({ email: "a@example.com", code: "123456", password }).success).toBe(
+        false,
+      );
+      expect(
+        resetPasswordSchema.safeParse({ email: "a@example.com", code: "123456", newPassword: password }).success,
+      ).toBe(false);
+    }
   });
 
   it.each([
@@ -35,9 +41,9 @@ describe("signUpSchema", () => {
     { length: 128, isValid: true },
     { length: 129, isValid: false },
   ])("la contraseña de $length caracteres es válida: $isValid", ({ length, isValid }) => {
-    const result = signUpSchema.safeParse({
-      fullName: "Persona",
+    const result = confirmAccountSchema.safeParse({
       email: "a@example.com",
+      code: "123456",
       password: "a".repeat(length),
     });
 
@@ -51,19 +57,19 @@ describe("signUpSchema", () => {
     { fullName: "a".repeat(121), isValid: false },
     { fullName: "   ", isValid: false },
   ])("el nombre de $fullName.length caracteres es válido: $isValid", ({ fullName, isValid }) => {
-    const result = signUpSchema.safeParse({ fullName, email: "a@example.com", password: VALID_PASSWORD });
+    const result = signUpSchema.safeParse({ fullName, email: "a@example.com" });
 
     expect(result.success).toBe(isValid);
   });
 
   it("rechaza un correo inválido", () => {
-    const result = signUpSchema.safeParse({ fullName: "Persona", email: "no-es-un-correo", password: VALID_PASSWORD });
+    const result = signUpSchema.safeParse({ fullName: "Persona", email: "no-es-un-correo" });
 
     expect(result.success).toBe(false);
   });
 
   it("incluye la política de contraseña en el mensaje de error", () => {
-    const result = signUpSchema.safeParse({ fullName: "Persona", email: "a@example.com", password: "corta" });
+    const result = confirmAccountSchema.safeParse({ email: "a@example.com", code: "123456", password: "corta" });
 
     expect(result.success).toBe(false);
     expect(JSON.stringify(result.error?.issues)).toContain("12");
@@ -80,7 +86,7 @@ describe("confirmAccountSchema y resetPasswordSchema", () => {
     { code: "12345a", isValid: false },
     { code: "", isValid: false },
   ])("el código '$code' es válido: $isValid", ({ code, isValid }) => {
-    expect(confirmAccountSchema.safeParse({ email: "a@example.com", code }).success).toBe(isValid);
+    expect(confirmAccountSchema.safeParse({ email: "a@example.com", code, password: VALID_PASSWORD }).success).toBe(isValid);
     expect(
       resetPasswordSchema.safeParse({ email: "a@example.com", code, newPassword: VALID_PASSWORD }).success,
     ).toBe(isValid);

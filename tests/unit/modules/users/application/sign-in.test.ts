@@ -32,8 +32,8 @@ beforeEach(async () => {
   sessions = new InMemorySessionRepository();
   clinicAccess = new InMemoryClinicAccessRepository();
 
-  await identity.signUp({ email: EMAIL, password: PASSWORD, fullName: "Persona Uno" });
-  await identity.confirmSignUp({ email: EMAIL, code: FAKE_VERIFICATION_CODE });
+  await identity.signUp({ email: EMAIL, fullName: "Persona Uno" });
+  await identity.confirmSignUp({ email: EMAIL, code: FAKE_VERIFICATION_CODE, password: PASSWORD });
 });
 
 function newSignIn() {

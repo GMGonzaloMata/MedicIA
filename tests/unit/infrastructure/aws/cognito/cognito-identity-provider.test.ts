@@ -1,4 +1,5 @@
 import {
+  AdminSetUserPasswordCommand,
   ConfirmForgotPasswordCommand,
   ConfirmSignUpCommand,
   ForgotPasswordCommand,
@@ -78,14 +79,13 @@ describe("registro", () => {
     const { provider, send } = setup();
     send.mockResolvedValue({});
 
-    await provider.signUp({ email: EMAIL, password: PASSWORD, fullName: "Persona Uno" });
+    await provider.signUp({ email: EMAIL, fullName: "Persona Uno" });
 
     const command = send.mock.calls[0][0];
     expect(command).toBeInstanceOf(SignUpCommand);
     expect(command.input).toMatchObject({
       ClientId: CONFIG.clientId,
       Username: EMAIL,
-      Password: PASSWORD,
       SecretHash: EXPECTED_HASH,
       UserAttributes: [
         { Name: "email", Value: EMAIL },
@@ -94,11 +94,24 @@ describe("registro", () => {
     });
   });
 
+  it("usa una contraseña provisional aleatoria que no es la de ninguna persona (R18)", async () => {
+    const { provider, send } = setup();
+    send.mockResolvedValue({});
+
+    await provider.signUp({ email: EMAIL, fullName: "Persona Uno" });
+    await provider.signUp({ email: EMAIL, fullName: "Persona Uno" });
+
+    const first = send.mock.calls[0][0].input.Password;
+    const second = send.mock.calls[1][0].input.Password;
+    expect(first).toHaveLength(43);
+    expect(first).not.toBe(second);
+  });
+
   it("reenvía el código y responde igual cuando el correo ya existe", async () => {
     const { provider, send } = setup();
     send.mockRejectedValueOnce(awsError("UsernameExistsException")).mockResolvedValueOnce({});
 
-    await expect(provider.signUp({ email: EMAIL, password: PASSWORD, fullName: "P" })).resolves.toBeUndefined();
+    await expect(provider.signUp({ email: EMAIL, fullName: "P" })).resolves.toBeUndefined();
 
     expect(send.mock.calls[1][0]).toBeInstanceOf(ResendConfirmationCodeCommand);
   });
@@ -109,33 +122,21 @@ describe("registro", () => {
       .mockRejectedValueOnce(awsError("UsernameExistsException"))
       .mockRejectedValueOnce(awsError("InvalidParameterException"));
 
-    await expect(provider.signUp({ email: EMAIL, password: PASSWORD, fullName: "P" })).resolves.toBeUndefined();
+    await expect(provider.signUp({ email: EMAIL, fullName: "P" })).resolves.toBeUndefined();
   });
 
   it("falla como no disponible si el reenvío tras un correo existente falla por otra causa", async () => {
     const { provider, send } = setup();
     send.mockRejectedValueOnce(awsError("UsernameExistsException")).mockRejectedValueOnce(awsError("InternalErrorException"));
 
-    expect(await codeOf(provider.signUp({ email: EMAIL, password: PASSWORD, fullName: "P" }))).toBe("UNAVAILABLE");
+    expect(await codeOf(provider.signUp({ email: EMAIL, fullName: "P" }))).toBe("UNAVAILABLE");
   });
-
-  it.each(["InvalidPasswordException", "InvalidParameterException"])(
-    "mapea %s a contraseña inválida",
-    async (name) => {
-      const { provider, send } = setup();
-      send.mockRejectedValue(awsError(name));
-
-      expect(await codeOf(provider.signUp({ email: EMAIL, password: PASSWORD, fullName: "P" }))).toBe(
-        "INVALID_PASSWORD",
-      );
-    },
-  );
 
   it("mapea cualquier otro error a no disponible", async () => {
     const { provider, send } = setup();
     send.mockRejectedValue(awsError("InternalErrorException"));
 
-    expect(await codeOf(provider.signUp({ email: EMAIL, password: PASSWORD, fullName: "P" }))).toBe("UNAVAILABLE");
+    expect(await codeOf(provider.signUp({ email: EMAIL, fullName: "P" }))).toBe("UNAVAILABLE");
   });
 });
 
@@ -144,11 +145,77 @@ describe("verificación y reenvío del código", () => {
     const { provider, send } = setup();
     send.mockResolvedValue({});
 
-    await provider.confirmSignUp({ email: EMAIL, code: CODE });
+    await provider.confirmSignUp({ email: EMAIL, code: CODE, password: PASSWORD });
 
     const command = send.mock.calls[0][0];
     expect(command).toBeInstanceOf(ConfirmSignUpCommand);
     expect(command.input).toMatchObject({ Username: EMAIL, ConfirmationCode: CODE, SecretHash: EXPECTED_HASH });
+  });
+
+  it("fija la contraseña elegida solo después de verificar el correo (R18)", async () => {
+    const { provider, send } = setup();
+    send.mockResolvedValue({});
+
+    await provider.confirmSignUp({ email: EMAIL, code: CODE, password: PASSWORD });
+
+    expect(send.mock.calls[0][0]).toBeInstanceOf(ConfirmSignUpCommand);
+    const command = send.mock.calls[1][0];
+    expect(command).toBeInstanceOf(AdminSetUserPasswordCommand);
+    expect(command.input).toEqual({
+      UserPoolId: CONFIG.userPoolId,
+      Username: EMAIL,
+      Password: PASSWORD,
+      Permanent: true,
+    });
+  });
+
+  it("con un código incorrecto no fija ninguna contraseña", async () => {
+    const { provider, send } = setup();
+    send.mockRejectedValue(awsError("CodeMismatchException"));
+
+    expect(await codeOf(provider.confirmSignUp({ email: EMAIL, code: CODE, password: PASSWORD }))).toBe(
+      "INVALID_CODE",
+    );
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["InvalidPasswordException", "InvalidParameterException"])(
+    "mapea %s al fijar la contraseña a contraseña inválida",
+    async (name) => {
+      const { provider, send } = setup();
+      send.mockResolvedValueOnce({}).mockRejectedValueOnce(awsError(name));
+
+      expect(await codeOf(provider.confirmSignUp({ email: EMAIL, code: CODE, password: PASSWORD }))).toBe(
+        "INVALID_PASSWORD",
+      );
+    },
+  );
+
+  it("si la contraseña es rechazada, deja la cuenta con una aleatoria desconocida y lo registra sin datos", async () => {
+    const { provider, send } = setup();
+    send
+      .mockResolvedValueOnce({})
+      .mockRejectedValueOnce(awsError("InvalidParameterException"))
+      .mockResolvedValueOnce({});
+
+    expect(await codeOf(provider.confirmSignUp({ email: EMAIL, code: CODE, password: PASSWORD }))).toBe(
+      "INVALID_PASSWORD",
+    );
+
+    const reset = send.mock.calls[2][0];
+    expect(reset).toBeInstanceOf(AdminSetUserPasswordCommand);
+    expect(reset.input.Password).not.toBe(PASSWORD);
+    expect(reset.input.Password).toHaveLength(43);
+    expect(consoleError.mock.calls.flat().join("\n")).toContain("confirmSignUp.setPassword");
+  });
+
+  it("mapea otro error al fijar la contraseña a no disponible", async () => {
+    const { provider, send } = setup();
+    send.mockResolvedValueOnce({}).mockRejectedValueOnce(awsError("InternalErrorException"));
+
+    expect(await codeOf(provider.confirmSignUp({ email: EMAIL, code: CODE, password: PASSWORD }))).toBe(
+      "UNAVAILABLE",
+    );
   });
 
   it.each(["CodeMismatchException", "ExpiredCodeException", "UserNotFoundException", "NotAuthorizedException"])(
@@ -157,7 +224,7 @@ describe("verificación y reenvío del código", () => {
       const { provider, send } = setup();
       send.mockRejectedValue(awsError(name));
 
-      expect(await codeOf(provider.confirmSignUp({ email: EMAIL, code: CODE }))).toBe("INVALID_CODE");
+      expect(await codeOf(provider.confirmSignUp({ email: EMAIL, code: CODE, password: PASSWORD }))).toBe("INVALID_CODE");
     },
   );
 
@@ -165,7 +232,7 @@ describe("verificación y reenvío del código", () => {
     const { provider, send } = setup();
     send.mockRejectedValue(awsError("InternalErrorException"));
 
-    expect(await codeOf(provider.confirmSignUp({ email: EMAIL, code: CODE }))).toBe("UNAVAILABLE");
+    expect(await codeOf(provider.confirmSignUp({ email: EMAIL, code: CODE, password: PASSWORD }))).toBe("UNAVAILABLE");
   });
 
   it("reenvía el código y responde igual si la cuenta no existe o ya está verificada", async () => {
@@ -313,9 +380,9 @@ describe("registros de actividad (FR-028)", () => {
     const { provider, send } = setup();
     send.mockRejectedValue(awsError("InternalErrorException"));
 
-    await codeOf(provider.signUp({ email: EMAIL, password: PASSWORD, fullName: "Persona Uno" }));
+    await codeOf(provider.signUp({ email: EMAIL, fullName: "Persona Uno" }));
     await codeOf(provider.signIn({ email: EMAIL, password: PASSWORD }));
-    await codeOf(provider.confirmSignUp({ email: EMAIL, code: CODE }));
+    await codeOf(provider.confirmSignUp({ email: EMAIL, code: CODE, password: PASSWORD }));
     await codeOf(provider.confirmPasswordReset({ email: EMAIL, code: CODE, newPassword: PASSWORD }));
 
     expect(consoleError).toHaveBeenCalled();

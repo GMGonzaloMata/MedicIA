@@ -8,13 +8,14 @@ Define el puerto de salida que usan los casos de uso y lo que necesita el grupo 
 
 Todas reciben el correo ya normalizado (minúsculas, sin espacios). Ninguna devuelve ni expone tokens, contraseñas ni códigos.
 
-- **`signUp({ email, password, fullName })`**
+- **`signUp({ email, fullName })`**
+  - **Sin contraseña (R18):** el adaptador de Cognito usa una contraseña provisional aleatoria que nadie conoce.
   - **Resultado:** `{ status: "verification-required" }`.
   - **Si el correo ya existe:** el adaptador lo absorbe y devuelve el mismo resultado (R4).
-  - **Errores:** `INVALID_PASSWORD` (no cumple la política), `UNAVAILABLE`.
-- **`confirmSignUp({ email, code })`**
-  - **Resultado:** cuenta verificada.
-  - **Errores:** `INVALID_CODE` (incorrecto, vencido o ya usado, sin distinguir), `UNAVAILABLE`.
+  - **Errores:** `UNAVAILABLE`.
+- **`confirmSignUp({ email, code, password })`**
+  - **Resultado:** cuenta verificada, con `password` como contraseña definitiva (R18).
+  - **Errores:** `INVALID_CODE` (incorrecto, vencido o ya usado, sin distinguir), `INVALID_PASSWORD` (no cumple la política), `UNAVAILABLE`.
 - **`resendConfirmationCode({ email })`**
   - **Resultado:** siempre éxito visible, exista o no la cuenta.
   - **Errores:** `UNAVAILABLE`.
@@ -34,7 +35,7 @@ Todas reciben el correo ya normalizado (minúsculas, sin espacios). Ninguna devu
 
 - **Memoria:** guarda las cuentas en un mapa del proceso.
 - **Código de verificación y de recuperación:** fijo, `000000`.
-- **Contraseña:** acepta cualquiera que cumpla la política de 12 a 128 caracteres.
+- **Contraseña:** acepta cualquiera que cumpla la política de 12 a 128 caracteres. Se define al verificar el correo; hasta entonces la cuenta tiene una contraseña provisional desconocida.
 - **Subject:** genera un identificador estable por correo, con el formato de un UUID.
 - **Arranque:** se niega a iniciar si están definidas las variables de Cognito (R11).
 
@@ -44,6 +45,7 @@ Para que el adaptador funcione, el grupo y su cliente de aplicación deben tener
 
 - **Inicio de sesión:** con correo electrónico (`username_attributes = ["email"]`), sin distinguir mayúsculas.
 - **Registro abierto:** autoregistro permitido.
+- **Permiso del servidor (R18):** el rol o las credenciales de la aplicación incluyen `cognito-idp:AdminSetUserPassword` sobre este grupo, y nada más de administración.
 - **Verificación:** verificación automática del correo con un código numérico de 6 dígitos.
 - **Atributos obligatorios:** `email` y `name`.
 - **Política de contraseña:** longitud mínima 12, sin exigir mayúsculas, números ni símbolos (coincide con R13).

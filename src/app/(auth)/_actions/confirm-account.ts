@@ -11,7 +11,11 @@ export async function confirmAccount(
   previousState: AuthFormState | undefined,
   formData: FormData,
 ): Promise<AuthFormState> {
-  const input = { email: readText(formData, "email"), code: readText(formData, "code") };
+  const input = {
+    email: readText(formData, "email"),
+    code: readText(formData, "code"),
+    password: readText(formData, "password"),
+  };
   const values = { email: input.email };
   const parsed = confirmAccountSchema.safeParse(input);
 

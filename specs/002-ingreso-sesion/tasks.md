@@ -193,6 +193,18 @@ Las tareas T074 y T075 se agregaron después del análisis (speckit-analyze) y p
 
 ---
 
+## Phase 8: Corrección de seguridad posterior a la revisión (R18)
+
+**Origen**: la revisión de seguridad halló el pre-secuestro de cuentas en el registro. Ver [research.md](research.md) R18.
+
+- [X] T076 Actualizar el puerto `identity-provider.ts`, `register-account.ts`, `confirm-account.ts` y los esquemas de `account-form-schemas.ts`: `signUp` sin contraseña y `confirmSignUp` con contraseña (política de 12 a 128 caracteres).
+- [X] T077 Adaptador de Cognito: contraseña provisional aleatoria en `SignUpCommand` y `AdminSetUserPassword` (`Permanent: true`) tras `ConfirmSignUp`. Proveedor simulado con la misma semántica.
+- [X] T078 Pantallas: quitar la contraseña de `/sign-up` y pedirla junto con el código en el segundo paso y en `/verify-email`. Acciones `sign-up` y `confirm-account`.
+- [X] T079 Pruebas: regresión del pre-secuestro con el simulado (el intruso se registra primero, la dueña verifica; la contraseña del intruso falla y la de la dueña sirve), adaptador de Cognito, esquemas, casos de uso y E2E de registro.
+- [ ] T080 [Responsable] Agregar `cognito-idp:AdminSetUserPassword` al rol del servidor (Terraform) y disponer credenciales de AWS en desarrollo antes de probar con Cognito real (T072).
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies

@@ -188,3 +188,20 @@ Se instalan con la versión exacta. El SDK de AWS publica varias veces por seman
 - **Correo de Cognito por defecto:** el remitente por defecto de Cognito tiene un tope diario bajo (50 correos por día al momento de escribir esto) y es suficiente para desarrollo, no para producción. El cambio a SES corresponde a la funcionalidad de invitaciones, que ya lo necesita.
 - **Cambio de correo, MFA, inicio de sesión social:** fuera de alcance.
 - **Sesiones activas visibles para la persona** ("cerrar las demás sesiones"): la tabla lo permite, pero queda para otra funcionalidad.
+
+## R18. La contraseña la define quien demuestra tener el correo (pre-secuestro de cuentas)
+
+**Problema (hallado en la revisión de seguridad):** con "registrarse con contraseña y después verificar", un atacante puede registrar el correo de otra persona con su propia contraseña. Cuando la víctima se registra, Cognito responde `UsernameExistsException`, el adaptador reenvía el código a esa cuenta pendiente y la víctima la verifica sin saber que la contraseña es la del atacante. La cuenta verificada queda con el correo de la víctima y la contraseña del atacante. Cuando las invitaciones vinculen esa cuenta a una clínica o a un paciente, el atacante vería sus datos.
+
+**Decisión:** el registro ya no recibe la contraseña.
+- **Paso 1 (`signUp`):** recibe solo correo y nombre. El adaptador de Cognito crea la cuenta con una contraseña provisional aleatoria que nadie conoce y que se descarta.
+- **Paso 2 (`confirmSignUp`):** recibe correo, código y la contraseña elegida. Tras `ConfirmSignUp`, el adaptador fija esa contraseña con `AdminSetUserPassword` (`Permanent: true`).
+- **Resultado:** solo quien recibe el código en la casilla puede verificar la cuenta, y esa persona es quien elige la contraseña. Aunque el atacante haya iniciado el registro, no conoce ninguna contraseña válida.
+
+**Consecuencias:**
+- **Permiso IAM:** el servidor necesita `cognito-idp:AdminSetUserPassword` sobre el grupo de usuarios. Es una excepción a R3: las operaciones de administración sí requieren credenciales de AWS (rol del servicio en despliegue; en desarrollo, las del perfil local de AWS). Las demás operaciones siguen sin credenciales.
+- **Fallo entre los dos pasos:** si `ConfirmSignUp` tiene éxito y `AdminSetUserPassword` falla, la cuenta queda verificada con una contraseña que nadie conoce. Es seguro; la persona la recupera con "¿Olvidaste tu contraseña?". La aplicación valida la política de contraseña antes de llamar, para que esto sea excepcional.
+- **Condiciones del grupo (a verificar en T072 y T080):** este diseño es seguro solo si toda cuenta pendiente nace con la contraseña aleatoria de este adaptador. El cliente de aplicación con secreto debe ser el único con autoregistro (sin otros clientes ni *managed login* con registro), y las cuentas sin verificar creadas antes de este cambio deben borrarse. También hay que comprobar con Cognito real que `ConfirmSignUp` falle sobre una cuenta ya verificada (es la barrera que impide fijar contraseñas ajenas), que `AdminSetUserPassword` acepte el correo como `Username`, cómo trata Cognito los espacios en la contraseña y el límite de intentos fallidos de `ConfirmSignUp`, porque ahora el código también protege la contraseña (se suma a R17).
+- **Rechazo de la contraseña tras consumir el código:** la aplicación rechaza antes de llamar los espacios al inicio o al final, que Cognito no acepta. Si igual la rechaza, el adaptador deja la cuenta con una contraseña aleatoria desconocida y lo registra (`confirmSignUp.setPassword`). Queda por mejorar el mensaje a la persona, que hoy no la lleva a "¿Olvidaste tu contraseña?".
+- **Nombre:** el nombre de la cuenta pendiente lo eligió quien inició el registro. Es un dato de presentación, sin efecto sobre el acceso, y la persona no puede corregirlo todavía (el cambio de perfil queda fuera de alcance).
+- **Alternativas descartadas:** borrar la cuenta pendiente (`AdminDeleteUser`) al repetir el registro no alcanza, porque el atacante puede registrarse otra vez entre el registro y la verificación de la víctima, y el reenvío desde "¿No verificaste tu correo?" sigue abierto.

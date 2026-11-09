@@ -9,9 +9,11 @@ export interface VerifiedIdentity {
 }
 
 export interface IdentityProvider {
-  // Responde igual exista o no la cuenta, para no revelar si un correo ya está registrado.
-  signUp(input: { email: string; password: string; fullName: string }): Promise<void>;
-  confirmSignUp(input: { email: string; code: string }): Promise<void>;
+  // Responde igual exista o no la cuenta, para no revelar si un correo ya está registrado. No recibe
+  // contraseña: la define quien demuestra tener el correo, al confirmar (R18).
+  signUp(input: { email: string; fullName: string }): Promise<void>;
+  // Verifica el correo con el código y fija `password` como contraseña definitiva.
+  confirmSignUp(input: { email: string; code: string; password: string }): Promise<void>;
   // Responde igual exista o no la cuenta.
   resendConfirmationCode(input: { email: string }): Promise<void>;
   // Devuelve solo los datos de un token de identidad ya validado.

@@ -37,13 +37,11 @@ describe("registerAccount", () => {
 
     await createRegisterAccount({ identity })({
       email: "  Persona@Example.COM ",
-      password: "contraseña-larga-123",
       fullName: "  Persona Uno ",
     });
 
     expect(identity.signUp).toHaveBeenCalledWith({
       email: "persona@example.com",
-      password: "contraseña-larga-123",
       fullName: "Persona Uno",
     });
     expectNothingLogged();
@@ -52,7 +50,7 @@ describe("registerAccount", () => {
   it("devuelve el mismo resultado sin importar si la cuenta ya existía", async () => {
     const identity = stubIdentity();
     const registerAccount = createRegisterAccount({ identity });
-    const input = { email: "a@example.com", password: "contraseña-larga-123", fullName: "Persona" };
+    const input = { email: "a@example.com", fullName: "Persona" };
 
     await expect(registerAccount(input)).resolves.toBeUndefined();
     await expect(registerAccount(input)).resolves.toBeUndefined();
@@ -60,11 +58,11 @@ describe("registerAccount", () => {
 
   it("propaga el error cerrado del proveedor", async () => {
     const identity = stubIdentity();
-    identity.signUp.mockRejectedValue(new IdentityError("INVALID_PASSWORD"));
+    identity.signUp.mockRejectedValue(new IdentityError("UNAVAILABLE"));
 
     await expect(
-      createRegisterAccount({ identity })({ email: "a@example.com", password: "x", fullName: "Persona" }),
-    ).rejects.toMatchObject({ code: "INVALID_PASSWORD" });
+      createRegisterAccount({ identity })({ email: "a@example.com", fullName: "Persona" }),
+    ).rejects.toMatchObject({ code: "UNAVAILABLE" });
     expectNothingLogged();
   });
 });
@@ -73,9 +71,18 @@ describe("confirmAccount", () => {
   it("normaliza el correo y recorta el código", async () => {
     const identity = stubIdentity();
 
-    await createConfirmAccount({ identity })({ email: " A@Example.com ", code: " 123456 " });
+    await createConfirmAccount({ identity })({
+      email: " A@Example.com ",
+      code: " 123456 ",
+      password: "contraseña larga 123",
+    });
 
-    expect(identity.confirmSignUp).toHaveBeenCalledWith({ email: "a@example.com", code: "123456" });
+    // La contraseña no se recorta ni se modifica.
+    expect(identity.confirmSignUp).toHaveBeenCalledWith({
+      email: "a@example.com",
+      code: "123456",
+      password: "contraseña larga 123",
+    });
     expectNothingLogged();
   });
 
@@ -84,7 +91,7 @@ describe("confirmAccount", () => {
     identity.confirmSignUp.mockRejectedValue(new IdentityError("INVALID_CODE"));
 
     await expect(
-      createConfirmAccount({ identity })({ email: "a@example.com", code: "123456" }),
+      createConfirmAccount({ identity })({ email: "a@example.com", code: "123456", password: "contraseña-larga-123" }),
     ).rejects.toMatchObject({ code: "INVALID_CODE" });
   });
 });

@@ -25,7 +25,11 @@ const fullNameField = z
 const newPasswordField = z
   .string()
   .min(PASSWORD_MIN_LENGTH, { error: `La contraseña debe tener ${PASSWORD_POLICY_HINT.toLowerCase()}` })
-  .max(PASSWORD_MAX_LENGTH, { error: `La contraseña debe tener ${PASSWORD_POLICY_HINT.toLowerCase()}` });
+  .max(PASSWORD_MAX_LENGTH, { error: `La contraseña debe tener ${PASSWORD_POLICY_HINT.toLowerCase()}` })
+  // Cognito rechaza espacios al inicio o al final, y lo haría después de consumir el código (R18).
+  .refine((value) => value === value.trim(), {
+    error: "La contraseña no puede empezar ni terminar con espacios.",
+  });
 
 const existingPasswordField = z
   .string()
@@ -42,12 +46,12 @@ const verificationCodeField = z
 export const signUpSchema = z.object({
   fullName: fullNameField,
   email: emailField,
-  password: newPasswordField,
 });
 
 export const confirmAccountSchema = z.object({
   email: emailField,
   code: verificationCodeField,
+  password: newPasswordField,
 });
 
 export const resendConfirmationCodeSchema = z.object({ email: emailField });

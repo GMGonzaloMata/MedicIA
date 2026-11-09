@@ -13,7 +13,6 @@ export async function signUp(
   const input = {
     fullName: readText(formData, "fullName"),
     email: readText(formData, "email"),
-    password: readText(formData, "password"),
   };
   const values = { email: input.email, fullName: input.fullName };
   const parsed = signUpSchema.safeParse(input);

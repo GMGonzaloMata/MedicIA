@@ -3,7 +3,6 @@ import type { IdentityProvider } from "../ports/out/identity-provider";
 
 export interface RegisterAccountInput {
   email: string;
-  password: string;
   fullName: string;
 }
 
@@ -12,7 +11,6 @@ export function createRegisterAccount({ identity }: { identity: IdentityProvider
   return async (input: RegisterAccountInput): Promise<void> => {
     await identity.signUp({
       email: normalizeEmail(input.email),
-      password: input.password,
       fullName: input.fullName.trim(),
     });
   };

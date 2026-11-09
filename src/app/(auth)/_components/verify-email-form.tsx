@@ -5,7 +5,11 @@ import { useActionState, useState } from "react";
 import { primaryButtonClassName, secondaryButtonClassName } from "@/components/form/button-styles";
 import { FormField } from "@/components/form/form-field";
 import { FormMessage } from "@/components/form/form-message";
-import { VERIFICATION_CODE_LENGTH } from "@/modules/users/application/validation/account-form-schemas";
+import {
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_POLICY_HINT,
+  VERIFICATION_CODE_LENGTH,
+} from "@/modules/users/application/validation/account-form-schemas";
 
 import { confirmAccount } from "../_actions/confirm-account";
 import { resendConfirmationCode } from "../_actions/resend-confirmation-code";
@@ -56,6 +60,17 @@ export function VerifyEmailForm({ initialEmail, introMessage }: VerifyEmailFormP
         maxLength={VERIFICATION_CODE_LENGTH}
         hint={`Son ${VERIFICATION_CODE_LENGTH} dígitos y llegan a tu correo.`}
         errors={failure?.fieldErrors?.code}
+      />
+      {/* La contraseña se elige acá, con el código, para que la defina quien tiene el correo (R18). */}
+      <FormField
+        id="password"
+        name="password"
+        label="Contraseña"
+        type="password"
+        autoComplete="new-password"
+        maxLength={PASSWORD_MAX_LENGTH}
+        hint={PASSWORD_POLICY_HINT}
+        errors={failure?.fieldErrors?.password}
       />
       {/* No usa SubmitButton: este formulario tiene dos envíos y solo debe mostrarse "Verificando…" al verificar. */}
       <button

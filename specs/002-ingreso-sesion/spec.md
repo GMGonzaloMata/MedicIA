@@ -120,7 +120,7 @@ La persona puede cerrar su sesión en cualquier momento, y si olvidó su contras
 **Registro y verificación**
 
 - **FR-001**: Cualquier persona DEBE poder crear una cuenta con su correo, su nombre completo y una contraseña, sin necesitar invitación previa.
-- **FR-002**: La cuenta DEBE permanecer sin activar hasta que la persona ingrese el código de verificación que recibió en su correo. El código DEBE ser de un solo uso y tener vencimiento.
+- **FR-002**: La cuenta DEBE permanecer sin activar hasta que la persona ingrese el código de verificación que recibió en su correo. El código DEBE ser de un solo uso y tener vencimiento. La contraseña de la cuenta DEBE definirla quien demuestra tener el correo, al ingresar el código: nadie que haya iniciado un registro con el correo de otra persona puede quedarse con la cuenta ni conocer su contraseña (R18).
 - **FR-003**: Una cuenta sin verificar NO DEBE poder iniciar sesión, y DEBE ofrecer completar la verificación o recibir un código nuevo.
 - **FR-004**: El correo DEBE tratarse sin distinguir mayúsculas de minúsculas, y DEBE existir una sola cuenta por correo.
 - **FR-005**: La respuesta visible del registro, del ingreso y de la recuperación NO DEBE permitir saber si un correo ya tiene cuenta.

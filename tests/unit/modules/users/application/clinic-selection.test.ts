@@ -124,8 +124,8 @@ describe("signIn: siguiente paso", () => {
     const users = new InMemoryUserRepository();
     const signInSessions = new InMemorySessionRepository();
 
-    await identity.signUp({ email: EMAIL, password: PASSWORD, fullName: "Persona Dos" });
-    await identity.confirmSignUp({ email: EMAIL, code: FAKE_VERIFICATION_CODE });
+    await identity.signUp({ email: EMAIL, fullName: "Persona Dos" });
+    await identity.confirmSignUp({ email: EMAIL, code: FAKE_VERIFICATION_CODE, password: PASSWORD });
 
     // El identificador de la cuenta lo asigna el repositorio al primer ingreso, así que se
     // crea antes para poder cargar los vínculos de esa misma cuenta.
