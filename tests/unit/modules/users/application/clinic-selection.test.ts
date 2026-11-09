@@ -117,7 +117,7 @@ describe("selectActiveClinic", () => {
 
 describe("signIn: siguiente paso", () => {
   const EMAIL = "ingreso@example.com";
-  const PASSWORD = "contraseña-larga-123";
+  const PASSWORD = "Contraseña-larga-123";
 
   async function signInWith(grants: AvailableClinic[]) {
     const identity = createInMemoryIdentityProvider({});

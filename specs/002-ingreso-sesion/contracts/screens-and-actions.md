@@ -14,7 +14,7 @@ Los mensajes son un conjunto cerrado, para que ningún error de AWS ni de la bas
 - **Código:** "El código no es correcto o ya venció."
 - **Registro y reenvío:** "Si el correo puede registrarse, te enviamos un código de verificación." Se muestra siempre.
 - **Recuperación:** "Si existe una cuenta con ese correo, te enviamos un código para restablecer la contraseña." Se muestra siempre.
-- **Contraseña:** "La contraseña debe tener entre 12 y 128 caracteres."
+- **Contraseña:** "La contraseña debe tener entre 8 y 128 caracteres, con al menos una mayúscula." Al elegirla se pide repetirla y, si no coinciden, "Las contraseñas no coinciden."
 - **Clínica no disponible:** "No podés usar esa clínica en este momento." Para una clínica ajena, inexistente o ya no vigente, sin distinguirlas (FR-022).
 - **Servicio:** "No pudimos completar la operación. Intentá de nuevo en unos minutos."
 

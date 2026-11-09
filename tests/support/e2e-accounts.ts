@@ -2,7 +2,7 @@ import { expect, type Page } from "@playwright/test";
 
 import { uniqueEmail, uniqueName, type E2eDatabase } from "./e2e-database";
 
-export const E2E_PASSWORD = "contraseña-larga-123";
+export const E2E_PASSWORD = "Contraseña-larga-123";
 export const FAKE_CODE = "000000";
 
 // Crea la cuenta propia en la base (para poder vincularla a una clínica antes del primer ingreso)

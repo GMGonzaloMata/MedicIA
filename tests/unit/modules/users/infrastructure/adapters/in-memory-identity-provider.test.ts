@@ -8,7 +8,7 @@ import {
 } from "@/modules/users/infrastructure/adapters/in-memory-identity-provider";
 
 const EMAIL = "persona@example.com";
-const PASSWORD = "contraseña-larga-123";
+const PASSWORD = "Contraseña-larga-123";
 
 async function codeOf(operation: Promise<unknown>): Promise<string | undefined> {
   try {
@@ -38,16 +38,19 @@ describe("createInMemoryIdentityProvider", () => {
     });
   });
 
-  it("rechaza al verificar una contraseña fuera de 12 a 128 caracteres y no verifica la cuenta", async () => {
+  it("rechaza al verificar una contraseña que no cumple la política y no verifica la cuenta", async () => {
     const provider = newProvider();
     await provider.signUp({ email: EMAIL, fullName: "P" });
     const confirmWith = (password: string) =>
       provider.confirmSignUp({ email: EMAIL, code: FAKE_VERIFICATION_CODE, password });
 
-    expect(await codeOf(confirmWith("a".repeat(11)))).toBe("INVALID_PASSWORD");
-    expect(await codeOf(confirmWith("a".repeat(129)))).toBe("INVALID_PASSWORD");
-    expect(await codeOf(provider.signIn({ email: EMAIL, password: "a".repeat(11) }))).toBe("INVALID_CREDENTIALS");
-    expect(await codeOf(confirmWith("a".repeat(12)))).toBeUndefined();
+    const withLength = (length: number) => `A${"a".repeat(length - 1)}`;
+
+    expect(await codeOf(confirmWith(withLength(7)))).toBe("INVALID_PASSWORD");
+    expect(await codeOf(confirmWith(withLength(129)))).toBe("INVALID_PASSWORD");
+    expect(await codeOf(confirmWith("a".repeat(20)))).toBe("INVALID_PASSWORD");
+    expect(await codeOf(provider.signIn({ email: EMAIL, password: withLength(8) }))).toBe("INVALID_CREDENTIALS");
+    expect(await codeOf(confirmWith(withLength(8)))).toBeUndefined();
   });
 
   it("responde igual al registrar un correo que ya existe y no pisa la cuenta", async () => {
@@ -68,7 +71,7 @@ describe("createInMemoryIdentityProvider", () => {
     const again = provider.confirmSignUp({
       email: EMAIL,
       code: FAKE_VERIFICATION_CODE,
-      password: "contraseña-intrusa-1",
+      password: "Contraseña-intrusa-1",
     });
 
     expect(await codeOf(again)).toBe("INVALID_CODE");
@@ -85,7 +88,7 @@ describe("createInMemoryIdentityProvider", () => {
     await provider.signUp({ email: EMAIL, fullName: "Persona Uno" });
     await provider.confirmSignUp({ email: EMAIL, code: FAKE_VERIFICATION_CODE, password: PASSWORD });
 
-    expect(await codeOf(provider.signIn({ email: EMAIL, password: "contraseña-del-intruso-1" }))).toBe(
+    expect(await codeOf(provider.signIn({ email: EMAIL, password: "Contraseña-del-intruso-1" }))).toBe(
       "INVALID_CREDENTIALS",
     );
     expect((await provider.signIn({ email: EMAIL, password: PASSWORD })).email).toBe(EMAIL);
@@ -130,7 +133,7 @@ describe("createInMemoryIdentityProvider", () => {
     await provider.confirmSignUp({ email: EMAIL, code: FAKE_VERIFICATION_CODE, password: PASSWORD });
 
     expect(
-      await codeOf(provider.confirmPasswordReset({ email: EMAIL, code: "123456", newPassword: "nueva-contraseña-1" })),
+      await codeOf(provider.confirmPasswordReset({ email: EMAIL, code: "123456", newPassword: "Nueva-contraseña-1" })),
     ).toBe("INVALID_CODE");
     expect(
       await codeOf(
@@ -141,11 +144,11 @@ describe("createInMemoryIdentityProvider", () => {
     await provider.confirmPasswordReset({
       email: EMAIL,
       code: FAKE_VERIFICATION_CODE,
-      newPassword: "nueva-contraseña-1",
+      newPassword: "Nueva-contraseña-1",
     });
 
     expect(await codeOf(provider.signIn({ email: EMAIL, password: PASSWORD }))).toBe("INVALID_CREDENTIALS");
-    expect(await codeOf(provider.signIn({ email: EMAIL, password: "nueva-contraseña-1" }))).toBeUndefined();
+    expect(await codeOf(provider.signIn({ email: EMAIL, password: "Nueva-contraseña-1" }))).toBeUndefined();
   });
 
   it("rechaza la recuperación de un correo inexistente como código incorrecto", async () => {
@@ -156,7 +159,7 @@ describe("createInMemoryIdentityProvider", () => {
         provider.confirmPasswordReset({
           email: "nadie@example.com",
           code: FAKE_VERIFICATION_CODE,
-          newPassword: "nueva-contraseña-1",
+          newPassword: "Nueva-contraseña-1",
         }),
       ),
     ).toBe("INVALID_CODE");

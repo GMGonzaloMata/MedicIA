@@ -35,7 +35,7 @@ Todas reciben el correo ya normalizado (minúsculas, sin espacios). Ninguna devu
 
 - **Memoria:** guarda las cuentas en un mapa del proceso.
 - **Código de verificación y de recuperación:** fijo, `000000`.
-- **Contraseña:** acepta cualquiera que cumpla la política de 12 a 128 caracteres. Se define al verificar el correo; hasta entonces la cuenta tiene una contraseña provisional desconocida.
+- **Contraseña:** acepta cualquiera que cumpla la política de 8 a 128 caracteres con al menos una mayúscula. Se define al verificar el correo; hasta entonces la cuenta tiene una contraseña provisional desconocida.
 - **Subject:** genera un identificador estable por correo, con el formato de un UUID.
 - **Arranque:** se niega a iniciar si están definidas las variables de Cognito (R11).
 
@@ -48,7 +48,7 @@ Para que el adaptador funcione, el grupo y su cliente de aplicación deben tener
 - **Permiso del servidor (R18):** el rol o las credenciales de la aplicación incluyen `cognito-idp:AdminSetUserPassword` sobre este grupo, y nada más de administración.
 - **Verificación:** verificación automática del correo con un código numérico de 6 dígitos.
 - **Atributos obligatorios:** `email` y `name`.
-- **Política de contraseña:** longitud mínima 12, sin exigir mayúsculas, números ni símbolos (coincide con R13).
+- **Política de contraseña:** longitud mínima 8, exigiendo al menos una letra mayúscula y nada más (sin números ni símbolos), como en R13. La contraseña provisional del registro lleva una mayúscula fija para cumplirla.
 - **Cliente de aplicación:**
   - **Secreto:** con secreto de cliente (confidencial).
   - **Flujos:** solo `ALLOW_USER_PASSWORD_AUTH`. Sin `ALLOW_REFRESH_TOKEN_AUTH`, porque la aplicación no usa los tokens más allá del ingreso.

@@ -149,7 +149,8 @@ Detalle en [contracts/access-context.md](contracts/access-context.md).
 ## R13. Validación de los datos de entrada y política de contraseña
 
 **Decisión:** `zod` valida los formularios antes de llamar a los casos de uso, y también las variables de entorno de Cognito al iniciar. Reglas:
-- **Contraseña:** entre 12 y 128 caracteres, sin exigir composición. Cognito aplica su propia política, que debe coincidir (ver el contrato del proveedor).
+- **Contraseña:** entre 8 y 128 caracteres, con al menos una mayúscula (A a Z, sin acentos, como la cuenta Cognito), y repetida con coincidencia exacta al elegirla. Cognito aplica su propia política, que debe coincidir (ver el contrato del proveedor). La política vive en un solo archivo, `src/modules/users/domain/password-policy.ts`.
+- **Cambio de criterio:** se había fijado 12 caracteres sin composición, porque la longitud protege más que las reglas de composición. Se cambió a 8 con una mayúscula por decisión del responsable del proyecto.
 - **Correo:** válido, recortado y pasado a minúsculas (coincide con el `CHECK` de `users`).
 - **Nombre:** entre 2 y 120 caracteres, sin ser solo espacios.
 - **Código:** exactamente 6 dígitos.

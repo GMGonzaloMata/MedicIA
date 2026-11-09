@@ -103,7 +103,8 @@ describe("registro", () => {
 
     const first = send.mock.calls[0][0].input.Password;
     const second = send.mock.calls[1][0].input.Password;
-    expect(first).toHaveLength(43);
+    expect(first).toHaveLength(44);
+    expect(first).toMatch(/[A-Z]/);
     expect(first).not.toBe(second);
   });
 
@@ -205,7 +206,7 @@ describe("verificación y reenvío del código", () => {
     const reset = send.mock.calls[2][0];
     expect(reset).toBeInstanceOf(AdminSetUserPasswordCommand);
     expect(reset.input.Password).not.toBe(PASSWORD);
-    expect(reset.input.Password).toHaveLength(43);
+    expect(reset.input.Password).toHaveLength(44);
     expect(consoleError.mock.calls.flat().join("\n")).toContain("confirmSignUp.setPassword");
   });
 

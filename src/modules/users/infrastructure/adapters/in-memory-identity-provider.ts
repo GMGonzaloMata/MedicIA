@@ -5,12 +5,11 @@ import type {
   VerifiedIdentity,
 } from "../../application/ports/out/identity-provider";
 import { IdentityError } from "../../domain/identity-errors";
+import { meetsPasswordPolicy } from "../../domain/password-policy";
 
 // Código de verificación y de recuperación del proveedor simulado.
 export const FAKE_VERIFICATION_CODE = "000000";
 
-const PASSWORD_MIN_LENGTH = 12;
-const PASSWORD_MAX_LENGTH = 128;
 // Un despliegue real siempre define las variables de Cognito. Si están presentes, no se arranca el simulado.
 const COGNITO_VARIABLES = [
   "COGNITO_REGION",
@@ -40,7 +39,7 @@ export function fakeSubjectForEmail(email: string): string {
 }
 
 function assertValidPassword(password: string): void {
-  if (password.length < PASSWORD_MIN_LENGTH || password.length > PASSWORD_MAX_LENGTH) {
+  if (!meetsPasswordPolicy(password)) {
     throw new IdentityError("INVALID_PASSWORD");
   }
 }

@@ -18,7 +18,7 @@ import { InMemorySessionRepository } from "../../../../support/in-memory/in-memo
 import { InMemoryUserRepository } from "../../../../support/in-memory/in-memory-user-repository";
 
 const EMAIL = "persona@example.com";
-const PASSWORD = "contraseña-larga-123";
+const PASSWORD = "Contraseña-larga-123";
 const STARTED_AT = new Date("2026-11-09T10:00:00.000Z");
 
 let identity: ReturnType<typeof createInMemoryIdentityProvider>;

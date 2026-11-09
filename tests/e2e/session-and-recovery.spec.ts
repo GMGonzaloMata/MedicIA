@@ -8,7 +8,7 @@ import {
 } from "../support/e2e-accounts";
 import { createE2eDatabase, uniqueEmail, uniqueName, type E2eDatabase } from "../support/e2e-database";
 
-const NEW_PASSWORD = "contraseña-nueva-456";
+const NEW_PASSWORD = "Contraseña-nueva-456";
 const INVALID_CODE = "El código no es correcto o ya venció.";
 const RECOVERY_MESSAGE = "Si existe una cuenta con ese correo, te enviamos un código para restablecer la contraseña.";
 

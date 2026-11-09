@@ -148,7 +148,7 @@ describe("signOut", () => {
 });
 
 describe("signIn", () => {
-  const credentials = { email: "persona@example.com", password: "contraseña-larga-123" };
+  const credentials = { email: "persona@example.com", password: "Contraseña-larga-123" };
   const session = { token: generateSessionToken(), expiresAt: new Date(Date.now() + 60_000) };
 
   it.each(["https://example.com/robo", "//example.com"])(

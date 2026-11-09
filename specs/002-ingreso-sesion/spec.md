@@ -193,7 +193,7 @@ La persona puede cerrar su sesión en cualquier momento, y si olvidó su contras
 - **Alcance:** esta funcionalidad cubre registro, verificación, ingreso, cierre de sesión, recuperación de contraseña, elección de clínica y la identificación verificada en cada solicitud. No incluye invitaciones ni vinculación, gestión de clínicas o usuarios, estudios ni análisis.
 - **Registro abierto:** cualquier persona puede crear una cuenta, pero sin una invitación no pertenece a ninguna clínica y no puede usar el análisis. Las invitaciones corresponden a la funcionalidad siguiente.
 - **Proveedor de identidad:** la verificación del correo, el almacenamiento de contraseñas y los códigos los resuelve el servicio de identidad aprobado en la constitución. La plataforma no guarda contraseñas ni códigos.
-- **Política de contraseña:** longitud mínima de 12 caracteres, sin exigir combinaciones de tipos de caracteres. Se confirmará en el plan.
+- **Política de contraseña:** entre 8 y 128 caracteres, con al menos una letra mayúscula (A a Z). Se pide repetir la contraseña al elegirla y las dos deben coincidir. Se confirmó en el plan (R13).
 - **Intentos y vencimientos:** los límites de intentos fallidos y la duración de los códigos de verificación y recuperación los define el servicio de identidad con sus valores recomendados. La spec exige que existan, no fija los números.
 - **Administrador de plataforma:** su panel y su acceso a la gestión de clínicas quedan fuera de esta funcionalidad. Hasta entonces ingresa como cualquier cuenta y, si no pertenece a ninguna clínica, ve el mismo estado vacío.
 - **Idioma:** los textos están en español rioplatense.

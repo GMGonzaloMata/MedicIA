@@ -14,8 +14,8 @@ import { InMemoryUserRepository } from "../../../../support/in-memory/in-memory-
 
 const NOW = new Date("2026-11-09T10:00:00.000Z");
 const EMAIL = "persona@example.com";
-const OLD_PASSWORD = "contraseña-larga-123";
-const NEW_PASSWORD = "otra-contraseña-456";
+const OLD_PASSWORD = "Contraseña-larga-123";
+const NEW_PASSWORD = "Otra-contraseña-456";
 
 describe("signOut", () => {
   let sessions: InMemorySessionRepository;

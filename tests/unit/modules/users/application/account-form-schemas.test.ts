@@ -11,7 +11,10 @@ import {
   signUpSchema,
 } from "@/modules/users/application/validation/account-form-schemas";
 
-const VALID_PASSWORD = "a".repeat(12);
+const VALID_PASSWORD = `A${"a".repeat(11)}`;
+
+// Contraseña de una longitud exacta que cumple la política (empieza con una mayúscula).
+const passwordOfLength = (length: number) => `A${"a".repeat(length - 1)}`;
 
 describe("signUpSchema", () => {
   it("recorta y pasa a minúsculas el correo, y recorta el nombre", () => {
@@ -37,16 +40,16 @@ describe("signUpSchema", () => {
   });
 
   it.each([
-    { length: 11, isValid: false },
-    { length: 12, isValid: true },
+    { length: 7, isValid: false },
+    { length: 8, isValid: true },
     { length: 128, isValid: true },
     { length: 129, isValid: false },
   ])("la contraseña de $length caracteres es válida: $isValid", ({ length, isValid }) => {
     const result = confirmAccountSchema.safeParse({
       email: "a@example.com",
       code: "123456",
-      password: "a".repeat(length),
-      passwordConfirmation: "a".repeat(length),
+      password: passwordOfLength(length),
+      passwordConfirmation: passwordOfLength(length),
     });
 
     expect(result.success).toBe(isValid);
@@ -75,7 +78,7 @@ describe("signUpSchema", () => {
 
     expect(result.success).toBe(false);
     expect(JSON.stringify(result.error?.issues)).toContain("12");
-    expect(PASSWORD_POLICY_HINT).toBe("Entre 12 y 128 caracteres.");
+    expect(PASSWORD_POLICY_HINT).toBe("Entre 8 y 128 caracteres, con al menos una mayúscula.");
   });
 });
 
@@ -92,6 +95,22 @@ describe("confirmAccountSchema y resetPasswordSchema", () => {
     expect(
       resetPasswordSchema.safeParse({ email: "a@example.com", code, newPassword: VALID_PASSWORD, newPasswordConfirmation: VALID_PASSWORD }).success,
     ).toBe(isValid);
+  });
+
+  it.each([
+    { password: "sinmayuscula1", isAllowed: false },
+    { password: "ñandú-minúscula-1", isAllowed: false },
+    { password: "ConMayuscula1", isAllowed: true },
+    { password: "mayusculaAlFinal-B", isAllowed: true },
+  ])("la contraseña '$password' cumple la política: $isAllowed", ({ password, isAllowed }) => {
+    const result = confirmAccountSchema.safeParse({
+      email: "a@example.com",
+      code: "123456",
+      password,
+      passwordConfirmation: password,
+    });
+
+    expect(result.success).toBe(isAllowed);
   });
 
   it("rechaza una contraseña repetida que no coincide, y marca el campo de la repetición", () => {

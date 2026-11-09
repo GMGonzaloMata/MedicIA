@@ -91,7 +91,7 @@ describe("confirmAccount", () => {
     identity.confirmSignUp.mockRejectedValue(new IdentityError("INVALID_CODE"));
 
     await expect(
-      createConfirmAccount({ identity })({ email: "a@example.com", code: "123456", password: "contraseña-larga-123" }),
+      createConfirmAccount({ identity })({ email: "a@example.com", code: "123456", password: "Contraseña-larga-123" }),
     ).rejects.toMatchObject({ code: "INVALID_CODE" });
   });
 });

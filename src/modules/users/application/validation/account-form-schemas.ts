@@ -1,13 +1,16 @@
 import { z } from "zod";
 
-export const PASSWORD_MIN_LENGTH = 12;
-export const PASSWORD_MAX_LENGTH = 128;
+import {
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_POLICY_HINT,
+  hasUppercaseLetter,
+} from "../../domain/password-policy";
+
+export { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, PASSWORD_POLICY_HINT };
 export const FULL_NAME_MIN_LENGTH = 2;
 export const FULL_NAME_MAX_LENGTH = 120;
 export const VERIFICATION_CODE_LENGTH = 6;
-
-// Ayuda que se muestra junto a los campos de contraseña nueva, antes de enviar el formulario.
-export const PASSWORD_POLICY_HINT = `Entre ${PASSWORD_MIN_LENGTH} y ${PASSWORD_MAX_LENGTH} caracteres.`;
 
 const emailField = z
   .string()
@@ -26,6 +29,7 @@ const newPasswordField = z
   .string()
   .min(PASSWORD_MIN_LENGTH, { error: `La contraseña debe tener ${PASSWORD_POLICY_HINT.toLowerCase()}` })
   .max(PASSWORD_MAX_LENGTH, { error: `La contraseña debe tener ${PASSWORD_POLICY_HINT.toLowerCase()}` })
+  .refine(hasUppercaseLetter, { error: `La contraseña debe tener ${PASSWORD_POLICY_HINT.toLowerCase()}` })
   // Cognito rechaza espacios al inicio o al final, y lo haría después de consumir el código (R18).
   .refine((value) => value === value.trim(), {
     error: "La contraseña no puede empezar ni terminar con espacios.",

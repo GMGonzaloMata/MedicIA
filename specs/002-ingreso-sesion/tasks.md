@@ -202,6 +202,9 @@ Las tareas T074 y T075 se agregaron después del análisis (speckit-analyze) y p
 - [X] T078 Pantallas: quitar la contraseña de `/sign-up` y pedirla junto con el código en el segundo paso y en `/verify-email`. Acciones `sign-up` y `confirm-account`.
 - [X] T079 Pruebas: regresión del pre-secuestro con el simulado (el intruso se registra primero, la dueña verifica; la contraseña del intruso falla y la de la dueña sirve), adaptador de Cognito, esquemas, casos de uso y E2E de registro.
 - [ ] T080 [Responsable] Agregar `cognito-idp:AdminSetUserPassword` al rol del servidor (Terraform) y disponer credenciales de AWS en desarrollo antes de probar con Cognito real (T072).
+- [X] T081 Repetir la contraseña al elegirla (verificación y restablecimiento) con coincidencia exacta, validada en el esquema.
+- [X] T082 Política de contraseña de 8 a 128 caracteres con al menos una mayúscula, en `src/modules/users/domain/password-policy.ts` (R13): esquemas, proveedor simulado, mensajes y contraseña provisional de Cognito.
+- [ ] T083 [Responsable] Configurar el grupo de usuarios de Cognito con la misma política cuando se cree: longitud mínima 8, exigir mayúsculas y nada más.
 
 ---
 

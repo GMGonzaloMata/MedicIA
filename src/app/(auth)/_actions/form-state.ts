@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { AccountConflictError, IdentityError } from "@/modules/users/domain/identity-errors";
+import { PASSWORD_POLICY_HINT } from "@/modules/users/domain/password-policy";
 
 import { AUTH_MESSAGES } from "../../_lib/auth-messages";
 
@@ -37,7 +38,7 @@ export function failureState(
       case "INVALID_PASSWORD":
         return {
           status: "error",
-          fieldErrors: { [passwordField]: ["La contraseña no cumple la política: entre 12 y 128 caracteres."] },
+          fieldErrors: { [passwordField]: [`La contraseña no cumple la política: ${PASSWORD_POLICY_HINT.toLowerCase()}`] },
           values,
         };
       case "INVALID_CODE":

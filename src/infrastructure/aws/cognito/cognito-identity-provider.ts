@@ -75,9 +75,10 @@ const idTokenClaimsSchema = z.object({
   name: z.string().min(1),
 });
 
-// 256 bits aleatorios: cumple cualquier política de longitud y nadie, tampoco la aplicación, los conserva.
+// 256 bits aleatorios más una mayúscula fija, para cumplir siempre la política del grupo de usuarios.
+// Nadie, tampoco la aplicación, la conserva.
 function temporaryPassword(): string {
-  return randomBytes(32).toString("base64url");
+  return `A${randomBytes(32).toString("base64url")}`;
 }
 
 function errorName(error: unknown): string {
