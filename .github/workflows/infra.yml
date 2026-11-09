@@ -7,12 +7,12 @@ on:
   pull_request:
     paths:
       - "infra/**"
-      - ".github/workflows/infra.yml"
+      - ".github/workflows/**"
   push:
     branches: [main]
     paths:
       - "infra/**"
-      - ".github/workflows/infra.yml"
+      - ".github/workflows/**"
 
 permissions:
   contents: read
@@ -30,9 +30,9 @@ jobs:
     name: Comprobaciones estáticas
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: hashicorp/setup-terraform@v4
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
           terraform_wrapper: false
@@ -49,7 +49,7 @@ jobs:
             echo "::endgroup::"
           done
 
-      - uses: terraform-linters/setup-tflint@v6
+      - uses: terraform-linters/setup-tflint@6ffdbaa3be476b3431f7275c26966ef32ff60337 # v6
 
       - name: tflint
         working-directory: infra
@@ -73,7 +73,7 @@ jobs:
           done
 
       - name: Análisis de configuración (trivy)
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: config
           scan-ref: infra
@@ -82,7 +82,7 @@ jobs:
           trivyignores: infra/.trivyignore
 
       - name: Búsqueda de secretos (trivy)
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: fs
           scanners: secret
@@ -145,7 +145,8 @@ jobs:
 
       - name: Guarda de no aplicar (FR-018)
         run: |
-          if grep -nE 'terraform[[:space:]]+(apply|destroy|import|state)' .github/workflows/*.yml; then
+          # Admite opciones entre terraform y el subcomando, como -chdir=...
+          if grep -nE 'terraform([[:space:]]+-[^[:space:]]+)*[[:space:]]+(apply|destroy|import|state|force-unlock)([[:space:]]|$)' .github/workflows/*.yml; then
             echo "::error::Los flujos no pueden aplicar, destruir, importar ni tocar el estado."
             exit 1
           fi
@@ -155,7 +156,8 @@ jobs:
           fallo=0
           for archivo in infra/bootstrap/providers.tf infra/environments/dev/providers.tf; do
             for clave in default_tags Project Environment ManagedBy; do
-              if ! grep -q "$clave" "$archivo"; then
+              # Se busca dentro del bloque default_tags, no en cualquier parte del archivo.
+              if ! grep -A8 default_tags "$archivo" | grep -q "$clave"; then
                 echo "::error::$archivo no declara $clave en default_tags."
                 fallo=1
               fi
@@ -173,9 +175,9 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: hashicorp/setup-terraform@v4
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
           terraform_wrapper: false
@@ -189,7 +191,7 @@ jobs:
           echo "::add-mask::$token"
           echo "$token" | jq -R 'split(".")[1] | gsub("-";"+") | gsub("_";"/") | @base64d | fromjson | {sub, aud, iss}'
 
-      - uses: aws-actions/configure-aws-credentials@v6
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6
         with:
           role-to-assume: ${{ vars.INFRA_PLAN_ROLE_ARN }}
           aws-region: sa-east-1

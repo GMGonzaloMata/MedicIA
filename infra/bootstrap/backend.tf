@@ -1,12 +1,13 @@
-# Fase 2 del arranque: este archivo se copia a backend.tf DESPUÉS de crear el bucket (fase 1)
-# y se migra el estado con:
+# Backend remoto del arranque (fase 2). Es idéntico a backend.tf.example.
+#
+# Este archivo solo puede existir cuando el bucket del estado ya está creado. En una cuenta nueva,
+# hay que quitarlo, hacer la fase 1 con estado local y volver a copiar backend.tf.example como
+# backend.tf para migrar el estado:
 #
 #   terraform -chdir=infra/bootstrap init -migrate-state
 #
-# Antes de esa copia, el estado del arranque vive en un archivo local ignorado por git,
-# porque el bucket que lo va a guardar todavía no existe. Ver specs/003-infra-base-cognito/research.md (R5).
-#
-# Para recrear todo desde cero, se quita backend.tf y se vuelve a la fase 1 (ver infra/README.md).
+# Ver infra/README.md ("Arranque en dos fases" y "Recreación desde cero") y
+# specs/003-infra-base-cognito/research.md (R5).
 
 terraform {
   backend "s3" {

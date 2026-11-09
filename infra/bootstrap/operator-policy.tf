@@ -1,14 +1,25 @@
 # Política del operador (el responsable que aplica los cambios). Reemplaza a AdministratorAccess (FR-020).
-# Es un punto de partida: se ajusta con el uso real (T046). Mientras no se adjunte, no cambia ningún permiso.
-# Nota aceptada para desarrollo: el operador puede editar roles y políticas con prefijo medicia-dev-,
-# incluida esta política. La contención es que no tiene otros servicios ni otros prefijos.
+#
+# Contención de IAM: el operador gestiona usuarios y roles con prefijo medicia-dev-, pero:
+#   - solo puede crearlos o darles políticas si llevan la política límite medicia-dev-boundary
+#     (condición iam:PermissionsBoundary), así que nada de lo que cree supera ese techo;
+#   - no puede editar ni borrar la propia política del operador ni la política límite (Deny), ni quitar
+#     el límite a nadie.
+# Consecuencia: cambiar esta política o el límite exige una vía de administración aparte (el usuario raíz
+# con MFA, o un administrador). Ver infra/README.md, "Cambiar los permisos del operador".
 
 locals {
   iam_prefix = "medicia-${var.environment}-"
+
+  # Se arman con cadenas conocidas, no con atributos del recurso, para poder decodificarlos en las pruebas.
+  operator_policy_arn = "arn:aws:iam::${var.account_id}:policy/medicia-${var.environment}-terraform-operator"
 }
 
 resource "aws_iam_policy" "operator" {
-  name        = "medicia-${var.environment}-terraform-operator"
+  name = "medicia-${var.environment}-terraform-operator"
+
+  # No cambiar la descripción: en IAM fuerza reemplazar la política, y destruirla exige desadjuntarla
+  # de terraform-dev, algo que el operador no puede hacer.
   description = "Permisos mínimos para aplicar infra/: estado remoto, Cognito y el IAM propio del entorno."
 
   policy = jsonencode({
@@ -62,6 +73,10 @@ resource "aws_iam_policy" "operator" {
         Resource = ["*"]
       },
       {
+        # Comodín justificado: Terraform gestiona el grupo y el cliente con decenas de acciones
+        # (Create, Update, Describe, Set, Tag...) y enumerarlas deja el plan roto con cada versión
+        # nueva del proveedor. El alcance ya está acotado a los grupos de esta cuenta y región.
+        # Las pruebas lo admiten solo para cognito-idp:*. Producción debería enumerarlas.
         Sid      = "GestionarCognito"
         Effect   = "Allow"
         Action   = ["cognito-idp:*"]
@@ -72,7 +87,6 @@ resource "aws_iam_policy" "operator" {
         Effect = "Allow"
         Action = [
           "iam:CreateAccessKey",
-          "iam:CreateUser",
           "iam:DeleteAccessKey",
           "iam:DeleteUser",
           "iam:DeleteUserPolicy",
@@ -83,7 +97,6 @@ resource "aws_iam_policy" "operator" {
           "iam:ListGroupsForUser",
           "iam:ListUserPolicies",
           "iam:ListUserTags",
-          "iam:PutUserPolicy",
           "iam:TagUser",
           "iam:UntagUser",
           "iam:UpdateAccessKey",
@@ -92,10 +105,25 @@ resource "aws_iam_policy" "operator" {
         Resource = ["arn:aws:iam::${var.account_id}:user/${local.iam_prefix}*"]
       },
       {
+        # Crear un usuario, darle una política o ponerle un límite solo se permite con la política límite.
+        Sid    = "CrearUsuariosIamConLimite"
+        Effect = "Allow"
+        Action = [
+          "iam:CreateUser",
+          "iam:PutUserPermissionsBoundary",
+          "iam:PutUserPolicy",
+        ]
+        Resource = ["arn:aws:iam::${var.account_id}:user/${local.iam_prefix}*"]
+        Condition = {
+          StringEquals = {
+            "iam:PermissionsBoundary" = local.boundary_policy_arn
+          }
+        }
+      },
+      {
         Sid    = "GestionarRolesIamDelEntorno"
         Effect = "Allow"
         Action = [
-          "iam:CreateRole",
           "iam:DeleteRole",
           "iam:DeleteRolePolicy",
           "iam:GetRole",
@@ -104,15 +132,31 @@ resource "aws_iam_policy" "operator" {
           "iam:ListInstanceProfilesForRole",
           "iam:ListRolePolicies",
           "iam:ListRoleTags",
-          "iam:PutRolePolicy",
           "iam:TagRole",
           "iam:UntagRole",
-          "iam:UpdateAssumeRolePolicy",
           "iam:UpdateRole",
         ]
         Resource = ["arn:aws:iam::${var.account_id}:role/${local.iam_prefix}*"]
       },
       {
+        # Crear un rol, darle una política, cambiar quién lo asume o ponerle un límite solo se permite con la política límite.
+        Sid    = "CrearRolesIamConLimite"
+        Effect = "Allow"
+        Action = [
+          "iam:CreateRole",
+          "iam:PutRolePermissionsBoundary",
+          "iam:PutRolePolicy",
+          "iam:UpdateAssumeRolePolicy",
+        ]
+        Resource = ["arn:aws:iam::${var.account_id}:role/${local.iam_prefix}*"]
+        Condition = {
+          StringEquals = {
+            "iam:PermissionsBoundary" = local.boundary_policy_arn
+          }
+        }
+      },
+      {
+        # Las políticas del propio operador y del límite quedan fuera por el Deny de más abajo.
         Sid    = "GestionarPoliticasIamDelEntorno"
         Effect = "Allow"
         Action = [
@@ -144,6 +188,33 @@ resource "aws_iam_policy" "operator" {
           "iam:UpdateOpenIDConnectProviderThumbprint",
         ]
         Resource = [local.github_oidc_provider_arn]
+      },
+      {
+        # Un Deny gana a cualquier Allow: el operador no puede darse permisos editando las políticas que lo limitan.
+        Sid    = "ProtegerLasPoliticasDeAcceso"
+        Effect = "Deny"
+        Action = [
+          "iam:CreatePolicyVersion",
+          "iam:DeletePolicy",
+          "iam:DeletePolicyVersion",
+          "iam:SetDefaultPolicyVersion",
+        ]
+        Resource = [
+          local.operator_policy_arn,
+          local.boundary_policy_arn,
+        ]
+      },
+      {
+        Sid    = "ProtegerElLimiteDeLosPrincipales"
+        Effect = "Deny"
+        Action = [
+          "iam:DeleteRolePermissionsBoundary",
+          "iam:DeleteUserPermissionsBoundary",
+        ]
+        Resource = [
+          "arn:aws:iam::${var.account_id}:role/${local.iam_prefix}*",
+          "arn:aws:iam::${var.account_id}:user/${local.iam_prefix}*",
+        ]
       },
     ]
   })

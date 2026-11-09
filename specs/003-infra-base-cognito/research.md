@@ -203,3 +203,35 @@ Se registran a medida que se cierran las tareas de [tasks.md](tasks.md).
 - Como el plan fallaba antes de poder aplicar la corrección, se aplicó con `-refresh=false` (el operador puede editar su propia política). Después, `plan` completo: "No changes".
 - Lección: para una raíz que administra un recurso, el operador necesita leer toda la configuración de ese recurso, no solo usarlo.
 - Para cambios que exijan permisos nuevos y rompan el refresco, el camino sin volver a ser administrador es `apply -refresh=false`.
+
+### T050: comprobación final (2026-11-09)
+
+- `terraform fmt -check -recursive infra`: sin diferencias.
+- `validate`: correcto en `bootstrap`, `modules/identity` y `environments/dev`.
+- `terraform test`: 15 pruebas en `bootstrap` y 17 en `modules/identity`, todas en verde.
+- Los tres `.terraform.lock.hcl` están versionados.
+- `npm run check`: en verde (no se tocó código de la aplicación).
+- Nota: `init -backend=false` falla localmente en `bootstrap` y `environments/dev` si el directorio ya tiene un backend inicializado y la terminal no tiene credenciales de AWS (intenta leer el backend en caché). En una copia limpia funciona, y en CI también. No es un defecto del código.
+
+### T051: revisión de infraestructura y de seguridad (2026-11-09)
+
+Se ejecutó la revisión de seguridad (`security-reviewer`) y la de infraestructura. El subagente `infra-reviewer` no estaba registrado en la sesión (los agentes se cargan al iniciar), así que se aplicaron sus criterios (`.claude/agents/infra-reviewer.md` y `.agents/reviewers/infrastructure.md`) con un agente general. No fue el subagente oficial. Sin hallazgos bloqueantes de código; hallazgos y resolución:
+
+- **La política del operador equivalía a administrador (importante, ambas revisiones).** Podía editar su propia política (`CreatePolicyVersion` sobre `medicia-dev-*`) y crear usuarios con políticas en línea y claves. Decisión del responsable: cerrarlo ahora. Se agregó la política límite `medicia-dev-boundary` (techo del rol de plan y del usuario de la aplicación: lectura más `AdminSetUserPassword`), la condición `iam:PermissionsBoundary` para crear o modificar usuarios y roles, y un `Deny` sobre las políticas del operador y del límite y sobre quitar el límite. Con pruebas y mutaciones verificadas. Consecuencia: cambiar los permisos del operador exige una vía de administración aparte (README, "Cambiar los permisos del operador"); el atajo `apply -refresh=false` de T046 ya no existe.
+- **Guarda de no aplicar (corregida).** La expresión no detectaba `terraform -chdir=... apply`, la forma que usa el propio flujo. Ahora admite opciones intermedias y `force-unlock`; se comprobó contra casos y contra el propio flujo.
+- **Acciones de GitHub fijadas por SHA de commit** (con la versión en un comentario), porque el trabajo `plan` recibe credenciales por OIDC. Se actualizan en cambios separados (FR-015). No pude verificar que cada etiqueta no haya sido reescrita antes de resolverla.
+- **Filtro de rutas** ampliado a `.github/workflows/**`.
+- **Guarda de etiquetas** ahora busca dentro del bloque `default_tags`.
+- **Limpieza:** línea suelta en `.trivyignore`; cabecera engañosa de `backend.tf`; comentario que justifica `cognito-idp:*` (acotado a los grupos de esta cuenta y región).
+- **MFA:** el contrato decía "Requiere MFA, igual que hoy", pero la política no lo exige y las claves de la CLI no usan MFA. Se corrigió el contrato.
+- **Pendiente, aceptado para desarrollo:** una propuesta del mismo repositorio puede modificar el flujo y leer el estado de dev (rol de plan con acceso al estado, que contiene secretos; además `DescribeUserPoolClient` devuelve el secreto del cliente). Antes de sumar colaboradores o crear producción: Environment de GitHub con revisor obligatorio y cambio del `sub` a `environment:`.
+- **Pendiente, validar a mano:** protección de la rama `main` que exija los trabajos de `infra.yml`; propuestas desde forks (no probadas); que la raíz no tenga claves de acceso.
+- **Sin cubrir:** `tflint` y `trivy` no se corrieron localmente; el CI los ejecuta.
+
+### Política límite aplicada y verificada (2026-11-09)
+
+- Primer plan de `bootstrap` con la descripción de la política del operador cambiada: proponía reemplazarla (1 to destroy). La descripción de una política de IAM fuerza el reemplazo, y destruirla exige desadjuntarla, algo que el operador no puede hacer. No se aplicó; se devolvió la descripción original y quedó un comentario en `operator-policy.tf`.
+- Plan corregido: 1 para crear (límite), 2 cambios en el lugar (política del operador y rol de plan), 0 para destruir. Aplicado en dos pasos con `-target` (política y límite primero) para evitar la carrera de permisos del rol. Plan posterior: "No changes".
+- `environments/dev`: 1 cambio en el lugar (el límite en `medicia-dev-app`). `aws iam get-user` devuelve `medicia-dev-boundary`.
+- Prueba directa del `Deny`: `iam:CreatePolicyVersion` sobre la política del operador desde `terraform-dev` falla con "explicit deny in an identity-based policy".
+- `iam:SimulatePrincipalPolicy` ya no está permitido para `terraform-dev` (antes lo cubría `AdministratorAccess`). No se agregó: las simulaciones requieren la vía de administración.
