@@ -46,7 +46,7 @@ Es una interpretación del texto, no una enmienda. Si el responsable la rechaza,
 - **Interfaz alojada de Cognito (OAuth con redirección):** menos código propio, pero la pantalla no es nuestra, la personalización es limitada y el estado vacío y la selección de clínica quedarían desconectados del ingreso.
 - **Amplify:** agrega una dependencia grande pensada para el navegador.
 
-**A verificar:** que las operaciones sin autenticación de AWS (todas las anteriores lo son) funcionan con el SDK v3 sin credenciales de AWS configuradas en el servidor. Si el SDK exigiera credenciales, se pasa una configuración anónima explícita. Se comprueba en la primera tarea del adaptador.
+**Verificado (2026-11-09):** el SDK v3 funciona sin credenciales de AWS para estas operaciones. Con el entorno sin variables `AWS_*` ni archivos de credenciales, una llamada `InitiateAuth` con un ID de cliente inexistente llegó a AWS y respondió `ResourceNotFoundException`, no un error de credenciales. No hace falta una configuración anónima.
 
 **Configuración que requiere el grupo de usuarios:** está en [contracts/identity-provider.md](contracts/identity-provider.md), para pasarla al repositorio de Terraform.
 
