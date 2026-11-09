@@ -1,3 +1,5 @@
+import "server-only";
+
 import { createCognitoIdentityProvider } from "@/infrastructure/aws/cognito/cognito-identity-provider";
 
 import type { IdentityProvider } from "../../application/ports/out/identity-provider";

@@ -135,7 +135,10 @@ describe("Clínica activa de la sesión (FR-020, FR-022)", () => {
   });
 
   it("no modifica la sesión de otra cuenta", async () => {
-    const [user, other] = await Promise.all([createUser(), createUser()]);
+    const [tenant, user, other] = await Promise.all([createTenant(), createUser(), createUser()]);
+    // El vínculo es válido para la sesión de `other`: lo único que debe impedir el cambio es que
+    // la sesión no pertenece a `user`.
+    const membership = await createStaffMembership({ tenantId: tenant.id, userId: other.id });
     const session = await createSession({ userId: other.id });
 
     await expect(
@@ -143,9 +146,13 @@ describe("Clínica activa de la sesión (FR-020, FR-022)", () => {
         sessionId: session.id,
         userId: user.id,
         kind: "STAFF",
-        relationshipId: randomUUID(),
+        relationshipId: membership.id,
       }),
     ).rejects.toThrow();
+
+    expect(
+      (await prismaClient.session.findUniqueOrThrow({ where: { id: session.id } })).activeStaffMembershipId,
+    ).toBeNull();
   });
 });
 

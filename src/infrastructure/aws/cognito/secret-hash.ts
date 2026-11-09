@@ -1,3 +1,5 @@
+import "server-only";
+
 import { createHmac } from "node:crypto";
 
 // Cognito exige este valor en cada llamada cuando el cliente de la aplicación tiene secreto:

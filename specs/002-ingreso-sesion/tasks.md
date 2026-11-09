@@ -184,8 +184,8 @@ Las tareas T074 y T075 se agregaron después del análisis (speckit-analyze) y p
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T068 Actualizar `.github/workflows/ci.yml`: el job `e2e` necesita el servicio de PostgreSQL, `DATABASE_URL`, `npx prisma generate`, `npx prisma migrate deploy` e `IDENTITY_PROVIDER=fake`, igual que el job `check`. El job `check` también define `IDENTITY_PROVIDER=fake`. Sin comprobar en local: solo corre en GitHub (informarlo). Depende de T067.
-- [ ] T069 [P] Actualizar `memory/project-structure.md`: `proxy.ts` y `src/app/_lib/` en la estructura general, y la regla de que las cookies y las redirecciones viven en `src/app/`.
+- [X] T068 Actualizar `.github/workflows/ci.yml`: el job `e2e` necesita el servicio de PostgreSQL, `DATABASE_URL`, `npx prisma generate`, `npx prisma migrate deploy` e `IDENTITY_PROVIDER=fake`, igual que el job `check`. El job `check` también define `IDENTITY_PROVIDER=fake`. Sin comprobar en local: solo corre en GitHub (informarlo). Depende de T067.
+- [X] T069 [P] Actualizar `memory/project-structure.md`: `proxy.ts` y `src/app/_lib/` en la estructura general, y la regla de que las cookies y las redirecciones viven en `src/app/`.
 - [ ] T070 Ejecutar `npm run check` y corregir lo que falle. Confirmar la cobertura de al menos 80 % de líneas por archivo en `src/modules/users`, `src/infrastructure/aws/cognito` y `src/shared/utils`. Ejecutar `npm run test:e2e` y comprobar que pasa en los tres proyectos.
 - [ ] T071 Revisar la interfaz en las seis combinaciones (escritorio, tablet y móvil, claro y oscuro): tokens semánticos sin colores fijos, foco visible, recorrido completo con teclado, errores con texto además de color, sin desbordes (constitución VII, FR-030). Corregir lo que falle.
 - [ ] T072 [Responsable] Verificar con un grupo de usuarios de Cognito de desarrollo, cuando exista (pasos de [quickstart.md](quickstart.md)). Registrar en `research.md` el resultado de los puntos marcados **a verificar**: SDK sin credenciales de AWS (R3), respuesta ante una cuenta sin verificar (R4) y cookie `Secure` en `http://localhost` (R10). Si algún resultado contradice el plan, volver a `speckit-plan`.

@@ -6,6 +6,8 @@
   Los tonos de teal y de los estados se ajustaron por tema para mantener el contraste de texto (4,5:1).
 */
 :root {
+  /* Controles nativos, autocompletado y barras de desplazamiento siguen el tema. */
+  color-scheme: light dark;
   --background: #ffffff;
   --foreground: #0f172a;
   --panel: #f8fafc;

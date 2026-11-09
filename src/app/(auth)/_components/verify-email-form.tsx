@@ -1,11 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
-import { secondaryButtonClassName } from "@/components/form/button-styles";
+import { primaryButtonClassName, secondaryButtonClassName } from "@/components/form/button-styles";
 import { FormField } from "@/components/form/form-field";
 import { FormMessage } from "@/components/form/form-message";
-import { SubmitButton } from "@/components/form/submit-button";
 import { VERIFICATION_CODE_LENGTH } from "@/modules/users/application/validation/account-form-schemas";
 
 import { confirmAccount } from "../_actions/confirm-account";
@@ -18,17 +17,22 @@ interface VerifyEmailFormProps {
 }
 
 export function VerifyEmailForm({ initialEmail, introMessage }: VerifyEmailFormProps) {
-  const [confirmState, confirmAction] = useActionState(confirmAccount, undefined);
+  const [confirmState, confirmAction, isConfirming] = useActionState(confirmAccount, undefined);
   const [resendState, resendAction, isResending] = useActionState(resendConfirmationCode, undefined);
+  // Solo se muestra el resultado de lo último que hizo la persona, para no mezclar un error
+  // de código con un aviso de reenvío (o al revés).
+  const [lastAction, setLastAction] = useState<"confirm" | "resend">("confirm");
 
   const email = initialEmail ?? confirmState?.values?.email ?? resendState?.values?.email;
-  const failure = confirmState?.status === "error" ? confirmState : undefined;
-  const resendFailure = resendState?.status === "error" ? resendState : undefined;
-  const resendSuccess = resendState?.status === "success" ? resendState : undefined;
+  const failure = lastAction === "confirm" && confirmState?.status === "error" ? confirmState : undefined;
+  const resendFailure = lastAction === "resend" && resendState?.status === "error" ? resendState : undefined;
+  const resendSuccess = lastAction === "resend" && resendState?.status === "success" ? resendState : undefined;
 
   return (
     <form action={confirmAction} className="flex flex-col gap-4">
-      {introMessage && !resendSuccess ? <FormMessage tone="success">{introMessage}</FormMessage> : null}
+      {introMessage && !resendSuccess && !failure ? (
+        <FormMessage tone="success">{introMessage}</FormMessage>
+      ) : null}
       {resendSuccess?.message ? <FormMessage tone="success">{resendSuccess.message}</FormMessage> : null}
       {failure?.message ? <FormMessage tone="error">{failure.message}</FormMessage> : null}
       {resendFailure?.message ? <FormMessage tone="error">{resendFailure.message}</FormMessage> : null}
@@ -53,13 +57,22 @@ export function VerifyEmailForm({ initialEmail, introMessage }: VerifyEmailFormP
         hint={`Son ${VERIFICATION_CODE_LENGTH} dígitos y llegan a tu correo.`}
         errors={failure?.fieldErrors?.code}
       />
-      <SubmitButton pendingLabel="Verificando…">Verificar correo</SubmitButton>
+      {/* No usa SubmitButton: este formulario tiene dos envíos y solo debe mostrarse "Verificando…" al verificar. */}
+      <button
+        type="submit"
+        disabled={isConfirming}
+        onClick={() => setLastAction("confirm")}
+        className={primaryButtonClassName}
+      >
+        {isConfirming ? "Verificando…" : "Verificar correo"}
+      </button>
       {/* Pide un código nuevo sin exigir el código actual (por eso omite la validación nativa). */}
       <button
         type="submit"
         formAction={resendAction}
         formNoValidate
         disabled={isResending}
+        onClick={() => setLastAction("resend")}
         className={secondaryButtonClassName}
       >
         {isResending ? "Enviando…" : "Reenviar el código"}

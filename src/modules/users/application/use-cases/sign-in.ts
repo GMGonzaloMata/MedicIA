@@ -34,14 +34,15 @@ interface SignInDependencies {
 // hay acceso todavía.
 export function createSignIn({ identity, users, sessions, clinicAccess, now }: SignInDependencies) {
   return async (input: SignInInput): Promise<SignInResult> => {
+    // Una sola hora para la cuenta y la sesión: así la sesión del primer ingreso nunca nace
+    // anterior a la fecha desde la cual las sesiones de la cuenta son válidas. Se toma antes de
+    // consultar al proveedor, para que un ingreso con la contraseña anterior que se resuelva justo
+    // antes de un restablecimiento no quede con una fecha posterior a la invalidación.
+    const startedAt = now();
     const verified = await identity.signIn({
       email: normalizeEmail(input.email),
       password: input.password,
     });
-
-    // Una sola hora para la cuenta y la sesión: así la sesión del primer ingreso nunca nace
-    // anterior a la fecha desde la cual las sesiones de la cuenta son válidas.
-    const startedAt = now();
     const user = await users.upsertFromIdentity({
       subject: verified.subject,
       email: verified.email,
