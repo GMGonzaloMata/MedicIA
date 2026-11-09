@@ -15,9 +15,36 @@ resource "aws_iam_policy" "operator" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid      = "ListarElBucketDelEstado"
-        Effect   = "Allow"
-        Action   = ["s3:GetBucketLocation", "s3:ListBucket"]
+        # Infra/bootstrap administra el propio bucket: el plan lee toda su configuración
+        # y el apply la modifica. Sin crear ni borrar el bucket (eso queda protegido).
+        Sid    = "GestionarElBucketDelEstado"
+        Effect = "Allow"
+        Action = [
+          "s3:DeleteBucketPolicy",
+          "s3:GetAccelerateConfiguration",
+          "s3:GetBucketAcl",
+          "s3:GetBucketCORS",
+          "s3:GetBucketLocation",
+          "s3:GetBucketLogging",
+          "s3:GetBucketObjectLockConfiguration",
+          "s3:GetBucketOwnershipControls",
+          "s3:GetBucketPolicy",
+          "s3:GetBucketPublicAccessBlock",
+          "s3:GetBucketRequestPayment",
+          "s3:GetBucketTagging",
+          "s3:GetBucketVersioning",
+          "s3:GetBucketWebsite",
+          "s3:GetEncryptionConfiguration",
+          "s3:GetLifecycleConfiguration",
+          "s3:GetReplicationConfiguration",
+          "s3:ListBucket",
+          "s3:PutBucketPolicy",
+          "s3:PutBucketPublicAccessBlock",
+          "s3:PutBucketTagging",
+          "s3:PutBucketVersioning",
+          "s3:PutEncryptionConfiguration",
+          "s3:PutLifecycleConfiguration",
+        ]
         Resource = [local.state_bucket_arn]
       },
       {

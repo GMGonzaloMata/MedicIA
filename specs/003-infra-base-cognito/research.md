@@ -186,3 +186,20 @@ Se registran a medida que se cierran las tareas de [tasks.md](tasks.md).
   - **Patrones:** 0 claves privadas versionadas en `infra/` y `.github/`, y 0 archivos de estado, plan o variables versionados.
   - **Falso positivo conocido:** el patrón de clave de acceso (`AKIA` más 16 caracteres) coincide en `.agents/skills/terraform-skill/references/security-compliance.md` y en su copia de `.claude/`, línea 402. Es `AKIAIOSFODNN7EXAMPLE`, la clave de ejemplo de la documentación de AWS, no una clave real. La guarda de CI (T040) busca solo en `infra/` y `.github/` y no la toma.
 - **Limpieza de las pruebas (2026-11-09):** se borraron la cuenta de diagnóstico y la de prueba sin verificar. En el grupo queda 1 usuario, el del responsable.
+
+### T042 a T045: acceso de CI verificado (2026-11-09)
+
+- **T042:** el plan de `infra/bootstrap` agregó solo 4 recursos (proveedor de GitHub, rol `medicia-dev-plan`, su política en línea y la política `medicia-dev-terraform-operator`) y 2 salidas. Se aplicó sin cambios ni destrucciones.
+- **R10 confirmado:** el paso "Mostrar el sujeto del token" imprimió `sub` = `repo:GMGonzaloMata@138719807/MedicIA@1443385030:pull_request`, `aud` = `sts.amazonaws.com` e `iss` = `https://token.actions.githubusercontent.com`. Coincide con `github_oidc_subject`, sin ajustes.
+- **T044:** en un PR desde la misma rama, `Comprobaciones estáticas` (incluidos `tflint` y `trivy`, sin ajustes al `.trivyignore`) y `Plan de solo lectura` pasaron en verde. En el `push` a `main`, `plan` se omite, como está diseñado.
+- **T045:** `aws iam simulate-principal-policy` sobre el rol de plan: `s3:GetObject` permitido; `s3:PutObject`, `s3:DeleteObject`, `cognito-idp:DeleteUserPool` e `iam:CreateUser` en `implicitDeny`.
+- **Sin probar en la práctica:** el caso de una propuesta desde un fork. Se apoya en el `if` del trabajo `plan` (`head.repo.full_name == github.repository`) y no se puede simular sin un fork.
+
+### T046: operador sin AdministratorAccess (2026-11-09)
+
+- `terraform-dev` quedó solo con la política `medicia-dev-terraform-operator` (sin `AdministratorAccess`).
+- `plan` de `infra/environments/dev`: "No changes" a la primera.
+- `plan` de `infra/bootstrap`: falló con `AccessDenied` en `s3:GetBucketPolicy`. Esa raíz administra la configuración del propio bucket y el operador solo tenía permisos sobre los objetos. Se agregó a `operator-policy.tf` la declaración `GestionarElBucketDelEstado` (lectura de toda la configuración del bucket más las escrituras que usa la raíz; sin crear ni borrar el bucket).
+- Como el plan fallaba antes de poder aplicar la corrección, se aplicó con `-refresh=false` (el operador puede editar su propia política). Después, `plan` completo: "No changes".
+- Lección: para una raíz que administra un recurso, el operador necesita leer toda la configuración de ese recurso, no solo usarlo.
+- Para cambios que exijan permisos nuevos y rompan el refresco, el camino sin volver a ser administrador es `apply -refresh=false`.
