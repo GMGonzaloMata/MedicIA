@@ -17,7 +17,8 @@ Los mensajes son un conjunto cerrado, para que ningún error de AWS ni de la bas
 - **Contraseña:** "La contraseña debe tener entre 12 y 128 caracteres."
 - **Clínica no disponible:** "No podés usar esa clínica en este momento." Para una clínica ajena, inexistente o ya no vigente, sin distinguirlas (FR-022).
 - **Servicio:** "No pudimos completar la operación. Intentá de nuevo en unos minutos."
-- **Cierre por vencimiento:** "Tu sesión venció. Ingresá de nuevo."
+
+Cuando una sesión vence, la persona llega a `/sign-in` sin un mensaje aparte: no hay forma de distinguir una sesión vencida de una que nunca existió sin revelar información, y la spec solo pide llevarla a iniciar sesión.
 
 ## Pantallas públicas (grupo `(auth)`)
 

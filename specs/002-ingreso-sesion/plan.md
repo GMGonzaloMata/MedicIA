@@ -31,7 +31,7 @@ El enfoque técnico, detallado en [research.md](research.md):
 
 **Project Type**: aplicación web full-stack (monolito modular con Next.js). Toca persistencia, aplicación, infraestructura y presentación.
 
-**Performance Goals**: la resolución del contexto de acceso es una sola consulta por solicitud y usa índices existentes. Objetivo interno: menos de 50 ms con la base local, medido en las pruebas de integración. No hay un criterio de éxito de la spec que lo exija.
+**Performance Goals**: la resolución del contexto de acceso es una sola consulta por solicitud y usa índices existentes. La spec no fija un objetivo de latencia para esta funcionalidad.
 
 **Constraints**:
 - Ningún agente ejecuta `prisma migrate`, `prisma db` ni `prisma generate`, ni `git commit`.
@@ -41,7 +41,7 @@ El enfoque técnico, detallado en [research.md](research.md):
 - `.env.example` y `.env*` están protegidos contra escritura de los agentes: los actualiza el responsable.
 - Las cookies se escriben solo en Server Actions y Route Handlers.
 
-**Scale/Scope**: una tabla nueva y dos unicidades, un módulo hexagonal (`users`) con 10 casos de uso, un adaptador de Cognito y uno simulado, 8 pantallas, 9 acciones, `proxy.ts`, y pruebas unitarias, de integración y E2E.
+**Scale/Scope**: una tabla nueva y dos unicidades, un módulo hexagonal (`users`) con 10 casos de uso, un adaptador de Cognito y uno simulado, 8 pantallas, 8 acciones, `proxy.ts`, y pruebas unitarias, de integración y E2E.
 
 ## Constitution Check
 
@@ -106,7 +106,6 @@ prisma/
 src/
 ├── proxy.ts                         # Comprobación optimista de la cookie
 ├── app/
-│   ├── page.tsx                     # Inicio provisional protegido (reemplaza la plantilla)
 │   ├── _lib/
 │   │   ├── access.ts                # getAccessContext y requireClinicContext*
 │   │   └── session-cookie.ts        # Lectura, escritura y borrado de la cookie
@@ -114,6 +113,7 @@ src/
 │   │   ├── sign-in/ sign-up/ verify-email/ forgot-password/ reset-password/
 │   │   └── _actions/                # Server Actions de registro, ingreso y recuperación
 │   └── (dashboard)/
+│       ├── page.tsx                 # Inicio provisional protegido (reemplaza la página de plantilla de la raíz)
 │       ├── select-clinic/ no-access/
 │       ├── _components/             # Encabezado con clínica activa, selector y cierre de sesión
 │       └── _actions/                # selectClinic y signOut
@@ -124,6 +124,7 @@ src/
 │   │   ├── use-cases/               # register-account, confirm-account, resend-confirmation-code,
 │   │   │                            # sign-in, sign-out, request-password-reset, reset-password,
 │   │   │                            # get-access-context, list-available-clinics, select-active-clinic
+│   │   ├── validation/              # Esquemas de los formularios (medidos por la cobertura)
 │   │   └── ports/out/               # identity-provider, session-repository, user-repository,
 │   │                                # clinic-access-repository
 │   ├── infrastructure/
@@ -131,10 +132,10 @@ src/
 │   │   └── adapters/                # Proveedor de identidad simulado
 │   └── composition.ts               # Conecta los casos de uso con sus implementaciones
 ├── infrastructure/aws/cognito/      # Adaptador de Cognito y su configuración
-└── shared/utils/                    # Redirección segura (función pura)
+└── shared/utils/                    # Redirección segura y decisión del proxy (funciones puras)
 
 tests/
-├── unit/                            # Dominio, casos de uso, adaptadores, utilidades
+├── unit/                            # Dominio, casos de uso, adaptadores, utilidades y autorización de las acciones
 ├── integration/session-access/      # Una prueba por regla de la sesión, contra PostgreSQL
 ├── e2e/                             # Recorridos con el proveedor simulado
 └── support/                         # Datos de prueba de sesiones y de vínculos

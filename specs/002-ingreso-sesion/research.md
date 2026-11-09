@@ -54,7 +54,7 @@ Es una interpretación del texto, no una enmienda. Si el responsable la rechaza,
 
 **Decisión:** el cliente de Cognito se configura con `PreventUserExistenceErrors` activado, y la aplicación mapea todos los errores a un conjunto cerrado de mensajes (FR-005, FR-009, FR-029):
 - **Inicio de sesión:** cualquier fallo (correo inexistente, contraseña incorrecta, cuenta bloqueada, desafío no soportado) muestra el mismo mensaje.
-- **Registro:** si el correo ya existe (`UsernameExistsException`), la aplicación lo absorbe y responde igual que en un registro nuevo. La persona dueña del correo recibe, según el caso, un código nuevo (cuenta sin verificar) o nada (cuenta ya verificada).
+- **Registro:** si el correo ya existe (`UsernameExistsException`), la aplicación lo absorbe y responde igual que en un registro nuevo. Cognito no reenvía el código al repetir el registro de una cuenta sin verificar, así que el adaptador llama a `ResendConfirmationCode` y absorbe su error. La persona dueña del correo recibe entonces un código nuevo (cuenta sin verificar) o nada (cuenta ya verificada).
 - **Recuperación y reenvío de código:** siempre responden igual.
 - **Código incorrecto o vencido:** un único mensaje para los dos casos. Es el único error que dice algo sobre el estado, pero exige conocer el correo y tener un código vigente.
 

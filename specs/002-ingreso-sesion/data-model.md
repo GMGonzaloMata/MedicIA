@@ -67,6 +67,7 @@ Lo que devuelve `getAccessContext` en cada solicitud ([contracts/access-context.
 
 - **Vigente:** no revocada, `now < expiresAt`, `now - lastActivityAt < 30 minutos` y `createdAt >= users.sessionsValidFrom`.
 - **No vigente:** deja de cumplirse alguna de las condiciones anteriores. Es un estado calculado, no una columna: no hay un proceso que la marque como vencida.
+- **Primer ingreso:** al crear la cuenta propia, la aplicación fija `sessionsValidFrom` con el mismo instante que usa como `createdAt` de la sesión, para que la primera sesión no nazca anterior a esa fecha por una diferencia con el reloj de la base.
 - **Con clínica activa vigente:** además de estar vigente, tiene un vínculo activo cuyo estado es `ACTIVE` (personal) o `LINKED` (paciente) en una clínica `ACTIVE`. Si el vínculo o la clínica dejan de serlo, la sesión sigue vigente pero sin clínica activa, y la persona vuelve a elegir (FR-025).
 
 ## Transiciones
