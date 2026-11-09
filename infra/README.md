@@ -13,7 +13,7 @@ Especificación y decisiones: [specs/003-infra-base-cognito/](../specs/003-infra
 
 ## Estructura
 
-- `bootstrap/`: el bucket del estado, el acceso de CI (rol `medicia-dev-plan` y proveedor de GitHub) y la política del operador. Es la única raíz que arranca con estado local.
+- `bootstrap/`: el bucket del estado, el acceso de CI (rol `medicia-dev-plan` y proveedor de GitHub), la política del operador y la política límite de permisos. Es la única raíz que arranca con estado local.
 - `modules/identity/`: el grupo de usuarios de Cognito, su cliente de aplicación y el usuario de IAM que usa el servidor. Incluye sus pruebas.
 - `environments/dev/`: el entorno de desarrollo, que usa el módulo de identidad.
 - `.tflint.hcl` y `.trivyignore`: reglas del análisis estático y sus excepciones justificadas.
@@ -140,7 +140,22 @@ Después actualizá `AWS_ACCESS_KEY_ID` y `AWS_SECRET_ACCESS_KEY` en `.env.local
 
 **Cambio hecho a mano en la consola.** El plan de CI muestra la diferencia con el código. Corregilo en el código (si el cambio es deseado) o volvé a aplicar para revertirlo.
 
-**Un permiso nuevo del operador rompe el refresco.** Si el `plan` falla con `AccessDenied` porque a la política del operador le falta un permiso, agregalo en `bootstrap/operator-policy.tf`. Como el plan completo falla antes de poder aplicar, usá `apply -refresh=false` (el operador puede editar su propia política) y comprobá con un plan completo después. Una raíz que administra un recurso necesita permiso para leer toda la configuración de ese recurso, no solo para usarlo.
+### Cambiar los permisos del operador
+
+El operador (`terraform-dev`, con la política `medicia-dev-terraform-operator`) **no puede editar su propia política ni la política límite `medicia-dev-boundary`**: un `Deny` se lo impide a propósito, y solo puede crear usuarios o roles `medicia-dev-*` si llevan ese límite. Así, quien tenga su clave de acceso no puede darse permisos de administrador.
+
+Tampoco puede cambiar la política del bucket del estado ni su bloqueo de acceso público (`aws_s3_bucket_policy` y `aws_s3_bucket_public_access_block` en `state-bucket.tf`): con eso podría darse acceso al estado, que contiene secretos. Esos cambios también van por la vía de administración.
+
+Consecuencia: si el `plan` falla con `AccessDenied` porque falta un permiso, o si hay que cambiar el límite o la política del bucket, hace falta una vía de administración aparte. Se hace así:
+
+1. Corregí `operator-policy.tf` (o `permissions-boundary.tf`) y revisá el cambio en un PR, como cualquier otro.
+2. En la consola de AWS, con el usuario raíz y su MFA, **reemplazá** la política de `terraform-dev` (Users → `terraform-dev` → Permissions): quitá `medicia-dev-terraform-operator` y adjuntá `AdministratorAccess`. Hay que quitar la del operador: su `Deny` gana incluso a `AdministratorAccess`, así que con las dos puestas el `apply` falla con "explicit deny". No se puede aplicar con la cuenta raíz: la raíz está bloqueada a propósito para `terraform`.
+3. Aplicá `bootstrap` (responsable) con ese perfil y comprobá un `plan` sin cambios.
+4. Volvé a adjuntar `medicia-dev-terraform-operator` y quitá `AdministratorAccess`. Los dos pasos juntos.
+
+Mientras `AdministratorAccess` está puesto, quien tenga la clave de `terraform-dev` es administrador de la cuenta. Hacelo de corrido y no lo dejes puesto. Más adelante conviene reemplazar este procedimiento por un rol de administración con MFA, fuera del prefijo `medicia-dev-`.
+
+Los permisos del rol de plan y del usuario de la aplicación nunca superan el límite: si un permiso nuevo no entra en `medicia-dev-boundary`, tampoco lo van a tener, aunque se lo agreguen.
 
 ## Liberar los recursos al terminar
 
@@ -170,7 +185,7 @@ aws sts get-caller-identity
 
 Debe mostrar la cuenta `896618135592` y el usuario `terraform-dev`. Si falla, renová las credenciales del perfil `medicia-dev` (`aws configure --profile medicia-dev`) y volvé a probar.
 
-**`plan` falla con `AccessDenied`.** Mirá la acción que indica el error y agregala a la política correspondiente (el operador, o el rol de plan si falla en CI). Ver "Un permiso nuevo del operador rompe el refresco".
+**`plan` falla con `AccessDenied`.** Mirá la acción que indica el error y agregala a la política correspondiente (el operador, o el rol de plan si falla en CI). Para el operador, ver "Cambiar los permisos del operador".
 
 **El CI falla en `plan` al asumir el rol.** El paso "Mostrar el sujeto del token" imprime el `sub` real. Tiene que coincidir con `github_oidc_subject` en `bootstrap/variables.tf`. Si el repositorio se renombró o se recreó, el `sub` cambia y hay que actualizar la variable y aplicar `bootstrap`.
 

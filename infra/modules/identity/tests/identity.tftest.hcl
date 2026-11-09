@@ -6,8 +6,9 @@
 mock_provider "aws" {}
 
 variables {
-  environment       = "dev"
-  protect_user_pool = true
+  environment              = "dev"
+  protect_user_pool        = true
+  permissions_boundary_arn = "arn:aws:iam::896618135592:policy/medicia-dev-boundary"
 }
 
 # El ARN del grupo se conoce recién al aplicar. Se fija aquí para poder decodificar la política del usuario.
@@ -228,6 +229,12 @@ run "usuario_de_la_aplicacion_con_un_solo_permiso" {
     error_message = "El único recurso permitido debe ser el ARN del grupo de usuarios."
   }
 
+  # El límite de permisos fija el techo del usuario: aunque alguien le agregue una política, no lo supera.
+  assert {
+    condition     = aws_iam_user.app.permissions_boundary == "arn:aws:iam::896618135592:policy/medicia-dev-boundary"
+    error_message = "El usuario de la aplicación debe llevar la política límite medicia-dev-boundary."
+  }
+
   assert {
     condition     = aws_iam_access_key.app.user == "medicia-dev-app"
     error_message = "La clave de acceso debe pertenecer al usuario de la aplicación."
@@ -243,5 +250,17 @@ run "rechaza_un_entorno_distinto_de_dev" {
 
   expect_failures = [
     var.environment,
+  ]
+}
+
+run "rechaza_un_limite_de_permisos_que_no_es_una_politica" {
+  command = plan
+
+  variables {
+    permissions_boundary_arn = "medicia-dev-boundary"
+  }
+
+  expect_failures = [
+    var.permissions_boundary_arn,
   ]
 }

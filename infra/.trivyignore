@@ -10,5 +10,3 @@ AWS-0132
 # En desarrollo lo usa una sola persona y el registro duplicaría el almacenamiento y el costo.
 # Producción registrará los accesos con CloudTrail (R11).
 AWS-0089
-
-# Prueba del plan de CI (T044).

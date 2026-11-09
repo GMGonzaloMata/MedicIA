@@ -32,6 +32,11 @@ run "rol_de_plan_con_nombre_esperado" {
     condition     = aws_iam_role.plan.name == "medicia-dev-plan"
     error_message = "El rol de plan debe llamarse medicia-dev-plan."
   }
+
+  assert {
+    condition     = aws_iam_role.plan.permissions_boundary == "arn:aws:iam::896618135592:policy/medicia-dev-boundary"
+    error_message = "El rol de plan debe llevar la política límite medicia-dev-boundary."
+  }
 }
 
 run "confianza_con_sujeto_exacto" {
@@ -143,16 +148,16 @@ run "politica_del_operador_sin_comodines" {
   assert {
     condition = alltrue([
       for s in jsondecode(aws_iam_policy.operator.policy).Statement :
-      s.Effect == "Allow" && can(tolist(s.Action)) && can(tolist(s.Resource))
+      contains(["Allow", "Deny"], s.Effect) && can(tolist(s.Action)) && can(tolist(s.Resource))
     ])
-    error_message = "Toda declaración del operador debe permitir y listar acciones y recursos explícitos."
+    error_message = "Toda declaración del operador debe listar acciones y recursos explícitos."
   }
 
   # Ninguna acción "*" ni servicio "*". La única acción con comodín es todo Cognito (cognito-idp:*).
   assert {
     condition = alltrue([
       for a in flatten([for s in jsondecode(aws_iam_policy.operator.policy).Statement : s.Action]) :
-      a != "*" && !startswith(a, "*") && (!endswith(a, ":*") || a == "cognito-idp:*")
+      !strcontains(a, "*") || a == "cognito-idp:*"
     ])
     error_message = "El operador no puede tener acciones ni servicios con comodín, salvo cognito-idp:*."
   }
@@ -222,3 +227,145 @@ run "politica_del_operador_limita_iam_y_estado" {
     error_message = "El operador debe poder leer, escribir y borrar objetos del estado (incluye los de bloqueo)."
   }
 }
+
+run "politica_limite_con_nombre_esperado" {
+  command = plan
+
+  assert {
+    condition     = aws_iam_policy.boundary.name == "medicia-dev-boundary"
+    error_message = "La política límite debe llamarse medicia-dev-boundary."
+  }
+}
+
+# El límite es el techo de lo que pueden tener el rol de plan y el usuario de la aplicación:
+# lectura, más fijar contraseñas en el grupo. Nada de escritura ni de otros servicios.
+run "politica_limite_solo_lectura_y_fijar_contrasena" {
+  command = plan
+
+  assert {
+    condition = alltrue([
+      for s in jsondecode(aws_iam_policy.boundary.policy).Statement :
+      s.Effect == "Allow" && can(tolist(s.Action)) && can(tolist(s.Resource))
+    ])
+    error_message = "El límite solo puede permitir, con acciones y recursos explícitos."
+  }
+
+  assert {
+    condition = alltrue([
+      for a in flatten([for s in jsondecode(aws_iam_policy.boundary.policy).Statement : s.Action]) :
+      can(regex("^(s3:(GetObject|ListBucket)|cognito-idp:(AdminSetUserPassword|(Describe|Get|List)[A-Za-z]*)|iam:(Get|List)[A-Za-z]*)$", a))
+    ])
+    error_message = "El límite solo admite lectura, s3:GetObject, s3:ListBucket y cognito-idp:AdminSetUserPassword."
+  }
+
+  assert {
+    condition = anytrue([
+      for s in jsondecode(aws_iam_policy.boundary.policy).Statement :
+      contains(s.Action, "cognito-idp:AdminSetUserPassword")
+    ])
+    error_message = "El límite debe permitir fijar contraseñas, que es lo que hace la aplicación."
+  }
+
+  assert {
+    condition = alltrue([
+      for s in jsondecode(aws_iam_policy.boundary.policy).Statement :
+      alltrue([for r in s.Resource : startswith(r, "arn:aws:s3:::medicia-tfstate-dev-896618135592")])
+      if anytrue([for a in s.Action : startswith(a, "s3:")])
+    ])
+    error_message = "Las acciones de S3 del límite deben limitarse al bucket del estado."
+  }
+
+  # Todo lo que tiene el rol de plan cabe dentro del límite.
+  assert {
+    condition = alltrue([
+      for a in flatten([for s in jsondecode(aws_iam_role_policy.plan_read.policy).Statement : s.Action]) :
+      contains(flatten([for s in jsondecode(aws_iam_policy.boundary.policy).Statement : s.Action]), a)
+    ])
+    error_message = "Cada acción del rol de plan debe estar permitida por el límite."
+  }
+}
+
+# Sin esta condición, el operador podría crear un usuario o un rol sin techo y darse todos los permisos.
+run "operador_solo_crea_o_modifica_con_limite" {
+  command = plan
+
+  assert {
+    condition = alltrue([
+      for s in jsondecode(aws_iam_policy.operator.policy).Statement :
+      try(s.Condition.StringEquals["iam:PermissionsBoundary"], "") == "arn:aws:iam::896618135592:policy/medicia-dev-boundary"
+      if s.Effect == "Allow" && anytrue([
+        for a in s.Action : contains([
+          "iam:CreateUser",
+          "iam:CreateRole",
+          "iam:PutUserPolicy",
+          "iam:PutRolePolicy",
+          "iam:PutUserPermissionsBoundary",
+          "iam:PutRolePermissionsBoundary",
+        ], a)
+      ])
+    ])
+    error_message = "Crear usuarios o roles y darles políticas exige la condición iam:PermissionsBoundary con medicia-dev-boundary."
+  }
+
+  # Que la condición no sea vacía: tiene que existir una declaración que cree usuarios.
+  assert {
+    condition = anytrue([
+      for s in jsondecode(aws_iam_policy.operator.policy).Statement :
+      s.Effect == "Allow" && contains(s.Action, "iam:CreateUser")
+    ])
+    error_message = "El operador debe poder crear el usuario de la aplicación (con límite)."
+  }
+}
+
+# El operador no puede editar ni borrar las políticas que lo limitan, ni quitar el límite a nadie.
+run "operador_no_edita_sus_politicas_de_acceso" {
+  command = plan
+
+  assert {
+    condition = anytrue([
+      for s in jsondecode(aws_iam_policy.operator.policy).Statement :
+      s.Effect == "Deny"
+      && toset(s.Resource) == toset([
+        "arn:aws:iam::896618135592:policy/medicia-dev-terraform-operator",
+        "arn:aws:iam::896618135592:policy/medicia-dev-boundary",
+      ])
+      && alltrue([
+        for a in ["iam:CreatePolicyVersion", "iam:DeletePolicy", "iam:DeletePolicyVersion", "iam:SetDefaultPolicyVersion"] :
+        contains(s.Action, a)
+      ])
+    ])
+    error_message = "Debe haber un Deny de crear versiones, borrar y cambiar la versión de las políticas del operador y del límite."
+  }
+
+  assert {
+    condition = anytrue([
+      for s in jsondecode(aws_iam_policy.operator.policy).Statement :
+      s.Effect == "Deny"
+      && contains(s.Action, "iam:DeleteUserPermissionsBoundary")
+      && contains(s.Action, "iam:DeleteRolePermissionsBoundary")
+    ])
+    error_message = "Debe haber un Deny de quitar el límite de permisos a usuarios y roles."
+  }
+}
+
+# Acciones que permitirían darse acceso por una vía lateral: la política del bucket del estado
+# (el estado contiene secretos), pasar roles o adjuntar políticas administradas.
+run "operador_sin_vias_laterales_de_escalada" {
+  command = plan
+
+  assert {
+    condition = alltrue([
+      for a in flatten([
+        for s in jsondecode(aws_iam_policy.operator.policy).Statement : s.Action if s.Effect == "Allow"
+      ]) :
+      !contains([
+        "s3:PutBucketPolicy",
+        "s3:DeleteBucketPolicy",
+        "s3:PutBucketPublicAccessBlock",
+        "iam:PassRole",
+      ], a) && !startswith(a, "iam:Attach") && !startswith(a, "iam:Detach")
+    ])
+    error_message = "El operador no puede escribir la política del bucket del estado, pasar roles ni adjuntar políticas administradas."
+  }
+}
+

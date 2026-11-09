@@ -68,8 +68,10 @@ Si cualquier paso falla, la propuesta no puede incorporarse (historia 4, escenar
   - Lectura y escritura del estado, incluidos los objetos de bloqueo.
   - Gestión de Cognito.
   - Gestión de usuarios, políticas y claves IAM con prefijo `medicia-dev-`, y del rol y el proveedor de identidad de GitHub.
+  - Los usuarios y roles solo se crean o reciben políticas con la política límite `medicia-dev-boundary` (condición `iam:PermissionsBoundary`), que fija el techo del rol de plan y del usuario de la aplicación.
+  - Un `Deny` le impide editar o borrar la política del operador y el límite, y quitar el límite a otros. Cambiar esas políticas exige una vía de administración aparte (ver `infra/README.md`).
   - Sin acceso a otros servicios.
-  - Requiere MFA, igual que hoy.
+  - La política no exige MFA: el MFA protege el ingreso a la consola. Las claves de acceso de la línea de comandos no lo usan, así que el control es la custodia de esa clave.
 - **Cuenta raíz:** sin claves de acceso. Solo se usa desde la consola, con MFA.
 
 ## Qué verifica la revisora de infraestructura

@@ -115,6 +115,9 @@ resource "aws_cognito_user_pool_client" "app" {
 # Su único permiso es esa operación sobre este grupo. En producción se reemplaza por un rol del servidor.
 resource "aws_iam_user" "app" {
   name = "medicia-${var.environment}-app"
+
+  # Techo de permisos: aunque se le agregue otra política, no puede superar el límite.
+  permissions_boundary = var.permissions_boundary_arn
 }
 
 resource "aws_iam_user_policy" "app" {

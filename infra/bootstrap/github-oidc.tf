@@ -6,6 +6,51 @@ locals {
 
   # Se arman con cadenas conocidas, no con atributos de otros recursos, para poder decodificarlos en las pruebas.
   github_oidc_provider_arn = "arn:aws:iam::${var.account_id}:oidc-provider/${local.github_oidc_host}"
+
+  # Lectura de solo lo que usa el plan. Una sola fuente: la usan el rol de plan y la política límite,
+  # para que el límite nunca quede por debajo de lo que el rol necesita.
+  plan_read_statements = [
+    {
+      Sid      = "ListarElBucketDelEstado"
+      Effect   = "Allow"
+      Action   = ["s3:ListBucket"]
+      Resource = [local.state_bucket_arn]
+    },
+    {
+      Sid      = "LeerElEstadoDelEntorno"
+      Effect   = "Allow"
+      Action   = ["s3:GetObject"]
+      Resource = ["${local.state_bucket_arn}/environments/${var.environment}/*"]
+    },
+    {
+      # Acciones que usa el refresco del grupo de usuarios y su cliente. Una por una, sin comodines.
+      Sid    = "LeerCognito"
+      Effect = "Allow"
+      Action = [
+        "cognito-idp:DescribeUserPool",
+        "cognito-idp:DescribeUserPoolClient",
+        "cognito-idp:GetUserPoolMfaConfig",
+        "cognito-idp:ListTagsForResource",
+        "cognito-idp:ListUserPoolClients",
+        "cognito-idp:ListUserPools",
+      ]
+      Resource = ["arn:aws:cognito-idp:${var.region}:${var.account_id}:userpool/*"]
+    },
+    {
+      # Acciones que usa el refresco del usuario de la aplicación, su política y su clave.
+      Sid    = "LeerIamDelEntorno"
+      Effect = "Allow"
+      Action = [
+        "iam:GetUser",
+        "iam:GetUserPolicy",
+        "iam:ListAccessKeys",
+        "iam:ListAttachedUserPolicies",
+        "iam:ListUserPolicies",
+        "iam:ListUserTags",
+      ]
+      Resource = ["arn:aws:iam::${var.account_id}:user/medicia-${var.environment}-*"]
+    },
+  ]
 }
 
 resource "aws_iam_openid_connect_provider" "github" {
@@ -16,6 +61,9 @@ resource "aws_iam_openid_connect_provider" "github" {
 resource "aws_iam_role" "plan" {
   name        = "medicia-${var.environment}-plan"
   description = "Plan de solo lectura de infra/ desde las propuestas de cambio de GitHub. No puede modificar nada."
+
+  # Techo de permisos: aunque alguien le agregue una política, no supera el límite.
+  permissions_boundary = local.boundary_policy_arn
 
   # Sujeto y audiencia exactos con StringEquals: un repositorio renombrado o recreado no obtiene acceso.
   assume_role_policy = jsonencode({
@@ -37,7 +85,7 @@ resource "aws_iam_role" "plan" {
     ]
   })
 
-  depends_on = [aws_iam_openid_connect_provider.github]
+  depends_on = [aws_iam_openid_connect_provider.github, aws_iam_policy.boundary]
 }
 
 resource "aws_iam_role_policy" "plan_read" {
@@ -45,48 +93,7 @@ resource "aws_iam_role_policy" "plan_read" {
   role = aws_iam_role.plan.id
 
   policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid      = "ListarElBucketDelEstado"
-        Effect   = "Allow"
-        Action   = ["s3:ListBucket"]
-        Resource = [local.state_bucket_arn]
-      },
-      {
-        Sid      = "LeerElEstadoDelEntorno"
-        Effect   = "Allow"
-        Action   = ["s3:GetObject"]
-        Resource = ["${local.state_bucket_arn}/environments/${var.environment}/*"]
-      },
-      {
-        # Acciones que usa el refresco del grupo de usuarios y su cliente. Una por una, sin comodines.
-        Sid    = "LeerCognito"
-        Effect = "Allow"
-        Action = [
-          "cognito-idp:DescribeUserPool",
-          "cognito-idp:DescribeUserPoolClient",
-          "cognito-idp:GetUserPoolMfaConfig",
-          "cognito-idp:ListTagsForResource",
-          "cognito-idp:ListUserPoolClients",
-          "cognito-idp:ListUserPools",
-        ]
-        Resource = ["arn:aws:cognito-idp:${var.region}:${var.account_id}:userpool/*"]
-      },
-      {
-        # Acciones que usa el refresco del usuario de la aplicación, su política y su clave.
-        Sid    = "LeerIamDelEntorno"
-        Effect = "Allow"
-        Action = [
-          "iam:GetUser",
-          "iam:GetUserPolicy",
-          "iam:ListAccessKeys",
-          "iam:ListAttachedUserPolicies",
-          "iam:ListUserPolicies",
-          "iam:ListUserTags",
-        ]
-        Resource = ["arn:aws:iam::${var.account_id}:user/medicia-${var.environment}-*"]
-      },
-    ]
+    Version   = "2012-10-17"
+    Statement = local.plan_read_statements
   })
 }

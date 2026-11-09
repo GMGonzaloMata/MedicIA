@@ -1,17 +1,3 @@
-<!--
-Sync Impact Report (temporal: se elimina antes del commit)
-- Version change: 1.6.0 -> 1.6.1 (PATCH)
-- Motivo del PATCH: 1.6.0 incorporó Terraform en `infra/` sin contemplar que `terraform test`
-  solo lee pruebas dentro del directorio de su configuración (verificado con `-test-directory`
-  apuntando fuera del módulo). La enmienda completa esa regla sin cambiar ningún principio.
-- Principios modificados: ninguno.
-- Secciones modificadas: "Flujo de desarrollo y controles de calidad" (regla de ubicación de pruebas).
-- Secciones agregadas: ninguna.
-- Secciones eliminadas: ninguna.
-- Documentos sincronizados: `memory/project-structure.md` (regla "Tests").
-- TODOs pendientes: ninguno.
--->
-
 # MedicIA Constitution
 
 ## Core Principles
