@@ -1,5 +1,7 @@
 import { prismaClient } from "@/infrastructure/database/prisma-client";
 
+import { SESSION_ABSOLUTE_TIMEOUT_MS } from "@/modules/users/domain/session-policy";
+
 import type { Prisma } from "../../generated/prisma/client";
 import { assertLocalDatabaseUrl } from "./local-database";
 
@@ -12,12 +14,13 @@ function nextSequence(): number {
   return sequence;
 }
 
-// Vacía las cinco tablas. Se niega a correr si la base no es local.
+// Vacía las seis tablas. Se niega a correr si la base no es local.
 export async function resetDatabase(): Promise<void> {
   assertLocalDatabaseUrl(process.env.DATABASE_URL);
 
   await prismaClient.$executeRaw`
     TRUNCATE TABLE
+      "sessions",
       "doctor_patient_assignments",
       "patients",
       "staff_memberships",
@@ -106,4 +109,24 @@ type AssignmentInput = Pick<
 // con el reloj de la base no rompa la regla "el fin no es anterior al inicio".
 export function createAssignment(input: AssignmentInput) {
   return prismaClient.doctorPatientAssignment.create({ data: { createdAt: new Date(), ...input } });
+}
+
+type SessionInput = Pick<Prisma.SessionUncheckedCreateInput, "userId"> &
+  Partial<Prisma.SessionUncheckedCreateInput>;
+
+// Por defecto es una sesión recién creada, sin vínculo activo. Las fechas usan el reloj de la
+// aplicación, como el código real, y el hash es único de 64 caracteres.
+export function createSession(input: SessionInput) {
+  const number = nextSequence();
+  const now = new Date();
+
+  return prismaClient.session.create({
+    data: {
+      tokenHash: number.toString(16).padStart(64, "0"),
+      createdAt: now,
+      lastActivityAt: now,
+      expiresAt: new Date(now.getTime() + SESSION_ABSOLUTE_TIMEOUT_MS),
+      ...input,
+    },
+  });
 }
