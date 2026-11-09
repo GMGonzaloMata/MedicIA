@@ -1,26 +1,76 @@
 @import "tailwindcss";
 
+/*
+  Tokens semánticos de color (memory/design.md). Los componentes usan estos nombres y nunca colores
+  fijos, así los dos temas comparten el mismo diseño. El tema oscuro sigue la preferencia del sistema.
+  Los tonos de teal y de los estados se ajustaron por tema para mantener el contraste de texto (4,5:1).
+*/
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #0f172a;
+  --panel: #f8fafc;
+  --card: #ffffff;
+  --elevated: #f1f5f9;
+  --muted: #475569;
+  --border: #e2e8f0;
+  --input-border: #64748b;
+  --primary: #0f766e;
+  --primary-foreground: #ffffff;
+  --primary-hover: #115e59;
+  --ring: #0f766e;
+  --danger: #b91c1c;
+  --danger-surface: #fef2f2;
+  --success: #047857;
+  --success-surface: #ecfdf5;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0b0f15;
+    --foreground: #f1f5f9;
+    --panel: #111722;
+    --card: #18202f;
+    --elevated: #1e293b;
+    --muted: #94a3b8;
+    --border: rgba(255, 255, 255, 0.07);
+    --input-border: #64748b;
+    --primary: #2dd4bf;
+    --primary-foreground: #042f2e;
+    --primary-hover: #5eead4;
+    --ring: #2dd4bf;
+    --danger: #fca5a5;
+    --danger-surface: #2a1215;
+    --success: #6ee7b7;
+    --success-surface: #0f2a22;
+  }
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-panel: var(--panel);
+  --color-card: var(--card);
+  --color-elevated: var(--elevated);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-input-border: var(--input-border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-ring: var(--ring);
+  --color-danger: var(--danger);
+  --color-danger-surface: var(--danger-surface);
+  --color-success: var(--success);
+  --color-success-surface: var(--success-surface);
+  --font-sans: var(--font-plus-jakarta-sans);
+  --font-label: var(--font-inter);
+  --radius-control: 4px;
+  --radius-card: 8px;
+  --radius-panel: 12px;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-plus-jakarta-sans), system-ui, sans-serif;
 }
