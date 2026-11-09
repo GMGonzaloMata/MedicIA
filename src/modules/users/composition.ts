@@ -4,15 +4,19 @@ import { createIdentityProvider } from "./infrastructure/adapters/create-identit
 import { prismaSessionRepository } from "./infrastructure/repositories/prisma-session-repository";
 import { prismaUserRepository } from "./infrastructure/repositories/prisma-user-repository";
 import { createConfirmAccount } from "./application/use-cases/confirm-account";
+import { createGetAccessContext } from "./application/use-cases/get-access-context";
 import { createRegisterAccount } from "./application/use-cases/register-account";
 import { createResendConfirmationCode } from "./application/use-cases/resend-confirmation-code";
+import { createResolveCurrentSession } from "./application/use-cases/resolve-current-session";
 import { createSignIn } from "./application/use-cases/sign-in";
 
 function buildUsersModule() {
   const identity = createIdentityProvider(process.env);
   const now = () => new Date();
+  const resolveCurrentSession = createResolveCurrentSession({ sessions: prismaSessionRepository, now });
 
   return {
+    getAccessContext: createGetAccessContext({ resolveCurrentSession }),
     registerAccount: createRegisterAccount({ identity }),
     confirmAccount: createConfirmAccount({ identity }),
     resendConfirmationCode: createResendConfirmationCode({ identity }),

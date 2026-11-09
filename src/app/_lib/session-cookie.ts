@@ -3,8 +3,7 @@ import "server-only";
 import { cookies } from "next/headers";
 
 import { isWellFormedSessionToken } from "@/modules/users/domain/session-token";
-
-export const SESSION_COOKIE_NAME = "medicia-session";
+import { SESSION_COOKIE_NAME } from "@/shared/constants/session-cookie";
 
 const MILLISECONDS_PER_SECOND = 1000;
 

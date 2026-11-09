@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { FormMessage } from "@/components/form/form-message";
 import { getSafeRedirectPath } from "@/shared/utils/safe-redirect";
 
+import { getAccessContext } from "../../_lib/access";
 import { SIGN_IN_NOTICES, isSignInNoticeKey } from "../../_lib/auth-messages";
 import { SignInForm } from "../_components/sign-in-form";
 
@@ -25,6 +27,17 @@ async function SignInContent({ searchParams }: { searchParams: PageProps<"/sign-
   const params = await searchParams;
   const noticeKey = isSignInNoticeKey(params.notice) ? params.notice : null;
   const next = getSafeRedirectPath(typeof params.next === "string" ? params.next : undefined);
+
+  // Quien ya tiene una sesión vigente no necesita volver a ingresar.
+  const context = await getAccessContext();
+
+  if (context.status === "ready") {
+    redirect(next);
+  }
+
+  if (context.status === "no-clinic") {
+    redirect("/select-clinic");
+  }
 
   return (
     <>
