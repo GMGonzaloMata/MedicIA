@@ -13,6 +13,7 @@ import {
   fakeSubjectForEmail,
 } from "@/modules/users/infrastructure/adapters/in-memory-identity-provider";
 
+import { InMemoryClinicAccessRepository } from "../../../../support/in-memory/in-memory-clinic-access-repository";
 import { InMemorySessionRepository } from "../../../../support/in-memory/in-memory-session-repository";
 import { InMemoryUserRepository } from "../../../../support/in-memory/in-memory-user-repository";
 
@@ -23,18 +24,20 @@ const STARTED_AT = new Date("2026-11-09T10:00:00.000Z");
 let identity: ReturnType<typeof createInMemoryIdentityProvider>;
 let users: InMemoryUserRepository;
 let sessions: InMemorySessionRepository;
+let clinicAccess: InMemoryClinicAccessRepository;
 
 beforeEach(async () => {
   identity = createInMemoryIdentityProvider({});
   users = new InMemoryUserRepository();
   sessions = new InMemorySessionRepository();
+  clinicAccess = new InMemoryClinicAccessRepository();
 
   await identity.signUp({ email: EMAIL, password: PASSWORD, fullName: "Persona Uno" });
   await identity.confirmSignUp({ email: EMAIL, code: FAKE_VERIFICATION_CODE });
 });
 
 function newSignIn() {
-  return createSignIn({ identity, users, sessions, now: () => STARTED_AT });
+  return createSignIn({ identity, users, sessions, clinicAccess, now: () => STARTED_AT });
 }
 
 describe("signIn", () => {

@@ -21,7 +21,7 @@ export async function signIn(
     return invalidFormState(parsed.error, values);
   }
 
-  let session: { token: string; expiresAt: Date };
+  let session: Awaited<ReturnType<ReturnType<typeof getUsersModule>["signIn"]>>;
 
   try {
     session = await getUsersModule().signIn(parsed.data);
@@ -32,6 +32,15 @@ export async function signIn(
 
   await setSessionCookie(session.token, session.expiresAt);
 
-  // El destino viene de la URL: solo se acepta una ruta interna (spec FR-013).
+  if (session.nextStep === "NO_ACCESS") {
+    redirect("/no-access");
+  }
+
+  if (session.nextStep === "SELECT_CLINIC") {
+    redirect("/select-clinic");
+  }
+
+  // El destino viene de la URL: solo se acepta una ruta interna (spec FR-013). Se usa solo si ya
+  // hay una clínica activa; si no, la persona primero debe elegir una.
   redirect(getSafeRedirectPath(formData.get("next")));
 }

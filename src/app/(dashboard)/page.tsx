@@ -1,23 +1,10 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
-import type { ClinicRelationship } from "@/modules/users/domain/access-context";
-
 import { requireClinicContext } from "../_lib/access";
+import { describeRelationship } from "./_lib/relationship-labels";
 
 export const metadata: Metadata = { title: "Inicio" };
-
-function describeRelationship(relationship: ClinicRelationship): string {
-  if (relationship.kind === "PATIENT") {
-    return "paciente";
-  }
-
-  if (relationship.isClinicAdmin && relationship.isDoctor) {
-    return "administrador de la clínica y médico";
-  }
-
-  return relationship.isClinicAdmin ? "administrador de la clínica" : "médico";
-}
 
 // Inicio provisional: muestra con qué clínica y vínculo se está trabajando. Las funcionalidades
 // siguientes lo reemplazan con el contenido real.
@@ -39,7 +26,7 @@ async function ActiveClinicSummary() {
   return (
     <p className="text-base">
       Estás trabajando en <strong>{clinic.tenantName}</strong> como{" "}
-      {describeRelationship(clinic.relationship)}.
+      {describeRelationship(clinic.relationship).toLowerCase()}.
     </p>
   );
 }

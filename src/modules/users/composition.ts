@@ -1,13 +1,16 @@
 import "server-only";
 
 import { createIdentityProvider } from "./infrastructure/adapters/create-identity-provider";
+import { prismaClinicAccessRepository } from "./infrastructure/repositories/prisma-clinic-access-repository";
 import { prismaSessionRepository } from "./infrastructure/repositories/prisma-session-repository";
 import { prismaUserRepository } from "./infrastructure/repositories/prisma-user-repository";
 import { createConfirmAccount } from "./application/use-cases/confirm-account";
 import { createGetAccessContext } from "./application/use-cases/get-access-context";
+import { createListAvailableClinics } from "./application/use-cases/list-available-clinics";
 import { createRegisterAccount } from "./application/use-cases/register-account";
 import { createResendConfirmationCode } from "./application/use-cases/resend-confirmation-code";
 import { createResolveCurrentSession } from "./application/use-cases/resolve-current-session";
+import { createSelectActiveClinic } from "./application/use-cases/select-active-clinic";
 import { createSignIn } from "./application/use-cases/sign-in";
 
 function buildUsersModule() {
@@ -24,7 +27,14 @@ function buildUsersModule() {
       identity,
       users: prismaUserRepository,
       sessions: prismaSessionRepository,
+      clinicAccess: prismaClinicAccessRepository,
       now,
+    }),
+    listAvailableClinics: createListAvailableClinics({ clinicAccess: prismaClinicAccessRepository }),
+    selectActiveClinic: createSelectActiveClinic({
+      resolveCurrentSession,
+      clinicAccess: prismaClinicAccessRepository,
+      sessions: prismaSessionRepository,
     }),
   };
 }
