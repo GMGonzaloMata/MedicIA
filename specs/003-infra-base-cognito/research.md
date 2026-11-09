@@ -175,3 +175,14 @@ Se registran a medida que se cierran las tareas de [tasks.md](tasks.md).
   - **Consola (verificado por el responsable):** un solo grupo `medicia-dev`, un solo cliente `medicia-dev-app`, sin dominio. El usuario IAM `medicia-dev-app` tiene una única política en línea (`cognito-set-user-password`), sin acceso a la consola y con una clave de acceso activa y sin usar.
   - **Pendiente con el servicio real:** que `USER_PASSWORD_AUTH` funcione en el nivel `ESSENTIALS` en un ingreso real. Se comprueba en T032.
   - **Detalle nuevo:** la consola de Cognito tiene una pestaña "Secretos del cliente", que permite administrar secretos sin recrear el cliente. Se evalúa para la guía de recuperación del secreto (T047).
+- **T030 a T032, conexión de la aplicación y recorrido real (2026-11-09):**
+  - **Conexión:** las siete variables quedaron en `.env.local` con los comandos de T030. El primer intento escribió líneas vacías porque PowerShell no reemplaza `$d` dentro de `-chdir=$d`; la guía debe usar `"-chdir=$d"` entre comillas y no escribir nada si falta algún valor.
+  - **Recorrido real:** el registro, la verificación con elección de contraseña y el ingreso funcionan de punta a punta contra el servicio creado, incluido `USER_PASSWORD_AUTH` en el nivel `ESSENTIALS` (queda resuelto ese pendiente de R6).
+  - **Diagnóstico del primer fallo:** el ingreso devolvía el mensaje general por un conflicto de cuenta en la base local (ver el hallazgo en `specs/002-ingreso-sesion/research.md`), no por la infraestructura.
+  - **Dato de AWS:** `get-access-key-last-used` se actualiza con demora (hasta una hora), por lo que no sirve para comprobar un uso reciente de la clave.
+  - **R4 y R10:** confirmados por el responsable (cuenta sin verificar rechazada; la cookie de sesión funciona en `http://localhost`).
+- **T034, búsqueda de secretos (2026-11-09):**
+  - **Valores reales:** se buscaron, sin imprimirlos, el secreto del cliente, el secreto de la clave de la aplicación y su identificador. En el árbol de trabajo solo aparecen en `.env.local` (ignorado por git), y en el historial de git hay 0 commits que los toquen.
+  - **Patrones:** 0 claves privadas versionadas en `infra/` y `.github/`, y 0 archivos de estado, plan o variables versionados.
+  - **Falso positivo conocido:** el patrón de clave de acceso (`AKIA` más 16 caracteres) coincide en `.agents/skills/terraform-skill/references/security-compliance.md` y en su copia de `.claude/`, línea 402. Es `AKIAIOSFODNN7EXAMPLE`, la clave de ejemplo de la documentación de AWS, no una clave real. La guarda de CI (T040) busca solo en `infra/` y `.github/` y no la toma.
+- **Limpieza de las pruebas (2026-11-09):** se borraron la cuenta de diagnóstico y la de prueba sin verificar. En el grupo queda 1 usuario, el del responsable.

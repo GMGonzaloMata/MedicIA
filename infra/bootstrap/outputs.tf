@@ -1,3 +1,13 @@
+output "operator_policy_arn" {
+  description = "ARN de la política del operador. Se adjunta a terraform-dev para reemplazar AdministratorAccess."
+  value       = aws_iam_policy.operator.arn
+}
+
+output "plan_role_arn" {
+  description = "ARN del rol de solo lectura que asume el plan de CI. Es el valor de la variable de GitHub INFRA_PLAN_ROLE_ARN."
+  value       = aws_iam_role.plan.arn
+}
+
 output "region" {
   description = "Región de AWS del entorno."
   value       = var.region

@@ -20,6 +20,21 @@ variable "environment" {
   }
 }
 
+variable "github_oidc_subject" {
+  description = <<-EOT
+    Sujeto (sub) del token de GitHub Actions que puede asumir el rol de plan. Se escribe exacto, sin comodines.
+    Formato inmutable: repo:<dueño>@<id del dueño>/<repositorio>@<id del repositorio>:pull_request.
+    Se confirma con la primera ejecución del flujo de CI, que imprime el sub real (R10).
+  EOT
+  type        = string
+  default     = "repo:GMGonzaloMata@138719807/MedicIA@1443385030:pull_request"
+
+  validation {
+    condition     = !strcontains(var.github_oidc_subject, "*")
+    error_message = "El sujeto de GitHub no admite comodines."
+  }
+}
+
 variable "region" {
   description = "Región de AWS donde viven todos los recursos. Sao Paulo mantiene los datos dentro de Sudamérica."
   type        = string

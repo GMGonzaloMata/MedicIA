@@ -1,0 +1,215 @@
+name: Infraestructura
+
+# Comprobaciones de infra/. Ningún paso aplica cambios a AWS (FR-018): el plan solo lee.
+# Contrato: specs/003-infra-base-cognito/contracts/ci-and-access.md
+
+on:
+  pull_request:
+    paths:
+      - "infra/**"
+      - ".github/workflows/infra.yml"
+  push:
+    branches: [main]
+    paths:
+      - "infra/**"
+      - ".github/workflows/infra.yml"
+
+permissions:
+  contents: read
+
+# El plan no modifica nada, así que la ejecución nueva cancela la anterior de la misma rama.
+concurrency:
+  group: infra-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TERRAFORM_VERSION: "1.15.1"
+
+jobs:
+  static:
+    name: Comprobaciones estáticas
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      - name: Formato
+        run: terraform fmt -check -recursive infra
+
+      - name: Inicializar y validar cada raíz y módulo
+        run: |
+          for dir in infra/bootstrap infra/environments/dev infra/modules/identity; do
+            echo "::group::$dir"
+            terraform -chdir="$dir" init -backend=false -input=false
+            terraform -chdir="$dir" validate
+            echo "::endgroup::"
+          done
+
+      - uses: terraform-linters/setup-tflint@v6
+
+      - name: tflint
+        working-directory: infra
+        env:
+          # Evita el límite de consultas anónimas de la API de GitHub al descargar el complemento.
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          tflint --init --config="$PWD/.tflint.hcl"
+          for dir in bootstrap environments/dev modules/identity; do
+            echo "::group::$dir"
+            tflint --config="$PWD/.tflint.hcl" --chdir="$dir"
+            echo "::endgroup::"
+          done
+
+      - name: Pruebas de Terraform
+        run: |
+          for dir in infra/bootstrap infra/modules/identity; do
+            echo "::group::$dir"
+            terraform -chdir="$dir" test
+            echo "::endgroup::"
+          done
+
+      - name: Análisis de configuración (trivy)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: config
+          scan-ref: infra
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          trivyignores: infra/.trivyignore
+
+      - name: Búsqueda de secretos (trivy)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scanners: secret
+          scan-ref: infra
+          exit-code: "1"
+          trivyignores: infra/.trivyignore
+
+      # Los patrones usan clases de caracteres, como [A] o [-], para que este archivo no los encuentre a sí mismo.
+      - name: Archivos prohibidos y secretos en el contenido versionado
+        run: |
+          fallo=0
+
+          prohibidos=$(git ls-files -- infra .github | grep -E '(\.tfstate($|\.)|\.tfplan$|\.tfvars(\.json)?$|(^|/)\.terraform/)' || true)
+          if [ -n "$prohibidos" ]; then
+            echo "::error::Hay archivos de estado, de plan o de variables versionados:"
+            echo "$prohibidos"
+            fallo=1
+          fi
+
+          if git grep -nE '[A]KIA[0-9A-Z]{16}' -- infra .github; then
+            echo "::error::Hay un identificador de clave de acceso de AWS en el contenido versionado."
+            fallo=1
+          fi
+
+          if git grep -nE '[-]{5}BEGIN [A-Z ]*PRIVATE KEY' -- infra .github; then
+            echo "::error::Hay una clave privada en el contenido versionado."
+            fallo=1
+          fi
+
+          exit "$fallo"
+
+      - name: Cada raíz tiene su archivo de bloqueo versionado
+        run: |
+          fallo=0
+          for dir in infra/bootstrap infra/environments/dev infra/modules/identity; do
+            if ! git ls-files --error-unmatch "$dir/.terraform.lock.hcl" >/dev/null 2>&1; then
+              echo "::error::Falta versionar $dir/.terraform.lock.hcl"
+              fallo=1
+            fi
+          done
+          exit "$fallo"
+
+      - name: Guarda del contrato del grupo de usuarios
+        run: |
+          fallo=0
+          if git grep -nE '^[[:space:]]*resource[[:space:]]+"aws_cognito_user_pool_domain"' -- 'infra/*.tf'; then
+            echo "::error::El contrato de la funcionalidad 002 no admite dominio en el grupo de usuarios."
+            fallo=1
+          fi
+          if git grep -nE '^[[:space:]]*resource[[:space:]]+"aws_cognito_identity_provider"' -- 'infra/*.tf'; then
+            echo "::error::El contrato de la funcionalidad 002 no admite proveedores de identidad externos."
+            fallo=1
+          fi
+          clientes=$(git grep -hE '^[[:space:]]*resource[[:space:]]+"aws_cognito_user_pool_client"' -- 'infra/*.tf' | wc -l)
+          if [ "$clientes" -gt 1 ]; then
+            echo "::error::El contrato admite un único cliente de aplicación y hay $clientes."
+            fallo=1
+          fi
+          exit "$fallo"
+
+      - name: Guarda de no aplicar (FR-018)
+        run: |
+          if grep -nE 'terraform[[:space:]]+(apply|destroy|import|state)' .github/workflows/*.yml; then
+            echo "::error::Los flujos no pueden aplicar, destruir, importar ni tocar el estado."
+            exit 1
+          fi
+
+      - name: Guarda de etiquetas (FR-016)
+        run: |
+          fallo=0
+          for archivo in infra/bootstrap/providers.tf infra/environments/dev/providers.tf; do
+            for clave in default_tags Project Environment ManagedBy; do
+              if ! grep -q "$clave" "$archivo"; then
+                echo "::error::$archivo no declara $clave en default_tags."
+                fallo=1
+              fi
+            done
+          done
+          exit "$fallo"
+
+  plan:
+    name: Plan de solo lectura
+    needs: static
+    # Una propuesta desde un fork no recibe credenciales. En main no corre: allí solo van las comprobaciones estáticas.
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      # Muestra el sujeto que GitHub enviará a AWS, antes de asumir el rol, para poder
+      # compararlo con github_oidc_subject si la confianza lo rechaza (R10). No imprime el token.
+      - name: Mostrar el sujeto del token
+        run: |
+          token=$(curl -sSf -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" | jq -r .value)
+          echo "::add-mask::$token"
+          echo "$token" | jq -R 'split(".")[1] | gsub("-";"+") | gsub("_";"/") | @base64d | fromjson | {sub, aud, iss}'
+
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.INFRA_PLAN_ROLE_ARN }}
+          aws-region: sa-east-1
+
+      - name: Inicializar el entorno de desarrollo
+        run: terraform -chdir=infra/environments/dev init -input=false
+
+      # Sin bloqueo: el plan solo lee y no debe competir con quien aplica. El rol no podría escribir el bloqueo.
+      - name: Plan
+        run: |
+          set -o pipefail
+          terraform -chdir=infra/environments/dev plan -lock=false -input=false -no-color | tee "$RUNNER_TEMP/plan.txt"
+
+      - name: Volcar el plan al resumen
+        if: always()
+        run: |
+          {
+            echo "## Plan de infra/environments/dev"
+            echo
+            echo '```'
+            cat "$RUNNER_TEMP/plan.txt" 2>/dev/null || echo "No se generó un plan."
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
