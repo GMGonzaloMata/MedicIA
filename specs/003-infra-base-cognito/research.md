@@ -142,3 +142,12 @@ Cada decisión indica qué se eligió, por qué y qué alternativas se descartar
 - **Política del operador:** puede requerir iteraciones.
 - **Fecha de vencimiento de los créditos** de la cuenta (página de Créditos).
 - **Subida de `aquasecurity/trivy-action`:** confirmar la versión en el momento de implementar.
+
+## Resultados de la implementación
+
+Se registran a medida que se cierran las tareas de [tasks.md](tasks.md).
+
+- **T005, requisitos previos de la cuenta (2026-11-09):**
+  - **Identidad:** `aws sts get-caller-identity` con el perfil `medicia-dev` devuelve la cuenta `896618135592` y el usuario `terraform-dev`, no la raíz. Cumple.
+  - **Cuenta raíz:** `AccountMFAEnabled` igual a 1 y `AccountAccessKeysPresent` igual a 0. Tiene MFA y no tiene claves de acceso. Cumple.
+  - **Alerta de costos:** existe el presupuesto `medicia-dev-mensual`, de 20 USD, con periodo mensual. Cumple.
