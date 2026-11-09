@@ -70,7 +70,7 @@ Es una interpretación del texto, no una enmienda. Si el responsable la rechaza,
 
 **Garantía en la base:** claves foráneas compuestas `(userId, activeStaffMembershipId)` hacia `staff_memberships(userId, id)` y `(userId, activePatientId)` hacia `patients(userId, id)`, con las unicidades `(userId, id)` agregadas en esas dos tablas. Una sesión no puede apuntar al vínculo de otra persona, ni siquiera por un error de la aplicación, en línea con el aislamiento de la funcionalidad 001.
 
-**A verificar:** que Prisma 7.10.1 acepte una clave foránea compuesta opcional que comparte la columna `userId` con la relación hacia `users`. Es lo primero que se prueba al escribir el schema. La alternativa es una clave foránea simple por vínculo más la comprobación de pertenencia en la consulta, que de todos modos se hace.
+**Verificado (2026-11-09):** `npx prisma validate` acepta con Prisma 7.10.1 la clave foránea compuesta opcional que comparte `userId` con la relación hacia `users`. Falta comprobar el SQL que genera la migración (T005). La alternativa, si algo falla, es una clave foránea simple por vínculo más la comprobación de pertenencia en la consulta, que de todos modos se hace.
 
 ## R6. Revalidación en cada solicitud, sin caché
 
@@ -125,6 +125,11 @@ Detalle en [contracts/access-context.md](contracts/access-context.md).
 **CSRF:** las Server Actions de Next verifican que el encabezado `Origin` coincida con el host y exigen POST, y la cookie es `SameSite=Lax`. Si la aplicación va detrás de un balanceador que cambia el host, hay que configurar `serverActions.allowedOrigins`; queda anotado para el despliegue.
 
 **A verificar:** que Chromium acepte la cookie `Secure` en `http://localhost` durante las pruebas E2E con el servidor de producción.
+
+**Guías de Next leídas (T003, 2026-11-09):** coinciden con el plan.
+- **`cookies`:** es asíncrona; `set` y `delete` solo se permiten en Server Functions y Route Handlers, no durante el render. Fuera de un `<Suspense>`, leerla impide el prerender.
+- **`redirect`:** lanza una excepción, así que en las acciones se llama fuera de cualquier `try/catch`. Los casos de uso devuelven resultados y la acción redirige después.
+- **Server Actions:** son POST accesibles por cualquiera, con verificación de `Origin` contra `Host` incluida. Para despliegues con varias instancias hay que fijar `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY`; queda anotado para el despliegue, junto con `serverActions.allowedOrigins` si hay un proxy.
 
 ## R11. Proveedor de identidad simulado para desarrollo y pruebas
 

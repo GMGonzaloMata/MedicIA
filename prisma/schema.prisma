@@ -71,6 +71,7 @@ model User {
   patients           Patient[]
   assignmentsCreated DoctorPatientAssignment[] @relation("AssignmentCreatedBy")
   assignmentsEnded   DoctorPatientAssignment[] @relation("AssignmentEndedBy")
+  sessions           Session[]
 
   @@map("users")
 }
@@ -91,10 +92,13 @@ model StaffMembership {
   tenant      Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
   user        User                      @relation(fields: [userId], references: [id], onDelete: Restrict)
   assignments DoctorPatientAssignment[]
+  sessions    Session[]
 
   @@unique([tenantId, userId])
   @@unique([tenantId, licenseNumber])
   @@unique([tenantId, id])
+  // Destino de la clave foránea compuesta de la sesión: una sesión no apunta a la membresía de otra cuenta.
+  @@unique([userId, id])
   @@index([userId])
   @@map("staff_memberships")
 }
@@ -116,10 +120,13 @@ model Patient {
   tenant      Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
   user        User?                     @relation(fields: [userId], references: [id], onDelete: Restrict)
   assignments DoctorPatientAssignment[]
+  sessions    Session[]
 
   @@unique([tenantId, documentType, documentNumber])
   @@unique([tenantId, userId])
   @@unique([tenantId, id])
+  // Destino de la clave foránea compuesta de la sesión: una sesión no apunta al paciente de otra cuenta.
+  @@unique([userId, id])
   @@index([userId])
   @@map("patients")
 }
@@ -143,4 +150,27 @@ model DoctorPatientAssignment {
 
   @@index([tenantId, membershipId, patientId, createdAt])
   @@map("doctor_patient_assignments")
+}
+
+// Periodo en que una persona está dentro de la plataforma, con su propia clínica activa.
+// Guarda el hash del identificador de la cookie, nunca el valor, y ningún token de Cognito.
+// La clínica no se guarda: se deduce del vínculo activo. Los CHECK se agregan a mano en la migración
+// (ver specs/002-ingreso-sesion/data-model.md).
+model Session {
+  id                      String    @id @default(uuid(7)) @db.Uuid
+  userId                  String    @map("user_id") @db.Uuid
+  tokenHash               String    @unique @map("token_hash")
+  createdAt               DateTime  @map("created_at") @db.Timestamptz(3)
+  lastActivityAt          DateTime  @map("last_activity_at") @db.Timestamptz(3)
+  expiresAt               DateTime  @map("expires_at") @db.Timestamptz(3)
+  revokedAt               DateTime? @map("revoked_at") @db.Timestamptz(3)
+  activeStaffMembershipId String?   @map("active_staff_membership_id") @db.Uuid
+  activePatientId         String?   @map("active_patient_id") @db.Uuid
+
+  user                  User             @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  activeStaffMembership StaffMembership? @relation(fields: [userId, activeStaffMembershipId], references: [userId, id], onDelete: Restrict, onUpdate: Restrict)
+  activePatient         Patient?         @relation(fields: [userId, activePatientId], references: [userId, id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([userId])
+  @@map("sessions")
 }
