@@ -1,6 +1,6 @@
 ---
 name: review-changes
-description: Revisar los cambios de MedicIA con los subagentes de arquitectura, seguridad e interfaz que correspondan. Usar al terminar una implementación, cuando se invoque esta skill o cuando se pida revisar los cambios contra las reglas del proyecto. No reemplaza una auditoría de seguridad completa.
+description: Revisar los cambios de MedicIA con los subagentes de arquitectura, seguridad, interfaz e infraestructura que correspondan. Usar al terminar una implementación, cuando se invoque esta skill o cuando se pida revisar los cambios contra las reglas del proyecto. No reemplaza una auditoría de seguridad completa.
 ---
 
 # Revisar cambios
@@ -16,6 +16,7 @@ Usá solo los que correspondan según los archivos:
 - **Arquitectura:** cualquier `.ts` o `.tsx` en `src/`, o cambios en `prisma/`.
 - **Seguridad:** `src/modules/`, `src/infrastructure/`, `src/app/api/`, archivos `route.ts`, Server Actions, `prisma/`, o cualquier cambio de autenticación, carga de archivos, logs o variables de entorno. Si hay dudas, incluilo.
 - **Interfaz:** `.tsx` o `.css` en `src/app/` o `src/components/`.
+- **Infraestructura:** cualquier archivo en `infra/` o con extensión `.tf`, `.tfvars` o `.tftest.hcl`, y los cambios de CI que ejecuten Terraform. Si el cambio toca permisos, secretos o el estado, incluí también al revisor de seguridad.
 
 Si solo cambiaron pruebas, documentación o configuración de herramientas, indicá que no corresponde ningún revisor y terminá.
 
@@ -26,6 +27,7 @@ Lanzá los revisores elegidos en paralelo, con estos nombres:
 - **Arquitectura:** `architecture-reviewer` en Claude Code y `architecture_reviewer` en Codex.
 - **Seguridad:** `security-reviewer` en Claude Code y `security_reviewer` en Codex.
 - **Interfaz:** `interface-reviewer` en Claude Code y `interface_reviewer` en Codex.
+- **Infraestructura:** `infra-reviewer` en Claude Code y `infra_reviewer` en Codex.
 
 Pasales solo la lista de archivos y la referencia de git. No les pases tus conclusiones ni tu opinión sobre el cambio, para que su mirada sea independiente.
 
