@@ -85,7 +85,7 @@ a los pacientes y a las instituciones.
 - **Autenticación:** Amazon Cognito. La aplicación DEBE validar los JWT y autorizar cada operación.
 - **Archivos:** Amazon S3 con acceso privado.
 - **Inferencia:** Amazon SageMaker AI, consumido mediante un adaptador.
-- **Infraestructura:** Terraform, gestionado en un repositorio separado.
+- **Infraestructura:** Terraform, en la carpeta `infra/` de este repositorio. El estado vive en un backend remoto cifrado y con bloqueo, nunca en git; los comandos que modifican infraestructura real (`terraform apply`, `destroy`, `import` y `state`) los ejecuta solo el responsable del proyecto.
 
 **Límites de responsabilidad.** El entrenamiento y el código Python/PyTorch de los modelos DEBEN vivir fuera de este repositorio.
 
@@ -127,4 +127,4 @@ aprobación del responsable del proyecto y actualizar los documentos de `memory/
 **Cumplimiento.** Toda revisión de planes y cambios DEBE verificar el cumplimiento de esta
 constitución. La complejidad adicional DEBE justificarse.
 
-**Version**: 1.5.0 | **Ratified**: 2026-11-04 | **Last Amended**: 2026-11-04
+**Version**: 1.6.0 | **Ratified**: 2026-11-04 | **Last Amended**: 2026-11-09

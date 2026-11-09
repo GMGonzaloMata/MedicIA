@@ -31,6 +31,7 @@ Estos comandos los ejecuta solo el responsable del proyecto desde su terminal. N
 
 - `git commit`
 - `prisma migrate`, `prisma db` (incluido `db push`) y `prisma generate`
+- `terraform apply`, `terraform destroy`, `terraform import` y `terraform state` (y sus equivalentes de OpenTofu), porque modifican infraestructura real. Sí podés ejecutar `terraform fmt` y `terraform validate` (con `terraform init -backend=false`).
 
 Si un cambio necesita alguno, detenete e indicá el comando exacto que hay que ejecutar. Tampoco hagas `git push` salvo que se pida.
 

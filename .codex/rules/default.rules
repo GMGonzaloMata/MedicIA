@@ -42,3 +42,19 @@ prefix_rule(
     match = ["prisma migrate dev", "prisma db push", "prisma generate"],
     not_match = ["prisma validate"],
 )
+
+prefix_rule(
+    pattern = ["terraform", ["apply", "destroy", "import", "state"]],
+    decision = "forbidden",
+    justification = "Los comandos de Terraform que modifican infraestructura real los ejecuta solo el responsable del proyecto.",
+    match = ["terraform apply", "terraform destroy", "terraform import aws_s3_bucket.main bucket", "terraform state rm aws_s3_bucket.main"],
+    not_match = ["terraform fmt", "terraform validate", "terraform init -backend=false"],
+)
+
+prefix_rule(
+    pattern = ["tofu", ["apply", "destroy", "import", "state"]],
+    decision = "forbidden",
+    justification = "Los comandos de OpenTofu que modifican infraestructura real los ejecuta solo el responsable del proyecto.",
+    match = ["tofu apply", "tofu destroy", "tofu import aws_s3_bucket.main bucket", "tofu state rm aws_s3_bucket.main"],
+    not_match = ["tofu fmt", "tofu validate", "tofu init -backend=false"],
+)

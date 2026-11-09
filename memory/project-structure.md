@@ -37,6 +37,7 @@ Organizar la plataforma como un **monolito modular con Next.js full-stack**, sig
 │       ├── constants/
 │       └── ...
 │
+├── infra/                         # Terraform: recursos de AWS (estado remoto, nunca en git)
 ├── prisma/                        # Esquema y migraciones de PostgreSQL
 ├── prisma.config.ts               # Conexión y rutas de Prisma
 ├── generated/prisma/              # Cliente generado de Prisma (ignorado por git)
