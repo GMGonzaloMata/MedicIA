@@ -1,14 +1,13 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import {
-  createE2eDatabase,
-  uniqueEmail,
-  uniqueName,
-  type E2eDatabase,
-} from "../support/e2e-database";
+  E2E_PASSWORD as PASSWORD,
+  FAKE_CODE,
+  createVerifiedAccount as createAccount,
+  signIn,
+} from "../support/e2e-accounts";
+import { createE2eDatabase, uniqueEmail, uniqueName, type E2eDatabase } from "../support/e2e-database";
 
-const PASSWORD = "contraseña-larga-123";
-const FAKE_CODE = "000000";
 const INVALID_CREDENTIALS = "El correo o la contraseña no son correctos.";
 
 let database: E2eDatabase;
@@ -21,31 +20,8 @@ test.afterAll(async () => {
   await database.close();
 });
 
-// Crea la cuenta propia en la base (para poder vincularla a una clínica antes del primer ingreso)
-// y registra y verifica la identidad por la interfaz, con el proveedor simulado.
-async function createVerifiedAccount(page: Page) {
-  const email = uniqueEmail("persona");
-  const fullName = uniqueName("Persona");
-  const user = await database.seedUser({ email, fullName });
-
-  await page.goto("/sign-up");
-  await page.getByLabel("Nombre completo").fill(fullName);
-  await page.getByLabel("Correo electrónico").fill(email);
-  await page.getByLabel("Contraseña").fill(PASSWORD);
-  await page.getByRole("button", { name: "Crear cuenta" }).click();
-
-  await page.getByLabel("Código de verificación").fill(FAKE_CODE);
-  await page.getByRole("button", { name: "Verificar correo" }).click();
-  // Esperar el aviso (y no solo la URL) asegura que ya se muestra la pantalla de ingreso nueva.
-  await expect(page.getByText("Tu cuenta quedó verificada. Ya podés ingresar.")).toBeVisible();
-
-  return { user, email };
-}
-
-async function signIn(page: Page, email: string, password = PASSWORD) {
-  await page.getByLabel("Correo electrónico").fill(email);
-  await page.getByLabel("Contraseña").fill(password);
-  await page.getByRole("button", { name: "Ingresar" }).click();
+function createVerifiedAccount(page: Page) {
+  return createAccount(page, database);
 }
 
 test("(a) una cuenta nueva sin clínicas ve el estado vacío con la explicación de la invitación", async ({

@@ -10,8 +10,11 @@ import { createListAvailableClinics } from "./application/use-cases/list-availab
 import { createRegisterAccount } from "./application/use-cases/register-account";
 import { createResendConfirmationCode } from "./application/use-cases/resend-confirmation-code";
 import { createResolveCurrentSession } from "./application/use-cases/resolve-current-session";
+import { createRequestPasswordReset } from "./application/use-cases/request-password-reset";
+import { createResetPassword } from "./application/use-cases/reset-password";
 import { createSelectActiveClinic } from "./application/use-cases/select-active-clinic";
 import { createSignIn } from "./application/use-cases/sign-in";
+import { createSignOut } from "./application/use-cases/sign-out";
 
 function buildUsersModule() {
   const identity = createIdentityProvider(process.env);
@@ -30,6 +33,9 @@ function buildUsersModule() {
       clinicAccess: prismaClinicAccessRepository,
       now,
     }),
+    signOut: createSignOut({ sessions: prismaSessionRepository, now }),
+    requestPasswordReset: createRequestPasswordReset({ identity }),
+    resetPassword: createResetPassword({ identity, users: prismaUserRepository, now }),
     listAvailableClinics: createListAvailableClinics({ clinicAccess: prismaClinicAccessRepository }),
     selectActiveClinic: createSelectActiveClinic({
       resolveCurrentSession,
