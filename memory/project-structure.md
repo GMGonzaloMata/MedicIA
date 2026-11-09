@@ -36,6 +36,9 @@ Organizar la plataforma como un **monolito modular con Next.js full-stack**, sig
 │       └── ...
 │
 ├── prisma/                        # Esquema y migraciones de PostgreSQL
+├── prisma.config.ts               # Conexión y rutas de Prisma
+├── generated/prisma/              # Cliente generado de Prisma (ignorado por git)
+├── docker-compose.yml             # PostgreSQL local para probar y para las pruebas de integración
 ├── tests/                         # Pruebas unitarias, de integración y E2E
 ├── memory/                        # Contexto estable del proyecto
 │   ├── platform-context.md

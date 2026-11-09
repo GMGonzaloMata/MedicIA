@@ -135,6 +135,8 @@ const eslintConfig = defineConfig([
     ".agents/**",
     ".claude/**",
     ".specify/**",
+    // Cliente generado por Prisma:
+    "generated/**",
     // Reportes generados por las pruebas:
     "coverage/**",
     "playwright-report/**",
