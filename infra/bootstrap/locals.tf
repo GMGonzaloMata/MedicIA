@@ -12,6 +12,11 @@ locals {
   models_bucket_name = "medicia-models-${var.environment}-${var.account_id}"
   models_bucket_arn  = "arn:aws:s3:::${local.models_bucket_name}"
 
+  # Bucket de estudios de ECG (lo crea infra/modules/study-storage desde infra/environments/dev). Se arma con el
+  # nombre, como los demás, para poder decodificar las políticas en las pruebas. Debe coincidir con el del módulo.
+  studies_bucket_name = "medicia-studies-${var.environment}-${var.account_id}"
+  studies_bucket_arn  = "arn:aws:s3:::${local.studies_bucket_name}"
+
   # Rol de ejecución de SageMaker (lo crea infra/modules/sagemaker-execution-role).
   # El nombre debe coincidir con el del módulo.
   execution_role_arn = "arn:aws:iam::${var.account_id}:role/medicia-${var.environment}-sagemaker-execution"

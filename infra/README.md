@@ -19,7 +19,8 @@ Especificación y decisiones: [specs/003-infra-base-cognito/](../specs/003-infra
 - `modules/sagemaker-execution-role/`: el rol que SageMaker asume para leer esos artefactos y escribir registros, con su límite de permisos.
 - `modules/model-endpoints/`: el catálogo de modelos y sus puntos de inferencia, apagados por defecto.
 - `modules/model-registry/`: el repositorio privado de ECR con la imagen de inferencia de un modelo, con etiquetas inmutables.
-- `environments/dev/`: el entorno de desarrollo, que usa los cinco módulos. El catálogo de modelos es la variable `models` de `variables.tf`.
+- `modules/study-storage/`: el bucket privado donde la aplicación guarda los estudios de ECG de las clínicas.
+- `environments/dev/`: el entorno de desarrollo, que usa los seis módulos. El catálogo de modelos es la variable `models` de `variables.tf`.
 - `.tflint.hcl` y `.trivyignore`: reglas del análisis estático y sus excepciones justificadas.
 
 Los comandos de esta guía se ejecutan desde la raíz del repositorio con `-chdir`. El perfil de AWS es `medicia-dev`:
@@ -297,6 +298,46 @@ Antes de poner `enabled = true`, comprobá:
 
 El escaneo de ECR de la imagen `0.1.0` dio 0 críticas, 13 altas, 10 medias y 4 bajas, todas de paquetes del sistema operativo de la imagen base que el contenedor no usa (detalle y decisión en `specs/005-echonext-mini-sagemaker/research.md`, R13). Se aceptó para esta etapa. **Antes de usar datos reales de pacientes**, reconstruir la imagen con una base actualizada y escanearla de nuevo. El escaneo básico no cubre las librerías de Python.
 
+## Bucket de estudios
+
+El bucket `medicia-studies-dev-896618135592` (módulo `study-storage`) guarda un objeto por estudio de ECG, con la clave `studies/<clínica>/<estudio>.ecg1`, que arma la aplicación en el servidor. Detalle y decisiones en [specs/006-carga-estudios-ecg/](../specs/006-carga-estudios-ecg/) (`research.md` R8 y `contracts/storage-and-permissions.md`).
+
+### Qué es y qué no es
+
+- Privado: bloqueo de acceso público completo, propiedad forzada al propietario (sin ACL) y una política con un único `Deny` para el tráfico sin TLS, sin ninguna `Allow`.
+- Cifrado en reposo con SSE-S3 (`AES256`). La aplicación además pide el cifrado en cada subida.
+- **Sin versionado, a propósito:** eliminar un estudio debe borrarlo de verdad. Con versionado quedarían versiones recuperables. Una guarda de CI falla si alguien lo agrega.
+- Sin vencimiento de objetos: los plazos de conservación se definen antes de operar con datos reales.
+- Protegido con `prevent_destroy` y sin `force_destroy`. Un plan que lo reemplace o lo destruya es bloqueante.
+- Solo estudios. Los artefactos de modelos van en el bucket de `model-artifacts`, y los datos del conjunto EchoNext nunca van a ninguno de los dos.
+
+### Quién accede
+
+- **La aplicación**, con el usuario `medicia-dev-app`: guardar, leer y borrar objetos del prefijo `studies/`, y listar el bucket solo para ese prefijo (lo usa `npm run studies:reconcile`). Lo concede el módulo `identity` cuando recibe `studies_bucket_arn`, y solo tiene efecto porque `medicia-dev-boundary` incluye las mismas acciones.
+- **El operador de Terraform** crea y configura el bucket, pero tiene un `Deny` explícito sobre `GetObject`, `GetObjectVersion`, `DeleteObject` y `DeleteObjectVersion` de sus objetos, que gana a cualquier `Allow` (también al que el operador se escribiera en la política del bucket). **Límite conocido:** en desarrollo la clave del usuario de la aplicación está en el estado, que el operador puede leer; en producción la aplicación usará un rol del servidor y esa vía desaparece.
+- **El plan de CI** lee la configuración del bucket, nunca sus objetos.
+- **SageMaker y su rol de ejecución** no acceden a este bucket.
+
+### Orden de los pasos
+
+1. **(administrador)** Rotación de permisos del operador, como en "Cambiar los permisos del operador": cambió `medicia-dev-boundary`, la política del operador y el rol de plan. Aplicá `bootstrap` con el perfil de administración.
+2. **(responsable)** `terraform -chdir=infra/environments/dev plan` y, si solo crea el bucket y la política de la aplicación, `apply`. Un segundo `plan` debe dar `No changes`.
+3. **(responsable)** Migración de Prisma de la 006 y variables de entorno de la aplicación en `.env.local`: `STUDY_STORAGE=s3`, `STUDIES_BUCKET` (salida `studies_bucket_name` del entorno) y `AWS_REGION=sa-east-1`. Con `STUDY_STORAGE=fake` la aplicación guarda los estudios en memoria y no usa AWS.
+
+### Comprobar que quedó bien
+
+```powershell
+aws s3api get-public-access-block --bucket medicia-studies-dev-896618135592   # los cuatro valores en true
+aws s3api get-bucket-versioning --bucket medicia-studies-dev-896618135592      # sin estado: nunca se versionó
+aws s3api get-bucket-encryption --bucket medicia-studies-dev-896618135592      # AES256
+```
+
+Con las credenciales del operador, leer un objeto del bucket debe dar `AccessDenied`.
+
+### Antes de cargar datos reales de pacientes
+
+Estas medidas quedan fuera de esta etapa y deben resolverse antes: registro de accesos del bucket y alarmas, plazos de conservación y eliminación según los requisitos institucionales, un rol del servidor en lugar del usuario de IAM de la aplicación, y limitación de frecuencia de cargas.
+
 ## Recreación desde cero
 
 Para levantar todo en una cuenta limpia:
@@ -368,6 +409,13 @@ Los permisos del rol de plan y del usuario de la aplicación nunca superan el l�
 - **Falta una lectura:** el operador no puede leer los resultados del escaneo de vulnerabilidades de ECR (`ecr:DescribeImageScanFindings`). Se ven en la consola. Se suma en la próxima rotación de administrador.
 
 El rol de plan de CI también ganó lecturas, y nada más: la configuración del bucket de modelos (no sus objetos), el rol de ejecución, y los modelos, configuraciones y puntos de inferencia de SageMaker y el repositorio de imágenes.
+
+**Qué agregó el bucket de estudios (006):**
+
+- El bucket `medicia-studies-dev-896618135592` se suma a las declaraciones que ya cubrían el de modelos: lectura y configuración, y crear, borrar y fijar política, bloqueo y propiedad.
+- Un `Deny` (`NoLeerNiBorrarEstudios`) sobre `GetObject`, `GetObjectVersion`, `DeleteObject` y `DeleteObjectVersion` de los objetos de estudios: el operador crea el bucket pero no lee ni borra su contenido.
+- En `medicia-dev-boundary`, el permiso de la aplicación de guardar, leer y borrar objetos del prefijo `studies/` y de listar el bucket para ese prefijo. Son los únicos permisos de escritura de S3 del límite.
+- En el rol de plan, la lectura de la configuración del bucket de estudios (nunca sus objetos).
 
 ## Liberar los recursos al terminar
 

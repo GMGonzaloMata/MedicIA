@@ -35,3 +35,8 @@ output "user_pool_id" {
   description = "Identificador del grupo de usuarios de Cognito."
   value       = aws_cognito_user_pool.this.id
 }
+
+output "studies_access_granted" {
+  description = "Si el usuario de la aplicación recibió acceso al bucket de estudios (depende de studies_bucket_arn)."
+  value       = length(aws_iam_user_policy.studies) == 1
+}

@@ -136,6 +136,40 @@ resource "aws_iam_user_policy" "app" {
   })
 }
 
+# Acceso de la aplicación al bucket de estudios. Solo existe si se pasa el bucket. El techo de permisos
+# (medicia-dev-boundary, en infra/bootstrap) debe incluir las mismas acciones; si no, esta política no tiene efecto.
+# El prefijo studies/ no es la barrera entre clínicas: eso lo resuelve la aplicación en cada operación.
+resource "aws_iam_user_policy" "studies" {
+  count = var.studies_bucket_arn == "" ? 0 : 1
+
+  name = "studies-bucket-access"
+  user = aws_iam_user.app.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "GuardarLeerYBorrarEstudios"
+        Effect   = "Allow"
+        Action   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
+        Resource = ["${var.studies_bucket_arn}/studies/*"]
+      },
+      {
+        # Solo para conciliar archivos sin registro (npm run studies:reconcile).
+        Sid      = "ListarEstudiosParaConciliar"
+        Effect   = "Allow"
+        Action   = ["s3:ListBucket"]
+        Resource = [var.studies_bucket_arn]
+        Condition = {
+          StringLike = {
+            "s3:prefix" = ["studies/*"]
+          }
+        }
+      },
+    ]
+  })
+}
+
 # La clave de acceso queda en el estado, que es privado y cifrado (research.md, R9).
 resource "aws_iam_access_key" "app" {
   user = aws_iam_user.app.name

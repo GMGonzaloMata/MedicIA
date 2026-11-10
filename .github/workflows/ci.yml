@@ -39,7 +39,7 @@ jobs:
       # infra/. Corre en toda propuesta, no solo en las que tocan infra/. (FR-005 de la funcionalidad 004.)
       - name: Comprobar que no haya artefactos de modelos versionados
         run: |
-          artefactos=$(git -c core.quotePath=false ls-files | grep -E '\.(pt|pth|onnx|safetensors|h5|ckpt|joblib|pkl|pickle|tgz|tar\.gz|tflite|gguf|keras|mar|npy|npz|parquet)$' || true)
+          artefactos=$(git -c core.quotePath=false ls-files | grep -E '\.(pt|pth|onnx|safetensors|h5|ckpt|joblib|pkl|pickle|tgz|tar\.gz|tflite|gguf|keras|mar|npy|npz|parquet|ecg1)$' || true)
           if [ -n "$artefactos" ]; then
             echo "::error::Hay artefactos de modelos o arreglos de datos versionados (FR-005 de la 004, FR-022 de la 005). Los modelos van al bucket de artefactos y los datos nunca a git:"
             echo "$artefactos"

@@ -3,8 +3,20 @@ module "identity" {
 
   environment = "dev"
 
+  # Acceso de la aplicación al bucket de estudios. Se pasa el ARN, no una dependencia entre módulos.
+  studies_bucket_arn = module.study_storage.bucket_arn
+
   # La crea infra/bootstrap. Se escribe el ARN porque cada raíz tiene su propio estado.
   permissions_boundary_arn = "arn:aws:iam::896618135592:policy/medicia-dev-boundary"
+}
+
+# Bucket privado de los estudios de ECG de las clínicas (006). Sin versionado: eliminar un estudio lo borra de verdad.
+# Los estudios se leen y escriben desde la aplicación; el operador de Terraform no puede leerlos.
+module "study_storage" {
+  source = "../../modules/study-storage"
+
+  environment = "dev"
+  account_id  = "896618135592"
 }
 
 # Bucket privado para los artefactos de los modelos. No guarda datos de pacientes.

@@ -264,3 +264,74 @@ run "rechaza_un_limite_de_permisos_que_no_es_una_politica" {
     var.permissions_boundary_arn,
   ]
 }
+
+# Acceso de la aplicación al bucket de estudios (specs/006-carga-estudios-ecg/contracts/storage-and-permissions.md).
+# Sin el bucket, el usuario conserva su único permiso de Cognito y no gana nada de S3.
+run "sin_bucket_de_estudios_no_hay_permisos_de_s3" {
+  command = plan
+
+  assert {
+    condition     = length(aws_iam_user_policy.studies) == 0
+    error_message = "Sin studies_bucket_arn no debe crearse ninguna política de S3."
+  }
+}
+
+run "con_bucket_de_estudios_solo_guarda_lee_y_borra_estudios" {
+  command = plan
+
+  variables {
+    studies_bucket_arn = "arn:aws:s3:::medicia-studies-dev-896618135592"
+  }
+
+  assert {
+    condition     = length(aws_iam_user_policy.studies) == 1 && aws_iam_user_policy.studies[0].user == "medicia-dev-app"
+    error_message = "La política de estudios debe colgar del usuario de la aplicación."
+  }
+
+  assert {
+    condition = anytrue([
+      for s in jsondecode(aws_iam_user_policy.studies[0].policy).Statement :
+      s.Effect == "Allow"
+      && toset(s.Action) == toset(["s3:GetObject", "s3:PutObject", "s3:DeleteObject"])
+      && toset(s.Resource) == toset(["arn:aws:s3:::medicia-studies-dev-896618135592/studies/*"])
+    ])
+    error_message = "Los objetos solo admiten GetObject, PutObject y DeleteObject sobre el prefijo studies/."
+  }
+
+  assert {
+    condition = anytrue([
+      for s in jsondecode(aws_iam_user_policy.studies[0].policy).Statement :
+      s.Effect == "Allow"
+      && toset(s.Action) == toset(["s3:ListBucket"])
+      && toset(s.Resource) == toset(["arn:aws:s3:::medicia-studies-dev-896618135592"])
+      && toset(s.Condition.StringLike["s3:prefix"]) == toset(["studies/*"])
+    ])
+    error_message = "Listar el bucket solo se permite para el prefijo studies/."
+  }
+
+  assert {
+    condition = alltrue([
+      for a in flatten([for s in jsondecode(aws_iam_user_policy.studies[0].policy).Statement : s.Action]) :
+      !strcontains(a, "*")
+    ])
+    error_message = "La política de estudios no puede tener acciones con comodín."
+  }
+
+  # La política original de Cognito no cambia.
+  assert {
+    condition     = aws_iam_user_policy.app.name == "cognito-set-user-password"
+    error_message = "La política de Cognito del usuario de la aplicación no debe cambiar de nombre."
+  }
+}
+
+run "rechaza_un_bucket_de_estudios_que_no_es_un_arn_de_s3" {
+  command = plan
+
+  variables {
+    studies_bucket_arn = "medicia-studies-dev-896618135592"
+  }
+
+  expect_failures = [
+    var.studies_bucket_arn,
+  ]
+}
