@@ -4,6 +4,7 @@
 mock_provider "aws" {}
 
 variables {
+  account_id            = "896618135592"
   environment           = "dev"
   artifacts_bucket_name = "medicia-models-dev-896618135592"
   execution_role_arn    = "arn:aws:iam::896618135592:role/medicia-dev-sagemaker-execution"
@@ -38,7 +39,7 @@ run "entrada_apagada_por_defecto" {
   variables {
     models = {
       ecg-ejemplo = {
-        image_uri      = "123456789012.dkr.ecr.sa-east-1.amazonaws.com/ejemplo:1"
+        image_uri      = "896618135592.dkr.ecr.sa-east-1.amazonaws.com/medicia-dev-ejemplo:1"
         model_data_key = "ecg-ejemplo/1/model.tar.gz"
         model_version  = "1.0.0"
       }
@@ -81,7 +82,7 @@ run "entrada_apagada_por_defecto" {
   }
 
   assert {
-    condition     = one(aws_sagemaker_model.this["ecg-ejemplo"].primary_container).image == "123456789012.dkr.ecr.sa-east-1.amazonaws.com/ejemplo:1"
+    condition     = one(aws_sagemaker_model.this["ecg-ejemplo"].primary_container).image == "896618135592.dkr.ecr.sa-east-1.amazonaws.com/medicia-dev-ejemplo:1"
     error_message = "El contenedor debe usar la imagen indicada."
   }
 
@@ -102,7 +103,7 @@ run "entrada_encendida_crea_un_punto_de_inferencia" {
   variables {
     models = {
       ecg-ejemplo = {
-        image_uri      = "123456789012.dkr.ecr.sa-east-1.amazonaws.com/ejemplo:1"
+        image_uri      = "896618135592.dkr.ecr.sa-east-1.amazonaws.com/medicia-dev-ejemplo:1"
         model_data_key = "ecg-ejemplo/1/model.tar.gz"
         model_version  = "1.0.0"
         enabled        = true
@@ -132,13 +133,13 @@ run "solo_la_encendida_tiene_punto_de_inferencia" {
   variables {
     models = {
       ecg-ejemplo = {
-        image_uri      = "123456789012.dkr.ecr.sa-east-1.amazonaws.com/ejemplo:1"
+        image_uri      = "896618135592.dkr.ecr.sa-east-1.amazonaws.com/medicia-dev-ejemplo:1"
         model_data_key = "ecg-ejemplo/1/model.tar.gz"
         model_version  = "1.0.0"
         enabled        = true
       }
       rx-ejemplo = {
-        image_uri      = "123456789012.dkr.ecr.sa-east-1.amazonaws.com/otro:2"
+        image_uri      = "896618135592.dkr.ecr.sa-east-1.amazonaws.com/medicia-dev-otro:2"
         model_data_key = "rx-ejemplo/2/model.tar.gz"
         model_version  = "2.1.0"
         enabled        = false
@@ -163,7 +164,7 @@ run "etiqueta_con_la_version_del_modelo" {
   variables {
     models = {
       ecg-ejemplo = {
-        image_uri      = "123456789012.dkr.ecr.sa-east-1.amazonaws.com/ejemplo:1"
+        image_uri      = "896618135592.dkr.ecr.sa-east-1.amazonaws.com/medicia-dev-ejemplo:1"
         model_data_key = "ecg-ejemplo/1/model.tar.gz"
         model_version  = "1.0.0"
         enabled        = true
@@ -195,17 +196,17 @@ run "el_nombre_del_modelo_cambia_con_su_artefacto_y_su_imagen" {
   variables {
     models = {
       uno = {
-        image_uri      = "123456789012.dkr.ecr.sa-east-1.amazonaws.com/ejemplo:1"
+        image_uri      = "896618135592.dkr.ecr.sa-east-1.amazonaws.com/medicia-dev-ejemplo:1"
         model_data_key = "ejemplo/1/model.tar.gz"
         model_version  = "1.0.0"
       }
       otro-artefacto = {
-        image_uri      = "123456789012.dkr.ecr.sa-east-1.amazonaws.com/ejemplo:1"
+        image_uri      = "896618135592.dkr.ecr.sa-east-1.amazonaws.com/medicia-dev-ejemplo:1"
         model_data_key = "ejemplo/2/model.tar.gz"
         model_version  = "1.0.0"
       }
       otra-imagen = {
-        image_uri      = "123456789012.dkr.ecr.sa-east-1.amazonaws.com/ejemplo:2"
+        image_uri      = "896618135592.dkr.ecr.sa-east-1.amazonaws.com/medicia-dev-ejemplo:2"
         model_data_key = "ejemplo/1/model.tar.gz"
         model_version  = "1.0.0"
       }
@@ -229,7 +230,7 @@ run "tipo_de_instancia_permitido" {
   variables {
     models = {
       ecg-ejemplo = {
-        image_uri      = "123456789012.dkr.ecr.sa-east-1.amazonaws.com/ejemplo:1"
+        image_uri      = "896618135592.dkr.ecr.sa-east-1.amazonaws.com/medicia-dev-ejemplo:1"
         model_data_key = "ecg-ejemplo/1/model.tar.gz"
         model_version  = "1.0.0"
         instance_type  = "ml.m5.large"
@@ -249,7 +250,7 @@ run "tipo_de_instancia_gpu_rechazado" {
   variables {
     models = {
       ecg-ejemplo = {
-        image_uri      = "123456789012.dkr.ecr.sa-east-1.amazonaws.com/ejemplo:1"
+        image_uri      = "896618135592.dkr.ecr.sa-east-1.amazonaws.com/medicia-dev-ejemplo:1"
         model_data_key = "ecg-ejemplo/1/model.tar.gz"
         model_version  = "1.0.0"
         instance_type  = "ml.p3.2xlarge"
@@ -266,7 +267,7 @@ run "tipo_de_instancia_no_permitido_rechazado" {
   variables {
     models = {
       ecg-ejemplo = {
-        image_uri      = "123456789012.dkr.ecr.sa-east-1.amazonaws.com/ejemplo:1"
+        image_uri      = "896618135592.dkr.ecr.sa-east-1.amazonaws.com/medicia-dev-ejemplo:1"
         model_data_key = "ecg-ejemplo/1/model.tar.gz"
         model_version  = "1.0.0"
         instance_type  = "ml.m5.xlarge"
@@ -283,7 +284,7 @@ run "clave_con_mayuscula_rechazada" {
   variables {
     models = {
       Ecg = {
-        image_uri      = "123456789012.dkr.ecr.sa-east-1.amazonaws.com/ejemplo:1"
+        image_uri      = "896618135592.dkr.ecr.sa-east-1.amazonaws.com/medicia-dev-ejemplo:1"
         model_data_key = "ecg/1/model.tar.gz"
         model_version  = "1.0.0"
       }
@@ -299,7 +300,7 @@ run "clave_que_empieza_con_numero_rechazada" {
   variables {
     models = {
       "1ecg" = {
-        image_uri      = "123456789012.dkr.ecr.sa-east-1.amazonaws.com/ejemplo:1"
+        image_uri      = "896618135592.dkr.ecr.sa-east-1.amazonaws.com/medicia-dev-ejemplo:1"
         model_data_key = "ecg/1/model.tar.gz"
         model_version  = "1.0.0"
       }
@@ -315,7 +316,7 @@ run "clave_de_un_caracter_rechazada" {
   variables {
     models = {
       a = {
-        image_uri      = "123456789012.dkr.ecr.sa-east-1.amazonaws.com/ejemplo:1"
+        image_uri      = "896618135592.dkr.ecr.sa-east-1.amazonaws.com/medicia-dev-ejemplo:1"
         model_data_key = "a/1/model.tar.gz"
         model_version  = "1.0.0"
       }
@@ -331,7 +332,7 @@ run "clave_de_25_caracteres_rechazada" {
   variables {
     models = {
       "abcdefghijklmnopqrstuvwxy" = {
-        image_uri      = "123456789012.dkr.ecr.sa-east-1.amazonaws.com/ejemplo:1"
+        image_uri      = "896618135592.dkr.ecr.sa-east-1.amazonaws.com/medicia-dev-ejemplo:1"
         model_data_key = "x/1/model.tar.gz"
         model_version  = "1.0.0"
       }
@@ -347,7 +348,7 @@ run "clave_de_24_caracteres_aceptada" {
   variables {
     models = {
       "abcdefghijklmnopqrstuvwx" = {
-        image_uri      = "123456789012.dkr.ecr.sa-east-1.amazonaws.com/ejemplo:1"
+        image_uri      = "896618135592.dkr.ecr.sa-east-1.amazonaws.com/medicia-dev-ejemplo:1"
         model_data_key = "x/1/model.tar.gz"
         model_version  = "1.0.0"
       }
@@ -366,7 +367,7 @@ run "clave_del_artefacto_vacia_rechazada" {
   variables {
     models = {
       ecg-ejemplo = {
-        image_uri      = "123456789012.dkr.ecr.sa-east-1.amazonaws.com/ejemplo:1"
+        image_uri      = "896618135592.dkr.ecr.sa-east-1.amazonaws.com/medicia-dev-ejemplo:1"
         model_data_key = ""
         model_version  = "1.0.0"
       }
@@ -382,7 +383,7 @@ run "clave_del_artefacto_con_segmento_punto_punto_rechazada" {
   variables {
     models = {
       ecg-ejemplo = {
-        image_uri      = "123456789012.dkr.ecr.sa-east-1.amazonaws.com/ejemplo:1"
+        image_uri      = "896618135592.dkr.ecr.sa-east-1.amazonaws.com/medicia-dev-ejemplo:1"
         model_data_key = "ecg/../otro/model.tar.gz"
         model_version  = "1.0.0"
       }
@@ -398,8 +399,140 @@ run "clave_del_artefacto_con_barra_inicial_rechazada" {
   variables {
     models = {
       ecg-ejemplo = {
-        image_uri      = "123456789012.dkr.ecr.sa-east-1.amazonaws.com/ejemplo:1"
+        image_uri      = "896618135592.dkr.ecr.sa-east-1.amazonaws.com/medicia-dev-ejemplo:1"
         model_data_key = "/x/model.tar.gz"
+        model_version  = "1.0.0"
+      }
+    }
+  }
+
+  expect_failures = [var.models]
+}
+
+# El origen de la imagen (005, R10): solo ECR del entorno, de esta cuenta y región, con una versión que no sea latest.
+run "imagen_del_entorno_aceptada" {
+  command = plan
+
+  variables {
+    models = {
+      echonext-mini = {
+        image_uri      = "896618135592.dkr.ecr.sa-east-1.amazonaws.com/medicia-dev-echonext-mini:0.1.0"
+        model_data_key = "echonext-mini/0.1.0/model.tar.gz"
+        model_version  = "0.1.0"
+      }
+    }
+  }
+
+  assert {
+    condition     = length(aws_sagemaker_model.this) == 1
+    error_message = "Una imagen del repositorio del entorno debe aceptarse."
+  }
+}
+
+run "imagen_de_otra_cuenta_rechazada" {
+  command = plan
+
+  variables {
+    models = {
+      ecg-ejemplo = {
+        image_uri      = "123456789012.dkr.ecr.sa-east-1.amazonaws.com/medicia-dev-ejemplo:1"
+        model_data_key = "ecg-ejemplo/1/model.tar.gz"
+        model_version  = "1.0.0"
+      }
+    }
+  }
+
+  expect_failures = [var.models]
+}
+
+run "imagen_de_otra_region_rechazada" {
+  command = plan
+
+  variables {
+    models = {
+      ecg-ejemplo = {
+        image_uri      = "896618135592.dkr.ecr.us-east-1.amazonaws.com/medicia-dev-ejemplo:1"
+        model_data_key = "ecg-ejemplo/1/model.tar.gz"
+        model_version  = "1.0.0"
+      }
+    }
+  }
+
+  expect_failures = [var.models]
+}
+
+run "imagen_de_otro_repositorio_rechazada" {
+  command = plan
+
+  variables {
+    models = {
+      ecg-ejemplo = {
+        image_uri      = "896618135592.dkr.ecr.sa-east-1.amazonaws.com/otro-repositorio:1"
+        model_data_key = "ecg-ejemplo/1/model.tar.gz"
+        model_version  = "1.0.0"
+      }
+    }
+  }
+
+  expect_failures = [var.models]
+}
+
+run "imagen_de_un_registro_publico_rechazada" {
+  command = plan
+
+  variables {
+    models = {
+      ecg-ejemplo = {
+        image_uri      = "public.ecr.aws/ejemplo/medicia-dev-ejemplo:1"
+        model_data_key = "ecg-ejemplo/1/model.tar.gz"
+        model_version  = "1.0.0"
+      }
+    }
+  }
+
+  expect_failures = [var.models]
+}
+
+run "imagen_sin_etiqueta_rechazada" {
+  command = plan
+
+  variables {
+    models = {
+      ecg-ejemplo = {
+        image_uri      = "896618135592.dkr.ecr.sa-east-1.amazonaws.com/medicia-dev-ejemplo"
+        model_data_key = "ecg-ejemplo/1/model.tar.gz"
+        model_version  = "1.0.0"
+      }
+    }
+  }
+
+  expect_failures = [var.models]
+}
+
+run "imagen_con_etiqueta_latest_rechazada" {
+  command = plan
+
+  variables {
+    models = {
+      ecg-ejemplo = {
+        image_uri      = "896618135592.dkr.ecr.sa-east-1.amazonaws.com/medicia-dev-ejemplo:latest"
+        model_data_key = "ecg-ejemplo/1/model.tar.gz"
+        model_version  = "1.0.0"
+      }
+    }
+  }
+
+  expect_failures = [var.models]
+}
+
+run "imagen_por_resumen_en_lugar_de_etiqueta_rechazada" {
+  command = plan
+
+  variables {
+    models = {
+      ecg-ejemplo = {
+        image_uri      = "896618135592.dkr.ecr.sa-east-1.amazonaws.com/medicia-dev-ejemplo@sha256:0123"
+        model_data_key = "ecg-ejemplo/1/model.tar.gz"
         model_version  = "1.0.0"
       }
     }

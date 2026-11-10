@@ -94,13 +94,13 @@ run "rol_de_plan_solo_lectura" {
     error_message = "Toda declaración del rol de plan debe permitir y listar acciones y recursos explícitos."
   }
 
-  # Solo lectura: Describe, Get o List de Cognito e IAM, y Get o List de S3. Sin comodines.
+  # Solo lectura: Describe, Get o List de Cognito, IAM, SageMaker y ECR, y Get o List de S3. Sin comodines.
   assert {
     condition = alltrue([
       for a in flatten([for s in jsondecode(aws_iam_role_policy.plan_read.policy).Statement : s.Action]) :
-      can(regex("^(s3:(Get|List)[A-Za-z]+|(cognito-idp|iam):(Describe|Get|List)[A-Za-z]*)$", a))
+      can(regex("^(s3:(Get|List)[A-Za-z]+|(cognito-idp|iam|sagemaker|ecr):(Describe|Get|List)[A-Za-z]*)$", a))
     ])
-    error_message = "El rol de plan solo puede tener acciones Describe, Get o List de Cognito e IAM y Get o List de S3, sin comodines."
+    error_message = "El rol de plan solo puede tener acciones Describe, Get o List de Cognito, IAM, SageMaker y ECR y Get o List de S3, sin comodines."
   }
 
   # Lo que toca S3 se limita al bucket del estado y al de artefactos de modelos.
@@ -269,7 +269,7 @@ run "politica_limite_solo_lectura_y_fijar_contrasena" {
   assert {
     condition = alltrue([
       for a in flatten([for s in jsondecode(aws_iam_policy.boundary.policy).Statement : s.Action]) :
-      can(regex("^(s3:(Get|List)[A-Za-z]+|cognito-idp:(AdminSetUserPassword|(Describe|Get|List)[A-Za-z]*)|iam:(Get|List)[A-Za-z]*)$", a))
+      can(regex("^(s3:(Get|List)[A-Za-z]+|cognito-idp:(AdminSetUserPassword|(Describe|Get|List)[A-Za-z]*)|iam:(Get|List)[A-Za-z]*|(sagemaker|ecr):(Describe|Get|List)[A-Za-z]*)$", a))
     ])
     error_message = "El límite solo admite lectura y cognito-idp:AdminSetUserPassword."
   }
@@ -393,6 +393,7 @@ run "operador_no_edita_sus_politicas_de_acceso" {
       s.Effect == "Deny"
       && toset(s.Resource) == toset([
         "arn:aws:iam::896618135592:policy/medicia-dev-terraform-operator",
+        "arn:aws:iam::896618135592:policy/medicia-dev-terraform-operator-ml",
         "arn:aws:iam::896618135592:policy/medicia-dev-boundary",
         "arn:aws:iam::896618135592:policy/medicia-dev-sagemaker-boundary",
       ])
@@ -401,7 +402,7 @@ run "operador_no_edita_sus_politicas_de_acceso" {
         contains(s.Action, a)
       ])
     ])
-    error_message = "Debe haber un Deny de crear, crear versiones, borrar y cambiar la versión de las políticas del operador y de los dos límites."
+    error_message = "Debe haber un Deny de crear, crear versiones, borrar y cambiar la versión de las dos políticas del operador y de los dos límites."
   }
 
   # Borrar artefactos queda denegado aunque la política del bucket (que el operador puede escribir) lo permitiera.
@@ -592,5 +593,81 @@ run "rol_de_plan_lee_bucket_de_artefactos_y_rol_de_ejecucion" {
       ])
     ])
     error_message = "Cada declaración del rol de plan debe figurar igual en medicia-dev-boundary (fuente única)."
+  }
+}
+
+# El plan de CI lee SageMaker y ECR del entorno (005, FR-019): solo lectura, enumerada y dentro del límite.
+run "rol_de_plan_lee_sagemaker_y_ecr" {
+  command = plan
+
+  assert {
+    condition = anytrue([
+      for s in jsondecode(aws_iam_role_policy.plan_read.policy).Statement :
+      s.Effect == "Allow"
+      && toset(s.Action) == toset([
+        "sagemaker:DescribeEndpoint",
+        "sagemaker:DescribeEndpointConfig",
+        "sagemaker:DescribeModel",
+        "sagemaker:ListTags",
+      ])
+      && toset(s.Resource) == toset([
+        "arn:aws:sagemaker:sa-east-1:896618135592:endpoint/medicia-dev-*",
+        "arn:aws:sagemaker:sa-east-1:896618135592:endpoint-config/medicia-dev-*",
+        "arn:aws:sagemaker:sa-east-1:896618135592:model/medicia-dev-*",
+      ])
+    ])
+    error_message = "El rol de plan debe poder leer los modelos, configuraciones y puntos de inferencia medicia-dev-, con esas cuatro acciones."
+  }
+
+  assert {
+    condition = anytrue([
+      for s in jsondecode(aws_iam_role_policy.plan_read.policy).Statement :
+      s.Effect == "Allow"
+      && toset(s.Action) == toset([
+        "ecr:DescribeRepositories",
+        "ecr:GetLifecyclePolicy",
+        "ecr:GetRepositoryPolicy",
+        "ecr:ListTagsForResource",
+      ])
+      && toset(s.Resource) == toset(["arn:aws:ecr:sa-east-1:896618135592:repository/medicia-dev-*"])
+    ])
+    error_message = "El rol de plan debe poder leer los repositorios de imágenes medicia-dev-, con esas cuatro acciones."
+  }
+
+  # Nunca escribe ni lee imágenes.
+  assert {
+    condition = alltrue([
+      for a in flatten([for s in jsondecode(aws_iam_role_policy.plan_read.policy).Statement : s.Action]) :
+      !startswith(a, "sagemaker:Create") && !startswith(a, "sagemaker:Delete") && !startswith(a, "sagemaker:Update")
+      && !startswith(a, "sagemaker:Invoke") && !startswith(a, "ecr:Put") && !startswith(a, "ecr:Batch")
+      && !startswith(a, "ecr:Upload") && a != "ecr:GetAuthorizationToken" && a != "ecr:GetDownloadUrlForLayer"
+    ])
+    error_message = "El rol de plan no puede escribir en SageMaker ni ECR, invocar modelos ni descargar imágenes."
+  }
+
+  assert {
+    condition = alltrue([
+      for s in jsondecode(aws_iam_role_policy.plan_read.policy).Statement :
+      !contains(s.Resource, "*")
+    ])
+    error_message = "El rol de plan no puede tener recursos *."
+  }
+
+  # Las lecturas nuevas figuran igual en el límite compartido con la aplicación (se documenta en FR-019).
+  assert {
+    condition = alltrue([
+      for s in jsondecode(aws_iam_role_policy.plan_read.policy).Statement :
+      anytrue([
+        for b in jsondecode(aws_iam_policy.boundary.policy).Statement :
+        toset(b.Action) == toset(s.Action) && toset(b.Resource) == toset(s.Resource)
+      ])
+      if anytrue([for a in s.Action : startswith(a, "sagemaker:") || startswith(a, "ecr:")])
+    ])
+    error_message = "Las lecturas de SageMaker y ECR del rol de plan deben figurar igual en medicia-dev-boundary."
+  }
+
+  assert {
+    condition     = length(aws_iam_policy.boundary.policy) < 6144
+    error_message = "El límite compartido supera el tope de 6.144 caracteres de IAM."
   }
 }

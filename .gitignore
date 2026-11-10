@@ -82,3 +82,15 @@ override.tf.json
 *.gguf
 *.keras
 *.mar
+
+# Datos del conjunto EchoNext-Mini y arreglos de estudios: nunca en git (FR-022 de la 005)
+*.npy
+*.npz
+*.parquet
+echonext*.csv
+EchoNext*.csv
+echonext*.xml
+EchoNext*.xml
+echonext*.zip
+EchoNext*.zip
+*.zip

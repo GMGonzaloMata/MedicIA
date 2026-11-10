@@ -13,12 +13,13 @@ Especificación y decisiones: [specs/003-infra-base-cognito/](../specs/003-infra
 
 ## Estructura
 
-- `bootstrap/`: el bucket del estado, el acceso de CI (rol `medicia-dev-plan` y proveedor de GitHub), la política del operador y las dos políticas límite de permisos: `medicia-dev-boundary` (plan y usuario de la aplicación) y `medicia-dev-sagemaker-boundary`, en `sagemaker-boundary.tf` (rol de ejecución de SageMaker). Es la única raíz que arranca con estado local y la aplica un administrador.
+- `bootstrap/`: el bucket del estado, el acceso de CI (rol `medicia-dev-plan` y proveedor de GitHub), las dos políticas del operador (`operator-policy.tf` y `operator-policy-ml.tf`, esta última con SageMaker, `iam:PassRole` y ECR) y las dos políticas límite de permisos: `medicia-dev-boundary` (plan y usuario de la aplicación) y `medicia-dev-sagemaker-boundary`, en `sagemaker-boundary.tf` (rol de ejecución de SageMaker). Es la única raíz que arranca con estado local y la aplica un administrador.
 - `modules/identity/`: el grupo de usuarios de Cognito, su cliente de aplicación y el usuario de IAM que usa el servidor. Incluye sus pruebas.
 - `modules/model-artifacts/`: el bucket privado donde viven los artefactos de los modelos.
 - `modules/sagemaker-execution-role/`: el rol que SageMaker asume para leer esos artefactos y escribir registros, con su límite de permisos.
 - `modules/model-endpoints/`: el catálogo de modelos y sus puntos de inferencia, apagados por defecto.
-- `environments/dev/`: el entorno de desarrollo, que usa los cuatro módulos. El catálogo de modelos es la variable `models` de `variables.tf`.
+- `modules/model-registry/`: el repositorio privado de ECR con la imagen de inferencia de un modelo, con etiquetas inmutables.
+- `environments/dev/`: el entorno de desarrollo, que usa los cinco módulos. El catálogo de modelos es la variable `models` de `variables.tf`.
 - `.tflint.hcl` y `.trivyignore`: reglas del análisis estático y sus excepciones justificadas.
 
 Los comandos de esta guía se ejecutan desde la raíz del repositorio con `-chdir`. El perfil de AWS es `medicia-dev`:
@@ -81,11 +82,12 @@ terraform -chdir=infra/modules/identity test
 terraform -chdir=infra/modules/model-artifacts test
 terraform -chdir=infra/modules/sagemaker-execution-role test
 terraform -chdir=infra/modules/model-endpoints test
+terraform -chdir=infra/modules/model-registry test
 ```
 
 **Qué corre en CI** (`.github/workflows/infra.yml`), solo si el cambio toca `infra/`:
 
-- Trabajo `static`, sin credenciales de AWS: formato, validación, `tflint`, pruebas de Terraform, `trivy` (configuración y secretos), búsqueda de archivos prohibidos (incluidos los artefactos de modelos en todo el repositorio), guarda del contrato de Cognito, guarda de costo de SageMaker, guarda de etiquetas y una guarda que impide aplicar desde los flujos.
+- Trabajo `static`, sin credenciales de AWS: formato, validación, `tflint`, pruebas de Terraform, `trivy` (configuración y secretos), búsqueda de archivos prohibidos (incluidos los artefactos de modelos en todo el repositorio), guarda del contrato de Cognito, guarda de costo de SageMaker, guarda de imágenes, repositorios y permisos de modelos (sin `latest`, sin comodines de SageMaker ni ECR, una instancia por punto de inferencia), guarda de etiquetas y una guarda que impide aplicar desde los flujos.
 - Trabajo `plan`, solo en propuestas de cambio de este repositorio (no en forks ni en `main`): asume el rol `medicia-dev-plan` por OIDC, con solo lectura, y vuelca el plan en el resumen del trabajo. Nunca aplica.
 
 Un plan que propone destruir o reemplazar el grupo de usuarios es bloqueante en la revisión: la decisión de aplicarlo es del responsable.
@@ -117,10 +119,10 @@ Si antes usaste `IDENTITY_PROVIDER=fake`, tu base local puede tener cuentas crea
 Prepara el lugar donde van a vivir los modelos de IA, sin desplegar ninguno:
 
 - Un bucket privado, cifrado y versionado para los artefactos de los modelos (`medicia-models-dev-896618135592`).
-- Un rol de ejecución (`medicia-dev-sagemaker-execution`) que solo SageMaker puede asumir, con permiso de leer ese bucket y escribir sus registros, y con su propia política límite.
-- Un catálogo de modelos (la variable `models`) que hoy está vacío. Cada punto de inferencia nace apagado.
+- Un rol de ejecución (`medicia-dev-sagemaker-execution`) que solo SageMaker puede asumir, con permiso de leer ese bucket, descargar la imagen de su repositorio de ECR y escribir sus registros, y con su propia política límite.
+- Un catálogo de modelos (la variable `models`) con una entrada, EchoNext-Mini (ver "Modelo EchoNext-Mini"). Cada punto de inferencia nace apagado.
 
-**No despliega ningún modelo ni crea ningún punto de inferencia.** Con todo apagado, el costo adicional es de centavos: solo el almacenamiento de S3, a 0,0405 USD por GB al mes. Un punto de inferencia cobra por hora mientras existe, y es lo único que cuesta de verdad (ver "Costos de un punto de inferencia").
+**Con todo apagado no hay ningún punto de inferencia.** El costo adicional es de centavos: el almacenamiento de S3, a 0,0405 USD por GB al mes, y el de la imagen en ECR. Un punto de inferencia cobra por hora mientras existe, y es lo único que cuesta de verdad (ver "Costos de un punto de inferencia").
 
 ### Orden de los pasos
 
@@ -168,7 +170,7 @@ Sumar un modelo es agregar una entrada al valor por defecto de la variable `mode
 ```hcl
 default = {
   ecg-ejemplo = {
-    image_uri      = "<cuenta>.dkr.ecr.sa-east-1.amazonaws.com/<repositorio>:<etiqueta>"
+    image_uri      = "896618135592.dkr.ecr.sa-east-1.amazonaws.com/medicia-dev-<nombre>:<versión>"
     model_data_key = "ecg-ejemplo/1/model.tar.gz"
     model_version  = "1.0.0"
     instance_type  = "ml.t2.medium"   # opcional
@@ -178,15 +180,16 @@ default = {
 ```
 
 - **El nombre corto** (`ecg-ejemplo`) tiene de 2 a 24 caracteres: minúsculas, números y guiones, y empieza con una letra. El punto de inferencia se llama `medicia-dev-<nombre>`; el modelo lleva además un resumen de 8 caracteres (`medicia-dev-<nombre>-<resumen>`) que cambia si cambia la imagen, el artefacto o el rol. SageMaker no puede actualizar un modelo, así que al cambiar uno de esos campos se crea un modelo nuevo y después se borra el anterior.
+- **`image_uri`** debe ser un repositorio ECR del entorno, de esta cuenta y región, con una etiqueta de versión que no sea `latest`: el módulo lo valida. Además, el rol de ejecución solo puede descargar de `medicia-dev-echonext-mini`: un modelo con otro repositorio exige ampliar el rol y su límite por la vía de administración.
 - **`model_data_key`** es la clave dentro del bucket de artefactos, sin barra inicial. Subí el artefacto antes con "Subir un artefacto".
 - **`model_version`** es la versión exacta del modelo. Queda como etiqueta `ModelVersion` y sirve para saber qué modelo produjo un análisis.
 
-Antes del **primer** modelo hacen falta cuatro cosas que esta entrega deja pendientes:
+Antes del **primer** modelo hacían falta cuatro cosas. Con EchoNext-Mini ya están resueltas, y sirven de lista para el próximo modelo:
 
-- **Permisos de SageMaker para el operador**, otorgados por un administrador (ver "Cambiar los permisos del operador").
-- **Permisos de ECR para el rol de ejecución**, limitados al repositorio de la imagen, cuando se sepa cuál es.
-- **Revisar la cuota y la disponibilidad** del tipo de instancia en `sa-east-1`. Una cuenta reciente puede tener cupo cero y pedirlo lleva tiempo.
-- **Lecturas de SageMaker para el plan de CI.** Con el primer modelo, el plan de CI va a refrescar el modelo, la configuración y el punto de inferencia, y hoy el rol de plan no tiene ninguna acción de `sagemaker:`: fallaría con `AccessDenied`. Hay que sumar lecturas enumeradas (`sagemaker:DescribeModel`, `DescribeEndpointConfig`, `DescribeEndpoint` y `ListTags`, sobre recursos `medicia-dev-*`) a `plan_read_statements`. Eso amplía también `medicia-dev-boundary`, que es el techo del usuario de la aplicación, así que exige ajustar FR-008 de la especificación.
+- **Permisos de SageMaker, `iam:PassRole` y ECR para el operador**, otorgados por un administrador con la política `medicia-dev-terraform-operator-ml` (ver "Cambiar los permisos del operador"). Ya están aplicados.
+- **Permisos de ECR para el rol de ejecución**, limitados al repositorio de la imagen. Ya están en el rol y en su límite.
+- **Revisar la cuota y la disponibilidad** del tipo de instancia en `sa-east-1`. Una cuenta reciente puede tener cupo cero y pedirlo lleva tiempo. Para `ml.t2.medium` se comprobó el 2026-11-10: cuota aplicada de 30.
+- **Lecturas de SageMaker y ECR para el plan de CI.** Ya están en `plan_read_statements` (`sagemaker:DescribeModel`, `DescribeEndpointConfig`, `DescribeEndpoint` y `ListTags` sobre `medicia-dev-*`, y cuatro lecturas de ECR). Amplían también `medicia-dev-boundary`, el techo del usuario de la aplicación: ese usuario podría leer esos recursos, pero su política real no se lo concede. Está registrado en FR-008 de la 004.
 
 ### Encender y apagar
 
@@ -198,14 +201,101 @@ Antes del **primer** modelo hacen falta cuatro cosas que esta entrega deja pendi
   aws sagemaker delete-endpoint --endpoint-name medicia-dev-<nombre> --region sa-east-1   # (responsable)
   ```
 
-  Este comando exige los permisos de SageMaker que se otorgan con el primer modelo. Hasta entonces no hay puntos de inferencia que apagar.
+  Este comando lo permite la política `medicia-dev-terraform-operator-ml`.
 
-- **Ver qué hay encendido:** `aws sagemaker list-endpoints --region sa-east-1`. Todo lo que aparezca cobra. Con el operador actual este comando da `AccessDeniedException`, porque todavía no tiene permisos de SageMaker. Mientras tanto, `terraform -chdir=infra/environments/dev output enabled_endpoint_names` muestra los encendidos según el estado.
+- **Ver qué hay encendido:** `aws sagemaker list-endpoints --region sa-east-1`. Todo lo que aparezca cobra. `terraform -chdir=infra/environments/dev output enabled_endpoint_names` muestra los encendidos según el estado.
 
 ### Licencias y alcance clínico
 
-- **Modelos de investigación:** revisá la licencia antes de subir sus artefactos. EchoNext-Mini, por ejemplo, se distribuye bajo el acuerdo de uso de PhysioNet, y Columbia tiene una solicitud de patente sobre el método: confirmá que el uso previsto esté permitido. Esta entrega no incluye ese modelo.
+- **Modelos de investigación:** revisá la licencia antes de subir sus artefactos. EchoNext-Mini, por ejemplo, se distribuye bajo el acuerdo de uso de PhysioNet, y Columbia tiene una solicitud de patente sobre el método: confirmá que el uso previsto esté permitido. EchoNext-Mini ya está en el catálogo: ver su aviso de licencia en "Modelo EchoNext-Mini".
 - **Todo resultado de un modelo es un posible hallazgo de apoyo clínico, nunca un diagnóstico.**
+
+## Modelo EchoNext-Mini
+
+EchoNext-Mini es un modelo de investigación que recibe un electrocardiograma de 12 derivaciones ya preprocesado y devuelve **12 probabilidades de posibles hallazgos de cardiopatía estructural**. Es el primer modelo real del catálogo. El código que lo ejecuta vive en el repositorio aparte `medicia-ml` (GitHub `GMGonzaloMata/medicia-ml`), como exige la constitución. Este repositorio solo referencia la imagen y el artefacto por su versión (`0.1.0`). La especificación completa está en `specs/005-echonext-mini-sagemaker/`.
+
+> Las probabilidades son un **indicador relativo de riesgo de un posible hallazgo**, de apoyo clínico. **Nunca son un diagnóstico.** No hay umbrales publicados y pueden no estar calibradas.
+
+### Entrada y salida
+
+El contrato completo (formato de la solicitud, errores y códigos) está en `specs/005-echonext-mini-sagemaker/contracts/inference-api.md`. Lo esencial:
+
+- **Solicitud:** JSON con `waveform` (2500 filas de 12 números: 250 Hz, 10 segundos, 12 derivaciones, ya filtrada y normalizada) y `tabular` (7 números en este orden: sexo, edad, frecuencia ventricular, frecuencia auricular, intervalo PR, duración del QRS y QT corregido; el sexo es 0 mujer o 1 hombre y los demás están estandarizados). No preprocesa señal cruda ni lee XML.
+- **Respuesta:** `model`, `model_version` y `probabilities`, con 12 valores entre 0 y 1 en este orden fijo: `lvef_lte_45`, `lvwt_gte_13`, `aortic_stenosis`, `aortic_regurgitation`, `mitral_regurgitation`, `tricuspid_regurgitation`, `pulmonary_regurgitation`, `rv_systolic_dysfunction`, `pericardial_effusion`, `pasp_gte_45`, `tr_max_gte_32` y `shd`. La última es el hallazgo compuesto (al menos uno de los otros once).
+- **Entrada inválida** (forma incorrecta, no son 7 variables, valores no finitos, sexo distinto de 0 y 1): se rechaza sin devolver probabilidades. Por HTTP directo el código es 400; por `InvokeEndpoint` de SageMaker llega como error 424.
+- **No se valida automáticamente** el orden de las derivaciones ni de las variables. Es el del conjunto de datos EchoNext-Mini.
+
+### Límites del modelo
+
+- Se entrenó con adultos en un solo centro (NewYork-Presbyterian/Columbia). Excluye ECG con marcapasos ventricular y de calidad pobre, y esta entrega **no** filtra esos casos.
+- Sensibilidad reportada de 70,1 % y AUROC externo reportado de 79,0 (MIMIC-IV). El AUROC del hallazgo compuesto publicado es 82,0.
+- Las probabilidades pueden no estar calibradas: tratarlas como indicador relativo, no como la chance literal de tener el hallazgo.
+
+### Licencia
+
+El repositorio original del modelo (`PierreElias/IntroECG`) **no declara licencia**, Columbia tiene una solicitud de patente (#63/555,968) y los datos están bajo la licencia de PhysioNet de datos de salud restringidos. El uso actual es **académico**. **Cualquier uso comercial exige revisar todo eso antes.** La arquitectura en `medicia-ml` está reescrita de forma independiente (no copia el código original) y se verifica contra el original con un procedimiento de paridad.
+
+### Datos: nunca en los repositorios ni en el bucket
+
+El conjunto de datos EchoNext-Mini se usa desde tu máquina y nunca se sube a un repositorio, a su historial ni al bucket de artefactos. `.gitignore` ignora `*.npy`, `*.npz`, `*.parquet`, `*.zip` y los archivos `echonext*`; el CI, que sí frena un `git add -f`, bloquea `*.npy`, `*.npz`, `*.parquet`, los artefactos de modelos y los archivos `echonext*` (csv, xml, zip, npy, npz y parquet). `medicia-ml` tiene su propia comprobación de CI y un gancho local con las mismas reglas. Los resultados que se registren no incluyen datos de estudios individuales.
+
+### Orden de los pasos
+
+1. **Permisos por la vía de administración** (una sola vez): `terraform -chdir=infra/bootstrap apply` con administrador, y volver a dejar las dos políticas del operador. Ver "Cambiar los permisos del operador".
+2. **Repositorio de imágenes:** crea `medicia-dev-echonext-mini` (etiquetas inmutables, escaneo al subir, cifrado, últimas 10 imágenes). **En una cuenta limpia**, como el catálogo ya trae la entrada `echonext-mini`, un `apply` completo intentaría crear el modelo antes de que existan la imagen y el artefacto: hacé primero `terraform -chdir=infra/environments/dev apply -target=module.model_artifacts -target=module.model_registry -target=module.sagemaker_execution_role` (responsable): crea el bucket, el repositorio y el rol, que los pasos 3 y 4 necesitan. Dejá el `apply` completo para el paso 5.
+3. **Empaquetar y subir el artefacto.** En `medicia-ml`, `scripts/package_artifacts.py` arma `model.tar.gz` (pesos, transformador de variables, parámetros de normalización y un manifiesto con las huellas). Subirlo a una carpeta con la versión:
+
+   ```powershell
+   aws s3 cp <ruta>\model.tar.gz s3://medicia-models-dev-896618135592/echonext-mini/0.1.0/model.tar.gz --region sa-east-1
+   ```
+
+4. **Construir, probar y subir la imagen.** Desde `medicia-ml`, con Docker:
+
+   ```powershell
+   docker build --platform linux/amd64 --provenance=false --sbom=false --build-arg MODEL_VERSION=0.1.0 -t medicia-dev-echonext-mini:0.1.0 .
+   cmd /c "aws ecr get-login-password --region sa-east-1 | docker login --username AWS --password-stdin 896618135592.dkr.ecr.sa-east-1.amazonaws.com"
+   docker tag medicia-dev-echonext-mini:0.1.0 896618135592.dkr.ecr.sa-east-1.amazonaws.com/medicia-dev-echonext-mini:0.1.0
+   docker push 896618135592.dkr.ecr.sa-east-1.amazonaws.com/medicia-dev-echonext-mini:0.1.0
+   ```
+
+   - **`--provenance=false --sbom=false` es obligatorio:** sin eso, Docker sube un índice de manifiestos en lugar de una imagen simple.
+   - **El `login` va con `cmd /c`** porque PowerShell 5.1 corrompe el token al pasarlo por la tubería (error `400 Bad Request`).
+   - **Las etiquetas son inmutables:** si hay que corregir una imagen ya subida, se sube una versión nueva (`0.1.1`) o un administrador borra la etiqueta desde la consola.
+5. **Entrada en el catálogo** (`variables.tf` de `environments/dev`), con `enabled = false`. Para un modelo nuevo se agrega la entrada y se abre la propuesta de cambio; el CI revisa el plan. Con la imagen y el artefacto ya subidos, el `apply` completo crea el modelo y su configuración, sin costo de cómputo.
+6. **Encender, probar y apagar** (ver abajo). Recién después de los pasos anteriores.
+
+### Lista previa al encendido
+
+Antes de poner `enabled = true`, comprobá:
+
+- **El artefacto está en el bucket:** `aws s3api head-object --bucket medicia-models-dev-896618135592 --key echonext-mini/0.1.0/model.tar.gz --region sa-east-1`.
+- **La imagen está en el repositorio con la etiqueta del catálogo:** `aws ecr describe-images --repository-name medicia-dev-echonext-mini --image-ids imageTag=0.1.0 --region sa-east-1`.
+- **La cuota del tipo de cómputo está disponible** (`ml.t2.medium` para endpoint, cuota 30 el 2026-11-10). Repetir la comprobación si se cambia el tipo.
+- **No hay nada más encendido:** `aws sagemaker list-endpoints --region sa-east-1`.
+
+### Encender, probar y apagar
+
+- **Encender:** `enabled = true` en la entrada `echonext-mini`. El plan debe agregar **exactamente un** punto de inferencia (`medicia-dev-echonext-mini`). Tarda entre 5 y 10 minutos en estar en servicio y **desde ahí cobra por hora**.
+- **Probar:** en `medicia-ml`, con el perfil de AWS puesto (`$env:AWS_PROFILE = "medicia-dev"`):
+
+  ```powershell
+  .\.venv\Scripts\python scripts\invoke_endpoint.py --data-dir "<carpeta con la partición de prueba>" --endpoint-name medicia-dev-echonext-mini
+  ```
+
+  Compara con la referencia del original y prueba una entrada inválida. Solo imprime índices y diferencias.
+- **Apagar:** `enabled = false`. El plan debe quitar **solo** el punto de inferencia. Después, `aws sagemaker list-endpoints --region sa-east-1` debe dar una lista vacía.
+- **Apagado de emergencia:** `aws sagemaker delete-endpoint --endpoint-name medicia-dev-echonext-mini --region sa-east-1`, y dejar `enabled = false` en el código.
+- **No hagas commit con `enabled = true`.** El test `echonext_mini_apagado_por_defecto` falla a propósito si el catálogo queda encendido.
+
+### Costo
+
+- **Encendido, `ml.t2.medium` en `sa-east-1`:** 0,089 USD por hora, unos 2,14 USD por día y 64,97 USD por mes si quedara todo el mes (precios del 2026-11-09). Una sesión de pruebas de una hora cuesta menos de 0,10 USD.
+- **Apagado:** 0 USD de cómputo. Quedan centavos por mes de almacenamiento: el artefacto de 3,5 MB en S3 y la imagen de unos 330 MB comprimida en ECR.
+- El presupuesto `medicia-dev-mensual` (20 USD) alerta el gasto.
+
+### Escaneo de vulnerabilidades de la imagen
+
+El escaneo de ECR de la imagen `0.1.0` dio 0 críticas, 13 altas, 10 medias y 4 bajas, todas de paquetes del sistema operativo de la imagen base que el contenedor no usa (detalle y decisión en `specs/005-echonext-mini-sagemaker/research.md`, R13). Se aceptó para esta etapa. **Antes de usar datos reales de pacientes**, reconstruir la imagen con una base actualizada y escanearla de nuevo. El escaneo básico no cubre las librerías de Python.
 
 ## Recreación desde cero
 
@@ -213,7 +303,7 @@ Para levantar todo en una cuenta limpia:
 
 1. Quitá `infra/bootstrap/backend.tf` (la fase 1 del arranque usa estado local).
 2. Ajustá `account_id` en `infra/bootstrap/variables.tf`, y la cuenta y el bucket en `infra/environments/dev/providers.tf` y `backend.tf`.
-3. Seguí "Arranque en dos fases" y luego "Uso diario" para `environments/dev`.
+3. Seguí "Arranque en dos fases" y luego "Uso diario" para `environments/dev`, **con una salvedad**: el catálogo ya trae la entrada `echonext-mini`, así que un `apply` completo intentaría crear el modelo antes de que existan la imagen y el artefacto. Primero aplicá solo el bucket, el repositorio y el rol, y subí el artefacto y la imagen, como describe "Modelo EchoNext-Mini", paso 2. Recién después, el `apply` completo.
 4. Creá la variable de GitHub `INFRA_PLAN_ROLE_ARN` con `terraform -chdir=infra/bootstrap output -raw plan_role_arn` (Settings → Secrets and variables → Actions → pestaña Variables; es un ARN, no un secreto).
 
 ## Operación
@@ -251,9 +341,9 @@ Tampoco puede cambiar la política del bucket del estado ni su bloqueo de acceso
 Consecuencia: si el `plan` falla con `AccessDenied` porque falta un permiso, o si hay que cambiar el límite o la política del bucket, hace falta una vía de administración aparte. Se hace así:
 
 1. Corregí `operator-policy.tf` (o `permissions-boundary.tf`) y revisá el cambio en un PR, como cualquier otro.
-2. En la consola de AWS, con el usuario raíz y su MFA, **reemplazá** la política de `terraform-dev` (Users → `terraform-dev` → Permissions): quitá `medicia-dev-terraform-operator` y adjuntá `AdministratorAccess`. Hay que quitar la del operador: su `Deny` gana incluso a `AdministratorAccess`, así que con las dos puestas el `apply` falla con "explicit deny". No se puede aplicar con la cuenta raíz: la raíz está bloqueada a propósito para `terraform`.
+2. En la consola de AWS, con el usuario raíz y su MFA, **reemplazá** la política de `terraform-dev` (Users → `terraform-dev` → Permissions): quitá `medicia-dev-terraform-operator` y adjuntá `AdministratorAccess`. Hay que quitar **las dos políticas del operador** (`medicia-dev-terraform-operator` y `medicia-dev-terraform-operator-ml`): su `Deny` gana incluso a `AdministratorAccess`, así que con las dos puestas el `apply` falla con "explicit deny". No se puede aplicar con la cuenta raíz: la raíz está bloqueada a propósito para `terraform`.
 3. Aplicá `bootstrap` (responsable) con ese perfil y comprobá un `plan` sin cambios.
-4. Volvé a adjuntar `medicia-dev-terraform-operator` y quitá `AdministratorAccess`. Los dos pasos juntos.
+4. Volvé a adjuntar **las dos** (`medicia-dev-terraform-operator` y `medicia-dev-terraform-operator-ml`) y quitá `AdministratorAccess`. Los dos pasos juntos. Para comprobar que no quedó administrador, `aws iam list-users` tiene que dar `AccessDenied`.
 
 Mientras `AdministratorAccess` está puesto, quien tenga la clave de `terraform-dev` es administrador de la cuenta. Hacelo de corrido y no lo dejes puesto. Más adelante conviene reemplazar este procedimiento por un rol de administración con MFA, fuera del prefijo `medicia-dev-`.
 
@@ -267,13 +357,17 @@ Los permisos del rol de plan y del usuario de la aplicación nunca superan el l�
 - El `Deny` que impide crear, editar o borrar políticas ahora incluye también `medicia-dev-sagemaker-boundary`.
 - Un `Deny` adicional obliga a que el rol de ejecución lleve siempre `medicia-dev-sagemaker-boundary`: sin él, la regla genérica de roles `medicia-dev-*` permitiría crearlo o cambiarle el límite a `medicia-dev-boundary`, que es más amplio.
 
-El operador **no tiene ningún permiso de `sagemaker:*` ni `iam:PassRole`**. Se otorgan con el primer modelo, con esta forma:
+**La segunda política** (`medicia-dev-terraform-operator-ml`, en `bootstrap/operator-policy-ml.tf`) se separó de la primera porque una política administrada de IAM admite 6.144 caracteres y la primera está cerca del tope. Tiene acciones enumeradas, sin comodines de servicio:
 
-- Acciones de SageMaker (modelos, configuraciones y puntos de inferencia) solo sobre recursos `medicia-dev-*`.
-- `iam:PassRole` sobre el rol de ejecución, con la condición de que se pase solo a `sagemaker.amazonaws.com`.
-- `sagemaker:CreateEndpointConfig` con la condición `sagemaker:InstanceTypes` limitada a los tres tipos permitidos. Esa clave de condición está pendiente de confirmar en la referencia de autorización del servicio.
+- Catorce acciones de SageMaker (crear, describir y borrar modelos, configuraciones y puntos de inferencia, etiquetas e `InvokeEndpoint`) solo sobre recursos `medicia-dev-*`. Los tres listados (`ListModels`, `ListEndpoints` y `ListEndpointConfigs`) van sobre `*` porque AWS no permite limitarlos.
+- `iam:PassRole` solo sobre el rol de ejecución, y solo hacia `sagemaker.amazonaws.com`. Es la protección contra escalar privilegios.
+- Un `Deny` de defensa adicional contra crear modelos sin aislamiento de red (`sagemaker:NetworkIsolation = false`). Depende de que AWS informe esa clave en la solicitud; la barrera principal es que el módulo `model-endpoints` siempre crea los modelos con aislamiento, y lo prueban sus tests.
+- **Límite conocido:** el operador podría crear a mano, con la CLI, una configuración con GPU, porque no hay una condición de IAM por tipo de instancia. La barrera es la validación de Terraform y las guardas de CI, que no cubren la CLI. Agregar un `Deny` por `sagemaker:InstanceTypes` queda pendiente de confirmar esa clave en la referencia de autorización de AWS.
+- ECR: gestionar y subir imágenes solo en repositorios `medicia-dev-*`, sin borrar imágenes ni fijar la política del repositorio. `ecr:GetAuthorizationToken` va sobre `*` porque AWS no permite limitarlo.
+- El operador **no puede editar ni borrar esta política**: su ARN está en el `Deny` de las políticas de acceso.
+- **Falta una lectura:** el operador no puede leer los resultados del escaneo de vulnerabilidades de ECR (`ecr:DescribeImageScanFindings`). Se ven en la consola. Se suma en la próxima rotación de administrador.
 
-El rol de plan de CI también ganó lecturas, y nada más: la configuración del bucket de modelos (no sus objetos) y el rol de ejecución.
+El rol de plan de CI también ganó lecturas, y nada más: la configuración del bucket de modelos (no sus objetos), el rol de ejecución, y los modelos, configuraciones y puntos de inferencia de SageMaker y el repositorio de imágenes.
 
 ## Liberar los recursos al terminar
 

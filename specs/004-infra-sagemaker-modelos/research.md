@@ -93,6 +93,7 @@ Cada decisión indica qué se eligió, por qué y qué alternativas se descartar
 - **Decisión:** no agregar permisos de ECR ahora. Se decide con el primer modelo, junto con la imagen que use (propia en ECR de esta cuenta o de AWS), y se otorgan por la vía de administración (la política del rol y su límite cambian juntos).
 - **Por qué:** agregar `ecr:GetAuthorizationToken` exige `Resource: "*"` y no se debe decidir sin saber qué imagen se usa.
 - **Alternativas descartadas:** `AmazonEC2ContainerRegistryReadOnly` (lee todos los repositorios, contra el mínimo privilegio).
+- **Resuelto en la funcionalidad 005 (2026-11-10):** con EchoNext-Mini se eligió una imagen propia en un repositorio ECR de esta cuenta (`medicia-dev-echonext-mini`, módulo `model-registry`). El rol de ejecución y su límite ganaron solo `ecr:BatchCheckLayerAvailability`, `ecr:BatchGetImage` y `ecr:GetDownloadUrlForLayer` sobre ese repositorio, más `ecr:GetAuthorizationToken` sobre `*` (AWS no permite limitarlo). El catálogo valida que `image_uri` sea un repositorio ECR del entorno, en esta cuenta y región, con etiqueta de versión que no sea `latest`. Ver `specs/005-echonext-mini-sagemaker/research.md`.
 
 ## Pendientes de verificar
 

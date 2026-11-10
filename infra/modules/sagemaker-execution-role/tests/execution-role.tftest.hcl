@@ -8,6 +8,7 @@ variables {
   region                   = "sa-east-1"
   artifacts_bucket_arn     = "arn:aws:s3:::medicia-models-dev-896618135592"
   permissions_boundary_arn = "arn:aws:iam::896618135592:policy/medicia-dev-sagemaker-boundary"
+  ecr_repository_arn       = "arn:aws:ecr:sa-east-1:896618135592:repository/medicia-dev-echonext-mini"
 }
 
 run "rol_con_su_limite" {
@@ -61,10 +62,10 @@ run "solo_sagemaker_asume_el_rol" {
 run "permisos_iguales_al_limite" {
   command = plan
 
-  # Las tres declaraciones, escritas como constante idéntica a la de infra/bootstrap/tests/sagemaker-boundary.tftest.hcl.
+  # Las cinco declaraciones, escritas como constante idéntica a la de infra/bootstrap/tests/sagemaker-boundary.tftest.hcl.
   assert {
-    condition     = length(jsondecode(aws_iam_role_policy.this.policy).Statement) == 3
-    error_message = "La política del rol debe tener exactamente tres declaraciones."
+    condition     = length(jsondecode(aws_iam_role_policy.this.policy).Statement) == 5
+    error_message = "La política del rol debe tener exactamente cinco declaraciones."
   }
 
   assert {
@@ -96,6 +97,26 @@ run "permisos_iguales_al_limite" {
     ])
     error_message = "Faltan los permisos de registros de los puntos de inferencia, o difieren del límite."
   }
+
+  # Descargar la imagen: solo tres acciones de lectura y solo el repositorio del modelo (FR-018).
+  assert {
+    condition = anytrue([for s in jsondecode(aws_iam_role_policy.this.policy).Statement :
+      s.Effect == "Allow" &&
+      toset(flatten([s.Action])) == toset(["ecr:BatchCheckLayerAvailability", "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer"]) &&
+      toset(flatten([s.Resource])) == toset(["arn:aws:ecr:sa-east-1:896618135592:repository/medicia-dev-echonext-mini"])
+    ])
+    error_message = "Falta la descarga de la imagen sobre el repositorio del modelo, o difiere del límite."
+  }
+
+  # El token de ECR solo admite Resource * (AWS no lo permite limitar).
+  assert {
+    condition = anytrue([for s in jsondecode(aws_iam_role_policy.this.policy).Statement :
+      s.Effect == "Allow" &&
+      toset(flatten([s.Action])) == toset(["ecr:GetAuthorizationToken"]) &&
+      toset(flatten([s.Resource])) == toset(["*"])
+    ])
+    error_message = "Falta ecr:GetAuthorizationToken sobre *, o difiere del límite."
+  }
 }
 
 run "sin_comodines_ni_otros_servicios" {
@@ -108,28 +129,32 @@ run "sin_comodines_ni_otros_servicios" {
     error_message = "Ninguna acción puede llevar comodín."
   }
 
+  # El único recurso * es el token de autenticación de ECR, que AWS no deja limitar.
   assert {
     condition = alltrue([for s in jsondecode(aws_iam_role_policy.this.policy).Statement :
       alltrue([for r in flatten([s.Resource]) : r != "*"])
+      || toset(flatten([s.Action])) == toset(["ecr:GetAuthorizationToken"])
     ])
-    error_message = "Ningún recurso puede ser *."
+    error_message = "El recurso * solo se admite para ecr:GetAuthorizationToken."
   }
 
   assert {
     condition = alltrue([for s in jsondecode(aws_iam_role_policy.this.policy).Statement :
-      alltrue([for a in flatten([s.Action]) : contains(["s3", "logs"], split(":", a)[0])])
+      alltrue([for a in flatten([s.Action]) : contains(["s3", "logs", "ecr"], split(":", a)[0])])
     ])
-    error_message = "El rol solo puede usar los servicios s3 y logs."
+    error_message = "El rol solo puede usar los servicios s3, logs y ecr."
   }
 
   assert {
     condition = alltrue([for s in jsondecode(aws_iam_role_policy.this.policy).Statement :
       alltrue([for r in flatten([s.Resource]) :
         startswith(r, "arn:aws:s3:::medicia-models-dev-896618135592") ||
-        startswith(r, "arn:aws:logs:sa-east-1:896618135592:log-group:/aws/sagemaker/Endpoints/medicia-dev-")
+        startswith(r, "arn:aws:logs:sa-east-1:896618135592:log-group:/aws/sagemaker/Endpoints/medicia-dev-") ||
+        r == "arn:aws:ecr:sa-east-1:896618135592:repository/medicia-dev-echonext-mini" ||
+        r == "*"
       ])
     ])
-    error_message = "Todo recurso debe ser el bucket de artefactos o un grupo de registros de puntos de inferencia del entorno."
+    error_message = "Todo recurso debe ser el bucket de artefactos, un grupo de registros del entorno, el repositorio del modelo o el token de ECR."
   }
 }
 
@@ -165,4 +190,14 @@ run "entorno_no_permitido" {
   }
 
   expect_failures = [var.environment]
+}
+
+run "repositorio_con_comodin_o_formato_invalido" {
+  command = plan
+
+  variables {
+    ecr_repository_arn = "arn:aws:ecr:sa-east-1:896618135592:repository/*"
+  }
+
+  expect_failures = [var.ecr_repository_arn]
 }

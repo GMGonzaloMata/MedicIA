@@ -8,6 +8,22 @@ variable "environment" {
   }
 }
 
+variable "account_id" {
+  type        = string
+  description = "ID de la cuenta de AWS (12 dígitos). Las imágenes solo pueden venir de ECR de esta cuenta."
+
+  validation {
+    condition     = can(regex("^[0-9]{12}$", var.account_id))
+    error_message = "El ID de cuenta debe tener 12 dígitos."
+  }
+}
+
+variable "region" {
+  type        = string
+  description = "Región de AWS. Las imágenes solo pueden venir de ECR de esta región."
+  default     = "sa-east-1"
+}
+
 variable "artifacts_bucket_name" {
   type        = string
   description = "Nombre del bucket de artefactos de modelos, de donde cada modelo lee su artefacto."
@@ -46,6 +62,17 @@ variable "models" {
   validation {
     condition     = alltrue([for modelo in values(var.models) : contains(["ml.t2.medium", "ml.c5.large", "ml.m5.large"], modelo.instance_type)])
     error_message = "El tipo de instancia debe ser uno de ml.t2.medium, ml.c5.large o ml.m5.large (solo CPU)."
+  }
+
+  # La imagen solo puede venir de un repositorio ECR del entorno (medicia-dev-<nombre>) de esta cuenta y región, con una
+  # etiqueta de versión que no sea latest (las etiquetas del repositorio son inmutables, así que la versión no cambia).
+  validation {
+    condition = alltrue([
+      for modelo in values(var.models) :
+      can(regex("^${var.account_id}\\.dkr\\.ecr\\.${var.region}\\.amazonaws\\.com/medicia-${var.environment}-[a-z0-9][a-z0-9-]*:[A-Za-z0-9_][A-Za-z0-9._-]{0,127}$", modelo.image_uri))
+      && !endswith(modelo.image_uri, ":latest")
+    ])
+    error_message = "image_uri debe ser un repositorio ECR del entorno en esta cuenta y región, con la forma <cuenta>.dkr.ecr.<región>.amazonaws.com/medicia-dev-<nombre>:<versión>, y la etiqueta no puede ser latest."
   }
 
   validation {

@@ -26,7 +26,7 @@ run "limite_de_sagemaker_con_nombre_esperado" {
   }
 }
 
-# Leer artefactos y escribir registros, nada más. Son tres declaraciones porque cada una apunta a un recurso distinto.
+# Leer artefactos, escribir registros y descargar la imagen, nada más. Son cinco declaraciones porque cada una apunta a un recurso distinto.
 run "limite_de_sagemaker_con_permisos_exactos" {
   command = plan
 
@@ -39,8 +39,8 @@ run "limite_de_sagemaker_con_permisos_exactos" {
   }
 
   assert {
-    condition     = length(jsondecode(aws_iam_policy.sagemaker_boundary.policy).Statement) == 3
-    error_message = "El límite debe tener exactamente tres declaraciones: leer objetos, listar el bucket y escribir registros."
+    condition     = length(jsondecode(aws_iam_policy.sagemaker_boundary.policy).Statement) == 5
+    error_message = "El límite debe tener exactamente cinco declaraciones: leer objetos, listar el bucket, escribir registros, descargar la imagen y obtener el token de ECR."
   }
 
   assert {
@@ -72,6 +72,32 @@ run "limite_de_sagemaker_con_permisos_exactos" {
     ])
     error_message = "Debe poder escribir registros (crear grupo, crear flujo y poner eventos) solo en los grupos de puntos de inferencia medicia-dev-."
   }
+
+  # Descargar la imagen: tres acciones de lectura, solo el repositorio del modelo (FR-018). Igual que el rol.
+  assert {
+    condition = anytrue([
+      for s in jsondecode(aws_iam_policy.sagemaker_boundary.policy).Statement :
+      toset(s.Action) == toset(["ecr:BatchCheckLayerAvailability", "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer"])
+      && toset(s.Resource) == toset(["arn:aws:ecr:sa-east-1:896618135592:repository/medicia-dev-echonext-mini"])
+    ])
+    error_message = "Debe poder descargar la imagen (tres acciones de lectura de ECR) solo del repositorio de EchoNext-Mini."
+  }
+
+  assert {
+    condition = anytrue([
+      for s in jsondecode(aws_iam_policy.sagemaker_boundary.policy).Statement :
+      toset(s.Action) == toset(["ecr:GetAuthorizationToken"]) && toset(s.Resource) == toset(["*"])
+    ])
+    error_message = "Debe poder obtener el token de ECR, que AWS no permite limitar a un recurso."
+  }
+
+  assert {
+    condition = alltrue([
+      for a in flatten([for s in jsondecode(aws_iam_policy.sagemaker_boundary.policy).Statement : s.Action]) :
+      !contains(["ecr:PutImage", "ecr:InitiateLayerUpload", "ecr:UploadLayerPart", "ecr:CompleteLayerUpload", "ecr:BatchDeleteImage"], a)
+    ])
+    error_message = "El límite no puede permitir escribir ni borrar imágenes."
+  }
 }
 
 run "limite_de_sagemaker_sin_comodines" {
@@ -89,20 +115,29 @@ run "limite_de_sagemaker_sin_comodines" {
   assert {
     condition = alltrue([
       for r in flatten([for s in jsondecode(aws_iam_policy.sagemaker_boundary.policy).Statement : s.Resource]) :
-      r != "*" && (
-        startswith(r, "arn:aws:s3:::medicia-models-dev-896618135592")
-        || startswith(r, "arn:aws:logs:sa-east-1:896618135592:log-group:/aws/sagemaker/Endpoints/medicia-dev-")
-      )
+      startswith(r, "arn:aws:s3:::medicia-models-dev-896618135592")
+      || startswith(r, "arn:aws:logs:sa-east-1:896618135592:log-group:/aws/sagemaker/Endpoints/medicia-dev-")
+      || r == "arn:aws:ecr:sa-east-1:896618135592:repository/medicia-dev-echonext-mini"
+      || r == "*"
     ])
-    error_message = "Los recursos del límite se limitan al bucket de artefactos y a los registros de los puntos de inferencia; ningún otro almacenamiento."
+    error_message = "Los recursos del límite se limitan al bucket de artefactos, a los registros de los puntos de inferencia y al repositorio de la imagen."
+  }
+
+  # El único recurso * es el token de autenticación de ECR.
+  assert {
+    condition = alltrue([
+      for s in jsondecode(aws_iam_policy.sagemaker_boundary.policy).Statement :
+      !contains(s.Resource, "*") || toset(s.Action) == toset(["ecr:GetAuthorizationToken"])
+    ])
+    error_message = "El recurso * solo se admite para ecr:GetAuthorizationToken."
   }
 
   assert {
     condition = alltrue([
       for a in flatten([for s in jsondecode(aws_iam_policy.sagemaker_boundary.policy).Statement : s.Action]) :
-      contains(["s3", "logs"], split(":", a)[0])
+      contains(["s3", "logs", "ecr"], split(":", a)[0])
     ])
-    error_message = "El límite solo puede usar s3 y logs."
+    error_message = "El límite solo puede usar s3, logs y ecr."
   }
 }
 
