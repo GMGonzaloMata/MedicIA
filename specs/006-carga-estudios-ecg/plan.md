@@ -151,6 +151,6 @@ Fuera de este repositorio, en `medicia-ml`: `scripts/make_synthetic.py` (archivo
 
 ## Pendientes que fija este plan
 
-- **Rangos finales** de la onda (±100) y de las variables (±20): confirmar con `report_ranges.py` ejecutado por el responsable antes de cerrar la validación (R4).
+- **Rangos finales** de la onda y de las variables: cerrados en ±25 con `report_ranges.py` sobre la partición de prueba (R4).
 - **Rotación de administración** para el límite de la aplicación y la política del operador: se agrupa con la lista de pendientes de la 005 si todavía no se hizo (`ecr:DescribeImageScanFindings`, etc.).
 - **Datos reales:** antes de cargar cualquier estudio de pacientes, definir conservación, registro de accesos de S3 y limitación de frecuencia (R14).

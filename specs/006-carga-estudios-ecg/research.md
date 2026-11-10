@@ -77,7 +77,7 @@ Reglas del lector (todas con prueba):
 
 La salida del caso de uso es un `zod` `safeParse` más una lista de códigos de error propios; los mensajes en español salen de una tabla de mensajes y **nunca** incluyen valores del estudio, solo el campo, la regla y el valor esperado (FR-005).
 
-**Origen de los rangos:** el contrato de la 005 dice que las seis variables están estandarizadas y que la onda ya viene normalizada y recortada (por derivación, entre un mínimo y un máximo, con media restada y desvío dividido). Valores crudos (una edad de 65, una frecuencia de 70 latidos) quedan fuera de ±20, que es justamente el error de uso más probable: subir datos sin estandarizar. Los límites son provisionales y deben confirmarse con el conjunto real **sin que los datos pasen por este flujo ni por el asistente**:
+**Origen de los rangos:** el contrato de la 005 dice que las seis variables están estandarizadas y que la onda ya viene normalizada y recortada (por derivación, entre un mínimo y un máximo, con media restada y desvío dividido). Valores crudos (una edad de 65, una frecuencia de 70 latidos) quedan fuera de ±25, que es justamente el error de uso más probable: subir datos sin estandarizar. **Cerrado el 2026-11-10** con la salida agregada de `report_ranges.py` sobre la partición de prueba (el responsable la ejecutó; los datos no pasaron por este flujo ni por el asistente): extremo de la onda 10,72 (percentiles 0,1 y 99,9: −7,77 y 7,86) y de las variables estandarizadas 10,03 (frecuencia auricular; el resto llega a 7,80 en valor absoluto). Se fijó **±25 para ambas**, más del doble del extremo observado. Las particiones de entrenamiento y validación no estaban disponibles: si se revisan y tienen extremos mayores, se recalculan. Así se había planteado la confirmación:
 
 - Tarea: un script nuevo en `medicia-ml` (`scripts/report_ranges.py`) que el responsable ejecuta en su máquina y que imprime solo agregados: mínimo, máximo y percentiles 0,1 y 99,9 de cada variable y de la onda en las particiones de prueba y entrenamiento. Ningún dato de paciente sale de su máquina.
 - Los límites finales deben dejar un margen de al menos el doble sobre el valor extremo observado, de modo que cualquier estudio del conjunto se acepte (supuesto del spec).
@@ -226,7 +226,7 @@ Los registros solo incluyen identificadores opacos (`studyId`, `tenantId`) y có
 **Revisión (`review-changes`: arquitectura, seguridad, interfaz e infraestructura):** sin hallazgos bloqueantes. Corregido: rama muerta en la acción de carga, pruebas de aislamiento más estrictas, aviso al conciliar con una antigüedad mínima baja y comentario de la excepción de `findExistingStorageKeys`. Documentado con honestidad: el `Deny` del operador es una defensa adicional (ver `infra/README.md`).
 
 **Pendiente de esta funcionalidad:**
-- `report_ranges.py` con los datos reales (T091) y fijar los límites definitivos de validación (T092): hoy ±100 para la onda y ±20 para las variables estandarizadas son provisionales.
+- `report_ranges.py` con los datos reales (T091) y fijar los límites definitivos de validación (T092): cerrado: ±25 para la onda y las variables estandarizadas, con la partición de prueba (ver R4).
 - Probar a mano los rechazos con los archivos de `make_synthetic.py` (T073) y el aislamiento con cuentas reales (T080); ejecutar el recorrido completo del `quickstart.md` y confirmar `terraform plan` sin cambios (T099).
 
 **Pendiente de la revisión (para el cierre o antes de datos reales):**

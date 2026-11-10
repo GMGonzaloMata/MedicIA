@@ -253,8 +253,8 @@ description: "Lista de tareas de la carga y almacenamiento de estudios de ECG"
 **Purpose**: cerrar los rangos con datos reales agregados, actualizar la documentación del proyecto, revisar y verificar de punta a punta.
 
 - [X] T090 [P] [ML] En `medicia-ml`, crear `scripts/report_ranges.py`: imprime **solo agregados** (mínimo, máximo y percentiles 0,1 y 99,9) de cada una de las siete variables tabulares y de la onda, para las particiones de entrenamiento, validación y prueba, sin escribir ningún dato de pacientes a disco ni imprimir filas. Reutiliza `common.py` y `ensure_outside_git`. Prueba con datos sintéticos en `medicia-ml/tests/`. El agente nunca abre los archivos del conjunto.
-- [ ] T091 [Responsable] Ejecutar `report_ranges.py` en su máquina con `--data-dir` y pegar al agente la salida agregada.
-- [ ] T092 Con esa salida, fijar los límites finales en `src/modules/studies/domain/ecg-study.ts`, dejando un margen de al menos el doble sobre el valor extremo observado (de modo que cualquier estudio del conjunto se acepte, supuesto del spec); actualizar el contrato [contracts/upload-npz.md](contracts/upload-npz.md), [research.md](research.md) R4 y las pruebas de T010. Hasta que esta tarea se cierre, los límites ±100 y ±20 son provisionales y la validación no se da por terminada.
+- [X] T091 [Responsable] Ejecutar `report_ranges.py` en su máquina con `--data-dir` y pegar al agente la salida agregada.
+- [X] T092 Con esa salida, fijar los límites finales en `src/modules/studies/domain/ecg-study.ts`, dejando un margen de al menos el doble sobre el valor extremo observado (de modo que cualquier estudio del conjunto se acepte, supuesto del spec); actualizar el contrato [contracts/upload-npz.md](contracts/upload-npz.md), [research.md](research.md) R4 y las pruebas de T010. Hasta que esta tarea se cierre, los límites ±100 y ±20 son provisionales y la validación no se da por terminada.
 - [X] T093 [P] Actualizar `memory/architecture.md` (estudios con paciente, almacenamiento en S3 en formato `ecg1`, módulo `studies`, reglas de acceso por rol) y `memory/project-structure.md` (`infra/modules/study-storage/`, `src/modules/studies/`, rutas `/studies` y `/patients`, `scripts/`), sin contradecir la constitución. Marcar en `memory/platform-context.md` solo lo que cambie el alcance del producto.
 - [X] T094 [P] Documentar las variables de entorno nuevas (`STUDY_STORAGE`, `STUDIES_BUCKET`, `AWS_REGION`) en `.env.example`. Si la herramienta no permite editarlo, dejar escrito en el informe el bloque exacto que el responsable debe agregar.
 - [X] T095 [P] Revisar que el resto del repositorio no quedó inconsistente: `README.md` raíz (si lista funcionalidades), `AGENTS.md` (si menciona estructura) y `specs/005-echonext-mini-sagemaker/contracts/inference-api.md` (referencia al adaptador de la 006, que ahora será de la 008): ajustar las referencias a "006" que en realidad son de la 008.
@@ -335,5 +335,5 @@ Cada fase termina en un commit que deja el proyecto compilando y con sus pruebas
 
 - Si cambia el modelo de datos durante la implementación, actualizar [data-model.md](data-model.md) y los contratos en la misma fase.
 - No se ejecuta ningún comando reservado: el agente se detiene en cada tarea [Responsable] o [Administrador] y da el comando exacto.
-- Los límites de validación (±100 y ±20) son provisionales hasta cerrar T092.
+- Los límites de validación se cerraron en ±25 (T092) con la partición de prueba.
 - La 008 (análisis) y la 007 (visor) reutilizan las reglas de acceso de `study-access.ts`: no duplicarlas.

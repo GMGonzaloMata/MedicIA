@@ -15,11 +15,11 @@ Es lo que acepta la carga. Parte del contrato de entrada de la 005 (`specs/005-e
   - Tipo `float32` o `float64`, little-endian (`<f4` o `<f8`), orden C (`fortran_order: False`).
   - Forma `(1, 2500, 12)` (la del conjunto de datos) o `(2500, 12)`. 2500 muestras (250 Hz, 10 segundos) por 12 derivaciones, una fila por instante.
   - Ya filtrada y normalizada, sin unidades de milivolts.
-  - Todos los valores finitos y con valor absoluto de hasta 100 (límite provisional; ver `research.md`, R4).
+  - Todos los valores finitos y con valor absoluto de hasta 25 (ver `research.md`, R4: la partición de prueba llega a 10,72).
 - `tabular.npy`
   - Tipo `float32` o `float64`, little-endian, orden C. Forma `(7,)`.
   - Orden: sexo, edad, frecuencia ventricular, frecuencia auricular, intervalo PR, duración del QRS, QT corregido.
-  - Sexo exactamente `0` (mujer) o `1` (hombre). Las otras seis, estandarizadas: valores finitos con valor absoluto de hasta 20 (límite provisional).
+  - Sexo exactamente `0` (mujer) o `1` (hombre). Las otras seis, estandarizadas: valores finitos con valor absoluto de hasta 25 (la partición de prueba llega a 10,03).
 
 No se valida el orden de las derivaciones ni de las variables: el conjunto de datos lo fija.
 

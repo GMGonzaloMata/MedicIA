@@ -12,10 +12,13 @@ export const MAX_UPLOAD_BYTES = 2 * 1024 * 1024;
 // intervalo PR, duración del QRS y QT corregido. Todas estandarizadas salvo el sexo.
 export const SEX_INDEX = 0;
 
-// Límites provisionales (specs/006-carga-estudios-ecg/research.md, R4). Se confirman con los agregados del
-// conjunto de datos que imprime `report_ranges.py` y deben dejar un margen amplio sobre lo observado.
-export const MAX_ABS_WAVEFORM = 100;
-export const MAX_ABS_STANDARDIZED = 20;
+// Límites de valor absoluto (specs/006-carga-estudios-ecg/research.md, R4). Se fijaron con los agregados que imprime
+// `report_ranges.py` sobre la partición de prueba: la onda llega a 10,72 y las variables estandarizadas a 10,03, así que
+// 25 deja más del doble de margen y acepta cualquier estudio del conjunto. Siguen rechazando los valores sin estandarizar
+// (una edad de 65, una frecuencia de 70). Si se revisan las particiones de entrenamiento y validación y hay extremos
+// mayores, hay que volver a calcular estos límites.
+export const MAX_ABS_WAVEFORM = 25;
+export const MAX_ABS_STANDARDIZED = 25;
 
 // La onda va fila por fila: la muestra `t` de la derivación `d` está en `t * WAVEFORM_LEADS + d`.
 export interface EcgStudyData {
