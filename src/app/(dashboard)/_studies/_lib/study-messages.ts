@@ -18,6 +18,12 @@ export const STUDY_MESSAGES = {
   fileLeftBehind: "El estudio se eliminó, pero su archivo quedó pendiente de limpieza.",
   emptyList: "Todavía no hay estudios cargados.",
   listUnavailable: "No pudimos cargar los estudios. Probá de nuevo en unos minutos.",
+  studyNoAccess: "No tenés acceso a este estudio.",
+  waveformUnavailable: "La onda de este estudio no está disponible. Probá de nuevo más tarde o cargalo otra vez.",
+  studyLoading: "Cargando estudio…",
+  studyError: "No pudimos mostrar el estudio.",
+  waveformNote:
+    "Señal normalizada, sin unidades de milivolts. Cada derivación tiene su propia escala. Es una visualización de la señal, no una interpretación.",
 } as const;
 
 export function savedMessage(number: number): string {

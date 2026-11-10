@@ -1,7 +1,22 @@
+import Link from "next/link";
+
+import { linkClassName } from "@/components/form/button-styles";
 import type { StudySummary } from "@/modules/studies/domain/study";
 
 import { STUDY_MESSAGES, formatUploadedAt } from "../_lib/study-messages";
 import { DeleteStudyDialog } from "./delete-study-dialog";
+
+function ViewWaveformLink({ study }: { study: StudySummary }) {
+  return (
+    <Link
+      href={`/studies/${study.id}`}
+      aria-label={`Ver onda del estudio ${study.number}`}
+      className={`${linkClassName} inline-flex min-h-11 items-center`}
+    >
+      Ver onda
+    </Link>
+  );
+}
 
 function uploaderLabel(study: StudySummary): string {
   return study.uploadedBy.kind === "PATIENT" ? "El propio paciente" : study.uploadedBy.fullName;
@@ -37,8 +52,11 @@ export function StudiesList({ studies }: { studies: StudySummary[] }) {
                 <td className="px-3 py-3">{formatUploadedAt(study.uploadedAt)}</td>
                 <td className="px-3 py-3">{STUDY_MESSAGES.statusLabel}</td>
                 <td className="px-3 py-3">{uploaderLabel(study)}</td>
-                <td className="px-3 py-3 text-right">
-                  {study.canDelete ? <DeleteStudyDialog studyId={study.id} number={study.number} /> : null}
+                <td className="px-3 py-3">
+                  <div className="flex items-center justify-end gap-3">
+                    <ViewWaveformLink study={study} />
+                    {study.canDelete ? <DeleteStudyDialog studyId={study.id} number={study.number} /> : null}
+                  </div>
                 </td>
               </tr>
             ))}
@@ -55,11 +73,10 @@ export function StudiesList({ studies }: { studies: StudySummary[] }) {
             <p className="text-sm">
               {STUDY_MESSAGES.statusLabel} · {uploaderLabel(study)}
             </p>
-            {study.canDelete ? (
-              <div className="pt-2">
-                <DeleteStudyDialog studyId={study.id} number={study.number} />
-              </div>
-            ) : null}
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              <ViewWaveformLink study={study} />
+              {study.canDelete ? <DeleteStudyDialog studyId={study.id} number={study.number} /> : null}
+            </div>
           </li>
         ))}
       </ul>

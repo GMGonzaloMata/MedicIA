@@ -36,6 +36,10 @@ Errores:
 
 **Regreso:** el vínculo «Volver a la lista» apunta a `/studies` para el paciente y a `/patients/{patientId}` para el médico. Para el médico, el `patientId` sale del estudio (el caso de uso lo devuelve a quien ya pasó el control de acceso).
 
+**Verificado al implementar (2026-11-10):**
+- Esta versión de Next.js (16.4.4) pasa `retry` al `error.tsx` (vuelve a pedir los datos); `reset` solo limpia el error sin volver a leer. El límite de error del visor usa `retry`.
+- Los `Float32Array` viajan sin problema de servidor a cliente: una prueba de extremo a extremo con almacenamiento falso comprobó que las 12 derivaciones llegan con las 2.500 muestras cada una, y que el HTML de la página (505 KB en total) no contiene `.ecg1` ni la firma `MEDECG01`. No hizo falta el respaldo en base64.
+
 ## R3. Dibujo: SVG propio
 
 **Decisión:** SVG con un `<svg>` por derivación, un `<polyline>` para el trazo y líneas para la cuadrícula. Sin librería de gráficos.

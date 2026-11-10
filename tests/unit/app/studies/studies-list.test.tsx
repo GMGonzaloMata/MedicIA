@@ -45,6 +45,17 @@ describe("lista de estudios", () => {
     expect(container.textContent).not.toMatch(/\.npz|\.ecg1/);
   });
 
+  it("cada estudio tiene un vínculo «Ver onda» en la tabla y en las tarjetas", () => {
+    render(<StudiesList studies={[summary({ id: "abc", number: 7 })]} />);
+
+    const links = screen.getAllByRole("link", { name: "Ver onda del estudio 7" });
+
+    expect(links).toHaveLength(2);
+    for (const link of links) {
+      expect(link.getAttribute("href")).toBe("/studies/abc");
+    }
+  });
+
   it("muestra un aviso cuando no hay estudios", () => {
     render(<StudiesList studies={[]} />);
 
