@@ -1,6 +1,7 @@
 import type { StudySummary } from "@/modules/studies/domain/study";
 
 import { STUDY_MESSAGES, formatUploadedAt } from "../_lib/study-messages";
+import { DeleteStudyDialog } from "./delete-study-dialog";
 
 function uploaderLabel(study: StudySummary): string {
   return study.uploadedBy.kind === "PATIENT" ? "El propio paciente" : study.uploadedBy.fullName;
@@ -25,6 +26,7 @@ export function StudiesList({ studies }: { studies: StudySummary[] }) {
               <th scope="col" className="px-3 py-2 font-medium">Fecha y hora</th>
               <th scope="col" className="px-3 py-2 font-medium">Estado</th>
               <th scope="col" className="px-3 py-2 font-medium">Cargado por</th>
+              <th scope="col" className="px-3 py-2 font-medium"><span className="sr-only">Acciones</span></th>
             </tr>
           </thead>
           <tbody>
@@ -35,6 +37,9 @@ export function StudiesList({ studies }: { studies: StudySummary[] }) {
                 <td className="px-3 py-3">{formatUploadedAt(study.uploadedAt)}</td>
                 <td className="px-3 py-3">{STUDY_MESSAGES.statusLabel}</td>
                 <td className="px-3 py-3">{uploaderLabel(study)}</td>
+                <td className="px-3 py-3 text-right">
+                  {study.canDelete ? <DeleteStudyDialog studyId={study.id} number={study.number} /> : null}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -50,6 +55,11 @@ export function StudiesList({ studies }: { studies: StudySummary[] }) {
             <p className="text-sm">
               {STUDY_MESSAGES.statusLabel} · {uploaderLabel(study)}
             </p>
+            {study.canDelete ? (
+              <div className="pt-2">
+                <DeleteStudyDialog studyId={study.id} number={study.number} />
+              </div>
+            ) : null}
           </li>
         ))}
       </ul>

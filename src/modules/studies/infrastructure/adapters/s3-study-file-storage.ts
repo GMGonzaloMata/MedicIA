@@ -1,5 +1,3 @@
-import "server-only";
-
 import {
   DeleteObjectCommand,
   ListObjectsV2Command,
@@ -11,6 +9,7 @@ import type { StoredObjectInfo, StudyFileStorage } from "../../application/ports
 
 type S3Sender = Pick<S3Client, "send">;
 
+// Sin `server-only`: también lo usa el script de conciliación, que corre fuera de Next y recibe el cliente armado.
 // Los errores de S3 se propagan con su tipo y sin datos del estudio: la clave es un identificador opaco y
 // el contenido nunca se incluye en un mensaje.
 export function createS3StudyFileStorage({ client, bucket }: { client: S3Sender; bucket: string }): StudyFileStorage {

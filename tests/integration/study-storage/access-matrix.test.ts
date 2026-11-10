@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
+import { createDeleteStudy } from "@/modules/studies/application/use-cases/delete-study";
 import { createGetAssignedPatient } from "@/modules/studies/application/use-cases/get-assigned-patient";
 import { createListDoctorPatients } from "@/modules/studies/application/use-cases/list-doctor-patients";
 import { createListStudies } from "@/modules/studies/application/use-cases/list-studies";
@@ -240,6 +241,31 @@ describe("matriz de acceso a estudios (US4)", () => {
     await prismaClient.staffMembership.update({ where: { id: w.ids.doctor1.id }, data: { status: "ACTIVE" } });
     await prismaClient.tenant.update({ where: { id: w.ids.tenantA.id }, data: { status: "SUSPENDED" } });
     expect(await actorFromSession(session.tokenHash, w.sessions.doctor1.id)).toBeNull();
+  });
+
+  it("eliminar: solo quien cargó el estudio y conserva el acceso; nadie de otra clínica ni de otro paciente", async () => {
+    const w = await world();
+    const deleteStudy = createDeleteStudy({
+      studies: prismaStudyRepository,
+      storage: w.storage,
+      directory: prismaPatientDirectory,
+    });
+    const byDoctor = await w.upload(w.actors.doctor1, w.ids.p1.id);
+    const byPatient = await w.upload(w.actors.p1, w.ids.p1.id);
+    const before = await snapshot(w);
+
+    // El paciente no elimina lo del médico, el médico no elimina lo del paciente, y los demás tampoco.
+    for (const actor of [w.actors.p1, w.actors.p2, w.actors.doctor2, w.actors.doctorB, w.actors.adminDoctor]) {
+      await expect(deleteStudy({ actor, studyId: byDoctor.studyId })).rejects.toBeDefined();
+    }
+    await expect(deleteStudy({ actor: w.actors.doctor1, studyId: byPatient.studyId })).rejects.toBeInstanceOf(
+      StudyForbiddenError,
+    );
+    await expectNothingChanged(w, before);
+
+    await deleteStudy({ actor: w.actors.doctor1, studyId: byDoctor.studyId });
+    await deleteStudy({ actor: w.actors.p1, studyId: byPatient.studyId });
+    expect(await prismaClient.study.count()).toBe(0);
   });
 
   it("un tenantId forzado en la entrada se ignora: el estudio queda en la clínica del actor", async () => {

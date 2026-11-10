@@ -2,6 +2,7 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 
+import { createDeleteStudy } from "./application/use-cases/delete-study";
 import { createGetAssignedPatient } from "./application/use-cases/get-assigned-patient";
 import { createListDoctorPatients } from "./application/use-cases/list-doctor-patients";
 import { createListStudies } from "./application/use-cases/list-studies";
@@ -23,6 +24,7 @@ function buildStudiesModule() {
       generateId: randomUUID,
     }),
     listStudies: createListStudies({ studies: prismaStudyRepository, directory: prismaPatientDirectory }),
+    deleteStudy: createDeleteStudy({ studies: prismaStudyRepository, storage, directory: prismaPatientDirectory }),
     getAssignedPatient: createGetAssignedPatient({ directory: prismaPatientDirectory }),
     listDoctorPatients: createListDoctorPatients({ directory: prismaPatientDirectory }),
   };

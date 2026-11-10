@@ -5,7 +5,10 @@ import { describe, expect, it } from "vitest";
 
 const read = (path: string) => readFileSync(join(process.cwd(), path), "utf8");
 
-const ACTIONS = ["src/app/(dashboard)/_studies/_actions/upload-study.ts"];
+const ACTIONS = [
+  "src/app/(dashboard)/_studies/_actions/upload-study.ts",
+  "src/app/(dashboard)/_studies/_actions/delete-study.ts",
+];
 const SCREENS = [
   "src/app/(dashboard)/studies/page.tsx",
   "src/app/(dashboard)/patients/page.tsx",

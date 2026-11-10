@@ -72,7 +72,7 @@ La prueba de integración sube 20 estudios en paralelo al mismo paciente: los n�
 
 1. Como P1, eliminá el estudio 2 (cargado por P1) y confirmá en el diálogo. Esperado: desaparece de su lista y de la de M1.
 2. Como P1, comprobá que el estudio 3 (cargado por M1) no tiene botón «Eliminar»; si forzás la acción con su `id`, se rechaza. Como M1, el estudio 1 (cargado por P1) tampoco se puede eliminar.
-3. Con `STUDY_STORAGE=s3`, el objeto del estudio 2 ya no existe y, como el bucket no tiene versionado, no queda ninguna versión recuperable (`aws s3api list-object-versions` no lista nada de ese estudio).
+3. Con `STUDY_STORAGE=s3`, el objeto del estudio 2 ya no existe y, como el bucket no tiene versionado, no queda ninguna versión recuperable. Se comprueba con `aws s3api get-bucket-versioning` (sin salida: nunca se versionó) y con `npm run studies:reconcile`, que ya no lista el objeto. El operador no puede ejecutar `aws s3api list-object-versions`: su `Deny` sobre los objetos de estudios es intencional (`AccessDenied` es el resultado esperado).
 4. Cancelá el diálogo con Escape: no se borra nada.
 5. Subí otro estudio como P1: recibe el número 4, no el 2.
 
@@ -101,4 +101,16 @@ Revisá la salida del servidor tras las cargas válidas e inválidas: solo ident
 
 ## Resultados
 
-(Se completa al ejecutar la guía.)
+(Se completa al ejecutar la guía. Lo ya verificado queda anotado acá; lo demás sigue pendiente.)
+
+### 2026-11-10: pruebas manuales contra S3 real (`STUDY_STORAGE=s3`, bucket `medicia-studies-dev-896618135592`)
+
+Cuenta `paciente1-a@demo.medicia.test` (clínica A), archivo sintético `valido.npz` generado con `make_synthetic.py`.
+
+- **Carga (§3):** el estudio se guardó como «Estudio 1» y apareció en la lista con fecha y hora argentina, estado «Cargado» y «El propio paciente». `npm run studies:reconcile` revisó 1 objeto y 0 huérfanos.
+- **Eliminación (§7):** tras eliminar el estudio 1, `npm run studies:reconcile` revisó 0 objetos: el archivo se borró de S3 y, como el bucket nunca tuvo versionado (`get-bucket-versioning` sin salida), no queda ninguna versión. `aws s3api list-object-versions` con el operador da `AccessDenied`, que es lo esperado (el `Deny` del operador sobre los objetos de estudios).
+- **Numeración:** el siguiente estudio quedó como «Estudio 2»: el número 1 no se reutiliza.
+- **Conciliación (§8):** se subió a mano `studies/prueba/huerfano.ecg1` con las claves de la aplicación. `npm run studies:reconcile -- --min-age 0` revisó 2 objetos y listó solo el huérfano, sin borrar nada. Con `--apply --min-age 0` lo borró («Borrados: 1») y el estudio 2, que tiene fila, no se tocó.
+- **Credenciales:** con `AWS_PROFILE` (operador) y las claves de la aplicación definidos a la vez, el SDK usa el perfil, que no puede leer ni escribir estudios. La aplicación y el script deben correr sin `AWS_PROFILE`.
+
+Pendiente de esta guía: rechazos con los archivos de `make_synthetic.py` (§4, T073), aislamiento con cuentas reales (§5, T080), pantallas y accesibilidad (§9), `terraform plan` sin cambios (§11) y la ejecución completa de cierre (T099).

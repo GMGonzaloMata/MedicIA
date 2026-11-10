@@ -14,6 +14,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
+    "studies:reconcile": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file=.env.local scripts/reconcile-study-files.ts",
     "seed:demo": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file=.env.local scripts/seed-demo-clinic.ts",
     "check": "npm run typecheck && npm run lint && npm run test:coverage && npm run build"
   },

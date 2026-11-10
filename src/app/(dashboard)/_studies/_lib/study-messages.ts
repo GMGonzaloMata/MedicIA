@@ -12,6 +12,10 @@ export const STUDY_MESSAGES = {
   noPatients: "Todavía no tenés pacientes asignados.",
   patientWithoutName: "Paciente sin nombre",
   patientNoAccess: "No tenés acceso a este paciente.",
+  deleteForbidden: "No podés eliminar este estudio.",
+  deleteNotFound: "No encontramos el estudio.",
+  deleteUnavailable: "No pudimos eliminar el estudio. Probá de nuevo en unos minutos.",
+  fileLeftBehind: "El estudio se eliminó, pero su archivo quedó pendiente de limpieza.",
   emptyList: "Todavía no hay estudios cargados.",
   listUnavailable: "No pudimos cargar los estudios. Probá de nuevo en unos minutos.",
 } as const;
