@@ -14,6 +14,11 @@ output "app_secret_access_key" {
   sensitive   = true
 }
 
+output "models_bucket_name" {
+  description = "Nombre del bucket de artefactos de modelos, donde el responsable sube los artefactos."
+  value       = module.model_artifacts.bucket_name
+}
+
 output "region" {
   description = "Región de AWS del grupo de usuarios (variable COGNITO_REGION)."
   value       = module.identity.region
