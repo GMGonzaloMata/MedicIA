@@ -173,7 +173,7 @@ description: "Lista de tareas de la infraestructura base de SageMaker"
 
 - [X] T048 Ejecutar `terraform fmt -check -recursive infra` y, para cada directorio (`infra/bootstrap`, `infra/environments/dev`, `infra/modules/identity`, `infra/modules/model-artifacts`, `infra/modules/sagemaker-execution-role`, `infra/modules/model-endpoints`), `init -backend=false`, `validate` y `test`. Si `tflint` y `trivy` están instalados, ejecutarlos como en `infra.yml`; si no, informar que solo corren en CI. Depende de T047.
 - [X] T049 Búsqueda de artefactos y secretos (SC-005): `git ls-files` no lista archivos de pesos de modelos ni `*.tfstate*`, `*.tfplan`, `*.tfvars` ni `.terraform/`, y una búsqueda de `AKIA` más 16 caracteres y de claves privadas en el contenido versionado no encuentra nada; revisar también las salidas de las pruebas. Depende de T048.
-- [ ] T050 Ejecutar `npm run check` para confirmar que la aplicación no se vio afectada (no se tocó `src/`). Informar si no pudo ejecutarse.
+- [X] T050 Ejecutar `npm run check` para confirmar que la aplicación no se vio afectada (no se tocó `src/`). Informar si no pudo ejecutarse.
 - [X] T051 Recorrer los escenarios 1 y 6 de [quickstart.md](quickstart.md) en lo que no necesita AWS y confirmar que los contratos de [contracts/model-catalog.md](contracts/model-catalog.md) y [contracts/access-and-permissions.md](contracts/access-and-permissions.md) coinciden con el código. Si hay diferencias, corregir el código o el contrato. Depende de T048.
 - [ ] T052 [Responsable] Después de una semana, comprobar en la facturación de la cuenta que el gasto adicional de esta base es menor a 1 USD (SC-003) y que `aws sagemaker list-endpoints --region sa-east-1` sigue vacío.
 
