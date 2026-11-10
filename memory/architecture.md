@@ -51,6 +51,7 @@
 - **Estudios y pacientes:** un estudio pertenece a un **paciente** de una clínica y se numera de forma correlativa por paciente (asignación atómica en la base, sin reutilizar números). Lo cargan el propio paciente o un médico con una asignación vigente; lo elimina solo quien lo cargó. Un administrador de clínica que no es médico no accede a los estudios. Toda consulta incluye la clínica del contexto autenticado.
 - **Lectura del archivo:** un lector propio y mínimo de `.npz` (solo `node:zlib`) con topes de tamaño, defensa contra bombas de descompresión, sin `eval` ni `pickle`. Las reglas de contenido (formas, valores finitos, sexo 0/1, rangos) viven en el dominio.
 - **Pantallas:** `/studies` (paciente) y `/patients` y `/patients/[patientId]` (médico). Las acciones llaman a los casos de uso del módulo `studies` y no contienen lógica de negocio.
+- **Visor de la onda (funcionalidad 007):** `/studies/[studyId]` sirve al paciente y al médico. El caso de uso `getStudyWaveform` resuelve el acceso desde el propio estudio (paciente dueño o médico con asignación vigente) antes de leer el objeto con `StudyFileStorage.get`, separa la onda en 12 derivaciones y devuelve solo eso y los datos visibles del estudio: nunca la clave del objeto ni las siete variables. Un archivo ausente o dañado es el resultado «onda no disponible»; una falla del almacenamiento es un error. El dibujo es SVG propio en el navegador, sin librerías de gráficos.
 
 ### Inferencia de inteligencia artificial
 

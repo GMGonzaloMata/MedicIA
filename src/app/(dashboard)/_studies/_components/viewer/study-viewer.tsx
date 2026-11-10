@@ -76,7 +76,7 @@ export function StudyViewer({ leads }: { leads: Float32Array[] }) {
   }
 
   return (
-    <figure className="flex flex-col gap-4">
+    <figure aria-label="Visor de la señal del electrocardiograma" className="flex flex-col gap-4">
       <ViewerControls
         view={state.view}
         lead={state.lead}

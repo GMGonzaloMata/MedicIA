@@ -22,7 +22,13 @@ type StudyPageProps = PageProps<"/studies/[studyId]">;
 export default function StudyPage({ params }: StudyPageProps) {
   // Leer la sesión y los parámetros ocurre en cada solicitud, así que va dentro de Suspense.
   return (
-    <Suspense fallback={<p className="text-muted">{STUDY_MESSAGES.studyLoading}</p>}>
+    <Suspense
+      fallback={
+        <p role="status" className="text-muted">
+          {STUDY_MESSAGES.studyLoading}
+        </p>
+      }
+    >
       <StudyContent params={params} />
     </Suspense>
   );

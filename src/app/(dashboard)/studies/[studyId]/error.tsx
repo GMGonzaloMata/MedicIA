@@ -17,7 +17,7 @@ export default function StudyError({ retry }: { error: unknown; retry: () => voi
           Reintentar
         </button>
         <Link href="/studies" className={`${linkClassName} inline-flex min-h-11 items-center`}>
-          Volver a mis estudios
+          Volver
         </Link>
       </div>
     </>

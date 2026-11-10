@@ -107,3 +107,16 @@ Los archivos sintéticos salen del generador de la 006 que ya usan las pruebas E
 ## R8. Fuera de este plan
 
 Sin migraciones de Prisma, sin Terraform, sin variables de entorno nuevas, sin cambios de `next.config.ts`. No se agregan límites de frecuencia ni auditoría de consultas: siguen en la lista «antes de datos reales» de la 006 (R14).
+
+## Resultados de la implementación
+
+**Implementado (2026-11-10):** las cuatro historias en tres fases: el caso de uso `getStudyWaveform` con sus puertos, la ruta `/studies/[studyId]` para paciente y médico, el visor SVG con zoom y desplazamiento por teclado y gestos, los estados de carga, error, sin acceso y onda no disponible, y el vínculo «Ver onda» en las listas. `npm run check` y la suite E2E completa pasan.
+
+**Revisión (`review-changes`: arquitectura, seguridad e interfaz, sobre `db66569..HEAD`):** sin hallazgos bloqueantes. Corregido: etiqueta neutra del vínculo de `error.tsx`, `role="status"` en el fallback de carga y `aria-label` en el `figure` del visor.
+
+**Pendiente (no bloqueante):**
+- Verificar en pantalla el contraste de la cuadrícula en modo oscuro: `--border` es muy tenue sobre la tarjeta. Si no se distingue, darle un token propio.
+- `get` de S3 lee el objeto entero sin mirar `ContentLength`; no cruza ningún límite de confianza (solo escribe en el bucket quien ya tiene acceso), pero conviene acotarlo antes de datos reales.
+- `role="status"` en el fallback de `studies/page.tsx` y de las otras pantallas de la 006 (cambio previo, fuera de esta funcionalidad).
+- Medir el tiempo de carga de la pantalla (SC-002) y verificar a mano el arrastre y el pellizco en un móvil real.
+

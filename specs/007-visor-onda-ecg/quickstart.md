@@ -53,8 +53,17 @@ Resultado esperado: todo en verde; cobertura de línea de al menos 80 % por arch
 ## 8. Privacidad
 
 1. Con las herramientas de desarrollo, revisá la respuesta de la página.
-2. Esperado: no aparece la clave del objeto (`studies/...`) ni las siete variables; solo los datos del estudio y las 12 derivaciones.
+2. Esperado: no aparece la clave del objeto (el texto `.ecg1`) ni la firma del formato guardado (`MEDECG01`) ni las siete variables; solo los datos del estudio y las 12 derivaciones.
 
 ## Resultados
 
-Se completan al terminar la implementación.
+**Implementado y verificado (2026-11-10):**
+- `npm run check` pasa: tipos, lint, pruebas con cobertura y compilación.
+- `npm run test:e2e` pasa completo: 91 correctas y 8 omitidas por diseño (las pruebas que fijan sus propios anchos corren solo en el proyecto de escritorio). `study-viewer.spec.ts` cubre el recorrido del paciente con teclado, el del médico, el acceso rechazado (estudio ajeno, identificador inexistente y mal formado, y médico sin asignación), el estudio sin archivo y los tres anchos en claro y oscuro.
+- El punto 8 (privacidad) quedó automatizado: la página no contiene `.ecg1` ni la firma `MEDECG01`, y las 12 derivaciones llegan con las 2.500 muestras.
+- El punto 6 (onda no disponible) también tiene prueba E2E: `seedStudy` crea la fila sin el objeto, que es justamente ese caso. Con S3 real sigue siendo una comprobación manual.
+
+**Pendiente del responsable:**
+- Verificación visual de la forma de los latidos con un archivo de `make_synthetic.py` (SC-001) y recorrido a mano de los puntos 2, 3 y 7 en un móvil real o con las herramientas de desarrollo en modo táctil (arrastre y pellizco no tienen prueba automática).
+- El punto 6 con S3 real, borrando el objeto con una credencial de administración.
+- El tiempo de carga menor a 3 s (SC-002) no se midió.
