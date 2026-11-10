@@ -20,10 +20,10 @@ Cada decisión indica qué se eligió, por qué y qué alternativas se descartar
 
 ## R3. Rol de ejecución y su límite de permisos
 
-- **Decisión:** rol `medicia-dev-sagemaker-execution` con política de confianza para `sagemaker.amazonaws.com`, acotada con `aws:SourceAccount` y `aws:SourceArn` de esta cuenta (protección contra el "suplente confundido"). Una política en línea con dos sentencias, sin comodines de acción ni de servicio:
+- **Decisión:** rol `medicia-dev-sagemaker-execution` con política de confianza para `sagemaker.amazonaws.com`, acotada con `aws:SourceAccount` y `aws:SourceArn` de esta cuenta (protección contra el "suplente confundido"). Una política en línea con tres declaraciones, sin comodines de acción ni de servicio:
   - leer artefactos: `s3:GetObject` sobre `bucket/*` y `s3:ListBucket` sobre el bucket;
   - escribir registros: `logs:CreateLogGroup`, `logs:CreateLogStream` y `logs:PutLogEvents` sobre `log-group:/aws/sagemaker/Endpoints/medicia-dev-*`.
-- **Límite propio:** política `medicia-dev-sagemaker-boundary`, creada en `infra/bootstrap`, con exactamente las mismas dos sentencias. Es el techo del rol y no se parece al límite de la aplicación y del plan (FR-008). Es una copia deliberada: bootstrap y el módulo son raíces separadas y comparten el estado de cada una; una prueba en cada lado fija la misma lista de acciones, para que el límite nunca quede por debajo de lo que el rol necesita.
+- **Límite propio:** política `medicia-dev-sagemaker-boundary`, creada en `infra/bootstrap`, con exactamente las mismas tres declaraciones. Es el techo del rol y no se parece al límite de la aplicación y del plan (FR-008). Es una copia deliberada: bootstrap y el módulo son raíces separadas y comparten el estado de cada una; una prueba en cada lado fija la misma lista de acciones, para que el límite nunca quede por debajo de lo que el rol necesita.
 - **Por qué:** con el límite igual al permiso, nadie con acceso al rol puede darle más sin pasar antes por la vía de administración. El comodín solo aparece en el final del nombre de los recursos (`/*`, `medicia-dev-*`), nunca en acciones.
 - **Alternativas descartadas:** la política administrada `AmazonSageMakerFullAccess` (comodines y acceso a otros buckets, contra FR-007); un límite más amplio que el permiso (deja margen para ampliar sin revisión); un `aws_iam_policy` administrada para el rol en lugar de una en línea (un objeto más sin ganancia con un solo rol).
 
@@ -96,7 +96,8 @@ Cada decisión indica qué se eligió, por qué y qué alternativas se descartar
 
 ## Pendientes de verificar
 
-- **Tamaño del límite:** una política administrada de IAM admite hasta 6.144 caracteres sin espacios. `medicia-dev-boundary` crece con las lecturas nuevas; se mide al implementar. Si no entra, se acorta con acciones comunes agrupadas, no con comodines.
+- **Tamaño del límite (verificado 2026-11-10):** una política administrada de IAM admite hasta 6.144 caracteres sin espacios. Medido en las pruebas: política del operador 4.868, `medicia-dev-boundary` 1.907 y `medicia-dev-sagemaker-boundary` 645. Las tres entran con margen, sin acortar ni usar comodines.
+- **Permisos de la fase 2 (verificado 2026-11-10):** un administrador aplicó `infra/bootstrap` (1 creación, 3 cambios en el lugar, 0 destrucciones). Con `terraform-dev` y el operador restaurado, el plan informa 0 cambios y `aws iam get-policy` devuelve `medicia-dev-sagemaker-boundary` (versión `v1`, con las etiquetas del proyecto). El primer intento de aplicar con el operador falló como corresponde: el `Deny` le impide editar su política y la de `medicia-dev-boundary`, así que esos cambios exigen la vía de administración del README.
 - **Condición de tipos de instancia:** la clave `sagemaker:InstanceTypes` aparece en un ejemplo de política de AWS Labs para `CreateEndpointConfig`. Se confirma en la referencia de autorización de servicio al otorgar los permisos del primer modelo.
 - **Primer despliegue real:** el módulo `model-endpoints` se verifica con el proveedor simulado; no se aplica en esta entrega. Se comprueba con el primer modelo: que `CreateModel` no exija el artefacto presente, la disponibilidad de los tipos en `sa-east-1` y la cuota de servicio de la cuenta (una cuenta reciente puede tener cupo cero).
 - **Sujeto de la confianza de SageMaker:** `aws:SourceArn` con `arn:aws:sagemaker:sa-east-1:<cuenta>:*` se confirma con el primer punto de inferencia; si SageMaker no envía ese contexto, se deja solo `aws:SourceAccount`.

@@ -24,7 +24,7 @@ Esta funcionalidad no agrega tablas ni modifica la base de datos. Lo que se mode
 - **Permisos (política en línea):**
   - `s3:GetObject` sobre las claves del bucket de artefactos y `s3:ListBucket` sobre el bucket.
   - `logs:CreateLogGroup`, `logs:CreateLogStream` y `logs:PutLogEvents` sobre los grupos de registros de puntos de inferencia `medicia-<entorno>-*`.
-- **Límite de permisos:** `medicia-<entorno>-sagemaker-boundary`, con las mismas dos sentencias.
+- **Límite de permisos:** `medicia-<entorno>-sagemaker-boundary`, con las mismas tres declaraciones.
 - **Reglas:**
   - Sin acciones ni servicios comodín, sin acceso a otros buckets.
   - Solo se crea con el límite propio (condición `iam:PermissionsBoundary` en la política del operador).

@@ -3,7 +3,8 @@
 # Contención de IAM: el operador gestiona usuarios y roles con prefijo medicia-dev-, pero:
 #   - solo puede crearlos o darles políticas si llevan la política límite medicia-dev-boundary
 #     (condición iam:PermissionsBoundary), así que nada de lo que cree supera ese techo;
-#   - no puede editar ni borrar la propia política del operador ni la política límite (Deny), ni quitar
+#   - el rol de ejecución de SageMaker lleva su propia política límite (medicia-dev-sagemaker-boundary);
+#   - no puede editar ni borrar la propia política del operador ni las políticas límite (Deny), ni quitar
 #     el límite a nadie.
 # Consecuencia: cambiar esta política o el límite exige una vía de administración aparte (el usuario raíz
 # con MFA, o un administrador). Ver infra/README.md, "Cambiar los permisos del operador".
@@ -30,7 +31,7 @@ resource "aws_iam_policy" "operator" {
         # cambia versionado, cifrado, etiquetas y ciclo de vida. La política del bucket y el bloqueo de
         # acceso público NO están acá: con ellas el operador podría darse acceso al estado (que contiene
         # secretos) saltándose el límite. Esos cambios van por la vía de administración (README).
-        Sid    = "GestionarElBucketDelEstado"
+        Sid    = "GestionarLosBucketsDeEstadoYModelos"
         Effect = "Allow"
         Action = [
           "s3:GetAccelerateConfiguration",
@@ -55,7 +56,33 @@ resource "aws_iam_policy" "operator" {
           "s3:PutEncryptionConfiguration",
           "s3:PutLifecycleConfiguration",
         ]
-        Resource = [local.state_bucket_arn]
+        # El bucket de artefactos de modelos comparte esta lista (lectura, versionado, cifrado, ciclo de vida y
+        # etiquetas) para no repetir las acciones y no superar el tope de tamaño de una política administrada.
+        Resource = [local.state_bucket_arn, local.models_bucket_arn]
+      },
+      {
+        # Crear, borrar y fijar política, bloqueo de acceso público y propiedad: solo el bucket de artefactos.
+        # Terraform no puede crearlo sin estos permisos. Se acepta, a diferencia del bucket del estado, porque no
+        # guarda secretos; las pruebas y el análisis de seguridad de CI fallan si deja de ser privado o cifrado (R5).
+        Sid    = "CrearYConfigurarElBucketDeModelos"
+        Effect = "Allow"
+        Action = [
+          "s3:CreateBucket",
+          "s3:DeleteBucket",
+          "s3:DeleteBucketPolicy",
+          "s3:PutBucketOwnershipControls",
+          "s3:PutBucketPolicy",
+          "s3:PutBucketPublicAccessBlock",
+        ]
+        Resource = [local.models_bucket_arn]
+      },
+      {
+        # Subir y leer artefactos con las credenciales del responsable. Sin borrado: un artefacto puede ser
+        # costoso de reconseguir, y las versiones viejas vencen solas.
+        Sid      = "SubirYLeerArtefactosDeModelos"
+        Effect   = "Allow"
+        Action   = ["s3:GetObject", "s3:GetObjectVersion", "s3:PutObject"]
+        Resource = ["${local.models_bucket_arn}/*"]
       },
       {
         # Incluye los objetos .tflock del bloqueo nativo de S3.
@@ -156,7 +183,24 @@ resource "aws_iam_policy" "operator" {
         }
       },
       {
-        # Las políticas del propio operador y del límite quedan fuera por el Deny de más abajo.
+        # El rol de ejecución de SageMaker solo se crea con su propio límite, no con el de la aplicación y el plan.
+        # Se limita a ese rol: así el operador no puede ponerle este límite a otro (por ejemplo, al rol de plan).
+        Sid    = "CrearElRolDeEjecucionConSuLimite"
+        Effect = "Allow"
+        Action = [
+          "iam:CreateRole",
+          "iam:PutRolePermissionsBoundary",
+          "iam:PutRolePolicy",
+        ]
+        Resource = [local.execution_role_arn]
+        Condition = {
+          StringEquals = {
+            "iam:PermissionsBoundary" = local.sagemaker_boundary_policy_arn
+          }
+        }
+      },
+      {
+        # Las políticas del propio operador y de los límites quedan fuera por el Deny de más abajo.
         Sid    = "GestionarPoliticasIamDelEntorno"
         Effect = "Allow"
         Action = [
@@ -202,6 +246,7 @@ resource "aws_iam_policy" "operator" {
         Resource = [
           local.operator_policy_arn,
           local.boundary_policy_arn,
+          local.sagemaker_boundary_policy_arn,
         ]
       },
       {

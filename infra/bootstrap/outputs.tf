@@ -1,3 +1,8 @@
+output "models_bucket_name" {
+  description = "Nombre del bucket de artefactos de modelos que crea infra/environments/dev."
+  value       = local.models_bucket_name
+}
+
 output "operator_policy_arn" {
   description = "ARN de la política del operador. Se adjunta a terraform-dev para reemplazar AdministratorAccess."
   value       = aws_iam_policy.operator.arn
@@ -11,6 +16,11 @@ output "plan_role_arn" {
 output "region" {
   description = "Región de AWS del entorno."
   value       = var.region
+}
+
+output "sagemaker_boundary_policy_arn" {
+  description = "ARN de la política límite del rol de ejecución de SageMaker."
+  value       = aws_iam_policy.sagemaker_boundary.arn
 }
 
 output "state_bucket_arn" {
