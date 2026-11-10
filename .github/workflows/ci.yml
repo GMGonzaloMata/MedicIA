@@ -85,6 +85,7 @@ jobs:
       DATABASE_URL: postgresql://medicia:medicia@localhost:5432/medicia
       # Proveedor de identidad simulado: ninguna prueba usa AWS.
       IDENTITY_PROVIDER: fake
+      STUDY_STORAGE: fake
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7

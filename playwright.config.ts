@@ -34,6 +34,8 @@ export default defineConfig({
     // local que las pruebas de integración.
     env: {
       IDENTITY_PROVIDER: "fake",
+      // Los estudios se guardan en memoria: ninguna prueba usa AWS.
+      STUDY_STORAGE: "fake",
       ...(process.env.DATABASE_URL ? { DATABASE_URL: process.env.DATABASE_URL } : {}),
     },
   },

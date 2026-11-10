@@ -5,6 +5,9 @@ export const WAVEFORM_SAMPLES = 2500;
 export const WAVEFORM_LEADS = 12;
 export const TABULAR_LENGTH = 7;
 
+// Tamaño máximo del archivo que sube la persona (comprimido). Lo comprueban la interfaz, la acción y el lector.
+export const MAX_UPLOAD_BYTES = 2 * 1024 * 1024;
+
 // Orden fijo de las variables: sexo (0 mujer, 1 hombre), edad, frecuencia ventricular, frecuencia auricular,
 // intervalo PR, duración del QRS y QT corregido. Todas estandarizadas salvo el sexo.
 export const SEX_INDEX = 0;

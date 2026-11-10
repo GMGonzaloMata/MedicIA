@@ -1,6 +1,12 @@
 import { crc32, inflateRawSync } from "node:zlib";
 
-import { TABULAR_LENGTH, WAVEFORM_LEADS, WAVEFORM_SAMPLES, type EcgStudyData } from "../../domain/ecg-study";
+import {
+  MAX_UPLOAD_BYTES,
+  TABULAR_LENGTH,
+  WAVEFORM_LEADS,
+  WAVEFORM_SAMPLES,
+  type EcgStudyData,
+} from "../../domain/ecg-study";
 import { StudyRejectedError, type StudyField } from "../../domain/study-errors";
 import type { StudyFileReader } from "../../application/ports/out/study-file-reader";
 
@@ -13,7 +19,7 @@ import type { StudyFileReader } from "../../application/ports/out/study-file-rea
 //   agotar la memoria.
 // Los mensajes de rechazo nombran el campo y la regla, nunca valores ni nombres que traiga el archivo.
 
-export const MAX_NPZ_BYTES = 2 * 1024 * 1024;
+export const MAX_NPZ_BYTES = MAX_UPLOAD_BYTES;
 export const MAX_TOTAL_UNCOMPRESSED_BYTES = 20 * 1024 * 1024;
 // Una onda de float64 pesa 240 KB: una entrada obligatoria más grande que esto no puede ser un arreglo válido.
 const MAX_ENTRY_BYTES = 1024 * 1024;

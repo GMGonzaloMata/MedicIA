@@ -40,6 +40,11 @@ async function ActiveClinic() {
         <span className="font-semibold">{context.clinic.tenantName}</span>
         <span className="text-muted"> · {describeRelationship(context.clinic.relationship)}</span>
       </p>
+      {context.clinic.relationship.kind === "PATIENT" ? (
+        <Link href="/studies" className={linkClassName}>
+          Mis estudios
+        </Link>
+      ) : null}
       <Link href="/select-clinic" className={linkClassName}>
         Cambiar de clínica
       </Link>
