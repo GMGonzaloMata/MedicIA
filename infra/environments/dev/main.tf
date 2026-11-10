@@ -14,3 +14,15 @@ module "model_artifacts" {
   environment = "dev"
   account_id  = "896618135592"
 }
+
+# Rol que SageMaker asume para leer los artefactos del bucket y escribir registros. Todavía no hay modelos.
+module "sagemaker_execution_role" {
+  source = "../../modules/sagemaker-execution-role"
+
+  environment          = "dev"
+  account_id           = "896618135592"
+  artifacts_bucket_arn = module.model_artifacts.bucket_arn
+
+  # La crea infra/bootstrap. Se escribe el ARN porque cada raíz tiene su propio estado.
+  permissions_boundary_arn = "arn:aws:iam::896618135592:policy/medicia-dev-sagemaker-boundary"
+}

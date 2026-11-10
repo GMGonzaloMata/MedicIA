@@ -24,6 +24,11 @@ output "region" {
   value       = module.identity.region
 }
 
+output "sagemaker_execution_role_arn" {
+  description = "ARN del rol de ejecución de SageMaker, que se usará al crear modelos."
+  value       = module.sagemaker_execution_role.role_arn
+}
+
 output "user_pool_arn" {
   description = "ARN del grupo de usuarios de Cognito."
   value       = module.identity.user_pool_arn
