@@ -89,6 +89,34 @@ locals {
       ]
       Resource = [local.execution_role_arn]
     },
+    {
+      # Lo que lee el refresco del modelo, su configuración y su punto de inferencia (005). Solo lectura.
+      Sid    = "LeerSageMakerDelEntorno"
+      Effect = "Allow"
+      Action = [
+        "sagemaker:DescribeEndpoint",
+        "sagemaker:DescribeEndpointConfig",
+        "sagemaker:DescribeModel",
+        "sagemaker:ListTags",
+      ]
+      Resource = [
+        "${local.sagemaker_arn_prefix}:endpoint/medicia-${var.environment}-*",
+        "${local.sagemaker_arn_prefix}:endpoint-config/medicia-${var.environment}-*",
+        "${local.sagemaker_arn_prefix}:model/medicia-${var.environment}-*",
+      ]
+    },
+    {
+      # Lo que lee el refresco del repositorio de imágenes (005). Nunca las imágenes.
+      Sid    = "LeerEcrDelEntorno"
+      Effect = "Allow"
+      Action = [
+        "ecr:DescribeRepositories",
+        "ecr:GetLifecyclePolicy",
+        "ecr:GetRepositoryPolicy",
+        "ecr:ListTagsForResource",
+      ]
+      Resource = [local.ecr_repository_arn_pattern]
+    },
   ]
 }
 

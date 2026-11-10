@@ -18,4 +18,15 @@ locals {
 
   # Techo de permisos del rol de ejecución (ver sagemaker-boundary.tf).
   sagemaker_boundary_policy_arn = "arn:aws:iam::${var.account_id}:policy/medicia-${var.environment}-sagemaker-boundary"
+
+  # Repositorio de imágenes de EchoNext-Mini (lo crea infra/modules/model-registry). El nombre debe coincidir con el
+  # del módulo. El patrón cubre los repositorios de los modelos futuros del entorno.
+  ecr_repository_arn         = "arn:aws:ecr:${var.region}:${var.account_id}:repository/medicia-${var.environment}-echonext-mini"
+  ecr_repository_arn_pattern = "arn:aws:ecr:${var.region}:${var.account_id}:repository/medicia-${var.environment}-*"
+
+  # Recursos de SageMaker del entorno (modelos, configuraciones y puntos de inferencia).
+  sagemaker_arn_prefix = "arn:aws:sagemaker:${var.region}:${var.account_id}"
+
+  # Segunda política del operador (SageMaker, PassRole y ECR); ver operator-policy-ml.tf.
+  operator_ml_policy_arn = "arn:aws:iam::${var.account_id}:policy/medicia-${var.environment}-terraform-operator-ml"
 }

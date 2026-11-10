@@ -249,6 +249,7 @@ resource "aws_iam_policy" "operator" {
         ]
         Resource = [
           local.operator_policy_arn,
+          local.operator_ml_policy_arn,
           local.boundary_policy_arn,
           local.sagemaker_boundary_policy_arn,
         ]

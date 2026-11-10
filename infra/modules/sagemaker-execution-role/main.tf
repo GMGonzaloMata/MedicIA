@@ -1,4 +1,4 @@
-# Rol que SageMaker asume para ejecutar un modelo: lee su artefacto del bucket y escribe sus registros.
+# Rol que SageMaker asume para ejecutar un modelo: lee su artefacto, descarga su imagen y escribe sus registros.
 # Mínimo privilegio: sin comodines, sin otros buckets y sin otros servicios.
 
 locals {
@@ -45,8 +45,7 @@ resource "aws_iam_role_policy" "this" {
   role = aws_iam_role.this.id
 
   # Esta lista debe coincidir con infra/bootstrap/sagemaker-boundary.tf: el límite es su techo, y lo que
-  # exceda el límite no se concede. No incluye ECR: los permisos para descargar la imagen se agregan con el
-  # primer modelo, cuando se sepa qué repositorio usa (research.md, R10).
+  # exceda el límite no se concede. Incluye la descarga de la imagen desde ECR (005).
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -74,6 +73,24 @@ resource "aws_iam_role_policy" "this" {
           local.log_group_arn,
           "${local.log_group_arn}:*",
         ]
+      },
+      {
+        # Descargar la imagen del modelo: solo de su repositorio y sin escribir nada.
+        Sid    = "DescargarLaImagenDelModelo"
+        Effect = "Allow"
+        Action = [
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:BatchGetImage",
+          "ecr:GetDownloadUrlForLayer",
+        ]
+        Resource = [var.ecr_repository_arn]
+      },
+      {
+        # AWS no permite limitar el token de autenticación de ECR a un recurso.
+        Sid      = "ObtenerElTokenDeEcr"
+        Effect   = "Allow"
+        Action   = ["ecr:GetAuthorizationToken"]
+        Resource = ["*"]
       },
     ]
   })

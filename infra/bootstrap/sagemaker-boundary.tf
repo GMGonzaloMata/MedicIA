@@ -6,7 +6,7 @@
 locals {
   # Fuente única de lo que puede hacer el rol de ejecución: leer artefactos y escribir sus registros.
   # El módulo infra/modules/sagemaker-execution-role repite esta lista y sus pruebas fijan la misma, así el límite
-  # nunca queda por debajo del permiso del rol. Sin ECR por ahora: se decide con el primer modelo (R10).
+  # nunca queda por debajo del permiso del rol. Con la descarga de la imagen de EchoNext-Mini desde ECR (005).
   execution_role_statements = [
     {
       Sid      = "LeerArtefactosDeModelos"
@@ -33,6 +33,24 @@ locals {
         "arn:aws:logs:${var.region}:${var.account_id}:log-group:/aws/sagemaker/Endpoints/medicia-${var.environment}-*",
         "arn:aws:logs:${var.region}:${var.account_id}:log-group:/aws/sagemaker/Endpoints/medicia-${var.environment}-*:*",
       ]
+    },
+    {
+      # Descargar la imagen del modelo: solo de su repositorio y sin escribir nada.
+      Sid    = "DescargarLaImagenDelModelo"
+      Effect = "Allow"
+      Action = [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:BatchGetImage",
+        "ecr:GetDownloadUrlForLayer",
+      ]
+      Resource = [local.ecr_repository_arn]
+    },
+    {
+      # AWS no permite limitar el token de autenticación de ECR a un recurso.
+      Sid      = "ObtenerElTokenDeEcr"
+      Effect   = "Allow"
+      Action   = ["ecr:GetAuthorizationToken"]
+      Resource = ["*"]
     },
   ]
 }

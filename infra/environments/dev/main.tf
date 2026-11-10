@@ -23,6 +23,9 @@ module "sagemaker_execution_role" {
   account_id           = "896618135592"
   artifacts_bucket_arn = module.model_artifacts.bucket_arn
 
+  # Repositorio de la imagen de EchoNext-Mini (005). Se escribe el ARN con su nombre conocido.
+  ecr_repository_arn = "arn:aws:ecr:sa-east-1:896618135592:repository/medicia-dev-echonext-mini"
+
   # La crea infra/bootstrap. Se escribe el ARN porque cada raíz tiene su propio estado.
   permissions_boundary_arn = "arn:aws:iam::896618135592:policy/medicia-dev-sagemaker-boundary"
 }
