@@ -50,6 +50,45 @@ locals {
       ]
       Resource = ["arn:aws:iam::${var.account_id}:user/medicia-${var.environment}-*"]
     },
+    {
+      # Configuración del bucket de artefactos de modelos (lo que lee el refresco del bucket). Nunca sus objetos.
+      Sid    = "LeerElBucketDeModelos"
+      Effect = "Allow"
+      Action = [
+        "s3:GetAccelerateConfiguration",
+        "s3:GetBucketAcl",
+        "s3:GetBucketCORS",
+        "s3:GetBucketLocation",
+        "s3:GetBucketLogging",
+        "s3:GetBucketObjectLockConfiguration",
+        "s3:GetBucketOwnershipControls",
+        "s3:GetBucketPolicy",
+        "s3:GetBucketPublicAccessBlock",
+        "s3:GetBucketRequestPayment",
+        "s3:GetBucketTagging",
+        "s3:GetBucketVersioning",
+        "s3:GetBucketWebsite",
+        "s3:GetEncryptionConfiguration",
+        "s3:GetLifecycleConfiguration",
+        "s3:GetReplicationConfiguration",
+        "s3:ListBucket",
+      ]
+      Resource = [local.models_bucket_arn]
+    },
+    {
+      # Acciones que usa el refresco del rol de ejecución de SageMaker y su política en línea.
+      Sid    = "LeerElRolDeEjecucion"
+      Effect = "Allow"
+      Action = [
+        "iam:GetRole",
+        "iam:GetRolePolicy",
+        "iam:ListAttachedRolePolicies",
+        "iam:ListInstanceProfilesForRole",
+        "iam:ListRolePolicies",
+        "iam:ListRoleTags",
+      ]
+      Resource = [local.execution_role_arn]
+    },
   ]
 }
 

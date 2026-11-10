@@ -1,6 +1,6 @@
 ---
 name: infra-reviewer
-description: Revisor de solo lectura que comprueba la infraestructura como código (Terraform) de MedicIA: secretos, estado, IAM de mínimo privilegio, configuración de Cognito, S3 y RDS, cambios destructivos y estilo. Usar desde la skill review-changes o cuando se pida revisar un cambio de infraestructura.
+description: Revisor de solo lectura que comprueba la infraestructura como código (Terraform) de MedicIA, con foco en secretos, estado, IAM de mínimo privilegio, configuración de Cognito, S3 y RDS, cambios destructivos y estilo. Usar desde la skill review-changes o cuando se pida revisar un cambio de infraestructura.
 tools: Read, Grep, Glob, Bash
 model: opus
 skills:

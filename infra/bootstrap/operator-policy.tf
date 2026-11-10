@@ -3,7 +3,9 @@
 # Contención de IAM: el operador gestiona usuarios y roles con prefijo medicia-dev-, pero:
 #   - solo puede crearlos o darles políticas si llevan la política límite medicia-dev-boundary
 #     (condición iam:PermissionsBoundary), así que nada de lo que cree supera ese techo;
-#   - no puede editar ni borrar la propia política del operador ni la política límite (Deny), ni quitar
+#   - el rol de ejecución de SageMaker lleva su propia política límite (medicia-dev-sagemaker-boundary), y un
+#     Deny impide crearlo o cambiarle el límite a cualquier otro;
+#   - no puede editar ni borrar la propia política del operador ni las políticas límite (Deny), ni quitar
 #     el límite a nadie.
 # Consecuencia: cambiar esta política o el límite exige una vía de administración aparte (el usuario raíz
 # con MFA, o un administrador). Ver infra/README.md, "Cambiar los permisos del operador".
@@ -30,7 +32,7 @@ resource "aws_iam_policy" "operator" {
         # cambia versionado, cifrado, etiquetas y ciclo de vida. La política del bucket y el bloqueo de
         # acceso público NO están acá: con ellas el operador podría darse acceso al estado (que contiene
         # secretos) saltándose el límite. Esos cambios van por la vía de administración (README).
-        Sid    = "GestionarElBucketDelEstado"
+        Sid    = "GestionarLosBucketsDeEstadoYModelos"
         Effect = "Allow"
         Action = [
           "s3:GetAccelerateConfiguration",
@@ -55,7 +57,33 @@ resource "aws_iam_policy" "operator" {
           "s3:PutEncryptionConfiguration",
           "s3:PutLifecycleConfiguration",
         ]
-        Resource = [local.state_bucket_arn]
+        # El bucket de artefactos de modelos comparte esta lista (lectura, versionado, cifrado, ciclo de vida y
+        # etiquetas) para no repetir las acciones y no superar el tope de tamaño de una política administrada.
+        Resource = [local.state_bucket_arn, local.models_bucket_arn]
+      },
+      {
+        # Crear, borrar y fijar política, bloqueo de acceso público y propiedad: solo el bucket de artefactos.
+        # Terraform no puede crearlo sin estos permisos. Se acepta, a diferencia del bucket del estado, porque no
+        # guarda secretos; las pruebas y el análisis de seguridad de CI fallan si deja de ser privado o cifrado (R5).
+        Sid    = "CrearYConfigurarElBucketDeModelos"
+        Effect = "Allow"
+        Action = [
+          "s3:CreateBucket",
+          "s3:DeleteBucket",
+          "s3:DeleteBucketPolicy",
+          "s3:PutBucketOwnershipControls",
+          "s3:PutBucketPolicy",
+          "s3:PutBucketPublicAccessBlock",
+        ]
+        Resource = [local.models_bucket_arn]
+      },
+      {
+        # Subir y leer artefactos con las credenciales del responsable. Sin borrado: un artefacto puede ser
+        # costoso de reconseguir, y las versiones viejas vencen solas.
+        Sid      = "SubirYLeerArtefactosDeModelos"
+        Effect   = "Allow"
+        Action   = ["s3:GetObject", "s3:GetObjectVersion", "s3:PutObject"]
+        Resource = ["${local.models_bucket_arn}/*"]
       },
       {
         # Incluye los objetos .tflock del bloqueo nativo de S3.
@@ -156,7 +184,24 @@ resource "aws_iam_policy" "operator" {
         }
       },
       {
-        # Las políticas del propio operador y del límite quedan fuera por el Deny de más abajo.
+        # El rol de ejecución de SageMaker solo se crea con su propio límite, no con el de la aplicación y el plan.
+        # Se limita a ese rol: así el operador no puede ponerle este límite a otro (por ejemplo, al rol de plan).
+        Sid    = "CrearElRolDeEjecucionConSuLimite"
+        Effect = "Allow"
+        Action = [
+          "iam:CreateRole",
+          "iam:PutRolePermissionsBoundary",
+          "iam:PutRolePolicy",
+        ]
+        Resource = [local.execution_role_arn]
+        Condition = {
+          StringEquals = {
+            "iam:PermissionsBoundary" = local.sagemaker_boundary_policy_arn
+          }
+        }
+      },
+      {
+        # Las políticas del propio operador y de los límites quedan fuera por el Deny de más abajo.
         Sid    = "GestionarPoliticasIamDelEntorno"
         Effect = "Allow"
         Action = [
@@ -193,7 +238,10 @@ resource "aws_iam_policy" "operator" {
         # Un Deny gana a cualquier Allow: el operador no puede darse permisos editando las políticas que lo limitan.
         Sid    = "ProtegerLasPoliticasDeAcceso"
         Effect = "Deny"
+        # CreatePolicy también: si un administrador borrara alguna de estas políticas, el operador no podría
+        # recrearla con otro contenido y quedarse con un techo a su medida.
         Action = [
+          "iam:CreatePolicy",
           "iam:CreatePolicyVersion",
           "iam:DeletePolicy",
           "iam:DeletePolicyVersion",
@@ -202,7 +250,33 @@ resource "aws_iam_policy" "operator" {
         Resource = [
           local.operator_policy_arn,
           local.boundary_policy_arn,
+          local.sagemaker_boundary_policy_arn,
         ]
+      },
+      {
+        # El operador puede escribir la política del bucket de modelos. Sin este Deny, una sentencia Allow para
+        # terraform-dev en esa política le daría el borrado de objetos, que el resto de sus permisos no incluye.
+        # Un Deny gana a cualquier Allow, también al de la política del recurso. El vencimiento por ciclo de vida
+        # lo ejecuta S3 y no se ve afectado.
+        Sid      = "NoBorrarArtefactosDeModelos"
+        Effect   = "Deny"
+        Action   = ["s3:DeleteObject", "s3:DeleteObjectVersion"]
+        Resource = ["${local.models_bucket_arn}/*"]
+      },
+      {
+        # La declaración genérica de roles medicia-dev-* también cubre al rol de ejecución, así que por sí sola
+        # permitiría crearlo o cambiarle el límite a medicia-dev-boundary, un techo mucho más amplio. Este Deny
+        # (que gana a cualquier Allow) obliga a que el rol de ejecución lleve siempre su propio límite.
+        # Con la clave ausente (rol sin límite), StringNotEquals se cumple y el Deny aplica.
+        Sid      = "ElRolDeEjecucionSoloConSuLimite"
+        Effect   = "Deny"
+        Action   = ["iam:CreateRole", "iam:PutRolePermissionsBoundary", "iam:PutRolePolicy"]
+        Resource = [local.execution_role_arn]
+        Condition = {
+          StringNotEquals = {
+            "iam:PermissionsBoundary" = local.sagemaker_boundary_policy_arn
+          }
+        }
       },
       {
         Sid    = "ProtegerElLimiteDeLosPrincipales"

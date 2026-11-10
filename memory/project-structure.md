@@ -38,9 +38,12 @@ Organizar la plataforma como un **monolito modular con Next.js full-stack**, sig
 │       └── ...
 │
 ├── infra/                         # Terraform: recursos de AWS (estado remoto, nunca en git)
-│   ├── bootstrap/                 # Bucket del estado, rol de plan de CI y política del operador
+│   ├── bootstrap/                 # Bucket del estado, rol de plan de CI, política del operador y políticas límite
 │   ├── modules/identity/          # Grupo de usuarios de Cognito, cliente y usuario de la aplicación
-│   ├── environments/dev/          # Entorno de desarrollo (usa los módulos)
+│   ├── modules/model-artifacts/   # Bucket privado de artefactos de modelos
+│   ├── modules/sagemaker-execution-role/  # Rol de ejecución de SageMaker con su límite de permisos
+│   ├── modules/model-endpoints/   # Catálogo de modelos; los puntos de inferencia nacen apagados
+│   ├── environments/dev/          # Entorno de desarrollo (usa los módulos y define el catálogo)
 │   └── README.md                  # Guía de uso y operación
 ├── prisma/                        # Esquema y migraciones de PostgreSQL
 ├── prisma.config.ts               # Conexión y rutas de Prisma

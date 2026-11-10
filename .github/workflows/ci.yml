@@ -35,6 +35,16 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      # Los modelos se desarrollan fuera de este repositorio y sus artefactos viven en el bucket de artefactos de
+      # infra/. Corre en toda propuesta, no solo en las que tocan infra/. (FR-005 de la funcionalidad 004.)
+      - name: Comprobar que no haya artefactos de modelos versionados
+        run: |
+          artefactos=$(git ls-files | grep -E '\.(pt|pth|onnx|safetensors|h5|ckpt|joblib|pkl|pickle|tgz|tar\.gz|tflite|gguf|keras|mar)$' || true)
+          if [ -n "$artefactos" ]; then
+            echo "::error::Hay artefactos de modelos versionados (FR-005). Van al bucket de artefactos, no a git:"
+            echo "$artefactos"
+            exit 1
+          fi
       # Claude Code y Codex leen copias separadas de estas skills, que deben seguir iguales.
       - name: Comprobar que las skills propias estén sincronizadas
         run: |

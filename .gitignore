@@ -65,3 +65,20 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+
+# Artefactos de modelos: viven en el bucket de artefactos de infra/, nunca en git (FR-005 de la 004)
+*.pt
+*.pth
+*.onnx
+*.safetensors
+*.h5
+*.ckpt
+*.joblib
+*.pkl
+*.pickle
+*.tgz
+*.tar.gz
+*.tflite
+*.gguf
+*.keras
+*.mar
