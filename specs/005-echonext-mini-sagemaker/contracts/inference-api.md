@@ -64,6 +64,8 @@ Es el contrato que consumirá el adaptador de la funcionalidad 006. Se invoca co
 
 El mensaje de error nunca repite valores del estudio recibido.
 
+**Al invocar por `InvokeEndpoint` de SageMaker:** un 4xx del contenedor llega al cliente como un error `ModelError` con estado HTTP **424**, y el cuerpo del contenedor (`{"error": "..."}`) viaja en el mensaje de la excepción. El rechazo es el mismo (sin probabilidades); solo cambia el código. Un adaptador debe tratar 400 (HTTP directo) y 424 (`ModelError`) como entrada inválida. Comprobado el 2026-11-10 con `scripts/invoke_endpoint.py`.
+
 ## Lo que el contrato NO hace
 
 - No preprocesa señal cruda ni lee XML (FR-006): la entrada ya viene normalizada.

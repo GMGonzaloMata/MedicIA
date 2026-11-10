@@ -42,7 +42,7 @@ jobs:
 
       - name: Inicializar y validar cada raíz y módulo
         run: |
-          for dir in infra/bootstrap infra/environments/dev infra/modules/identity infra/modules/model-artifacts infra/modules/sagemaker-execution-role infra/modules/model-endpoints; do
+          for dir in infra/bootstrap infra/environments/dev infra/modules/identity infra/modules/model-artifacts infra/modules/sagemaker-execution-role infra/modules/model-endpoints infra/modules/model-registry; do
             echo "::group::$dir"
             terraform -chdir="$dir" init -backend=false -input=false
             terraform -chdir="$dir" validate
@@ -58,7 +58,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           tflint --init --config="$PWD/.tflint.hcl"
-          for dir in bootstrap environments/dev modules/identity modules/model-artifacts modules/sagemaker-execution-role modules/model-endpoints; do
+          for dir in bootstrap environments/dev modules/identity modules/model-artifacts modules/sagemaker-execution-role modules/model-endpoints modules/model-registry; do
             echo "::group::$dir"
             tflint --config="$PWD/.tflint.hcl" --chdir="$dir"
             echo "::endgroup::"
@@ -66,7 +66,7 @@ jobs:
 
       - name: Pruebas de Terraform
         run: |
-          for dir in infra/bootstrap infra/environments/dev infra/modules/identity infra/modules/model-artifacts infra/modules/sagemaker-execution-role infra/modules/model-endpoints; do
+          for dir in infra/bootstrap infra/environments/dev infra/modules/identity infra/modules/model-artifacts infra/modules/sagemaker-execution-role infra/modules/model-endpoints infra/modules/model-registry; do
             echo "::group::$dir"
             terraform -chdir="$dir" test
             echo "::endgroup::"
@@ -95,7 +95,7 @@ jobs:
         run: |
           fallo=0
 
-          prohibidos=$(git ls-files -- infra .github | grep -E '(\.tfstate($|\.)|\.tfplan$|\.tfvars(\.json)?$|(^|/)\.terraform/)' || true)
+          prohibidos=$(git -c core.quotePath=false ls-files -- infra .github | grep -E '(\.tfstate($|\.)|\.tfplan$|\.tfvars(\.json)?$|(^|/)\.terraform/)' || true)
           if [ -n "$prohibidos" ]; then
             echo "::error::Hay archivos de estado, de plan o de variables versionados:"
             echo "$prohibidos"
@@ -105,10 +105,18 @@ jobs:
           # Los artefactos de modelos (pesos) viven en el bucket de artefactos, nunca en el repositorio (FR-005).
           # Se revisa todo el repositorio, no solo infra: un modelo podría subirse desde cualquier carpeta.
           # Este paso solo corre si la propuesta toca infra/; la misma comprobación está en ci.yml, que corre siempre.
-          artefactos=$(git ls-files | grep -E '\.(pt|pth|onnx|safetensors|h5|ckpt|joblib|pkl|pickle|tgz|tar\.gz|tflite|gguf|keras|mar)$' || true)
+          artefactos=$(git -c core.quotePath=false ls-files | grep -E '\.(pt|pth|onnx|safetensors|h5|ckpt|joblib|pkl|pickle|tgz|tar\.gz|tflite|gguf|keras|mar|npy|npz|parquet)$' || true)
           if [ -n "$artefactos" ]; then
-            echo "::error::Hay artefactos de modelos versionados (FR-005):"
+            echo "::error::Hay artefactos de modelos o arreglos de datos versionados (FR-005 de la 004, FR-022 de la 005):"
             echo "$artefactos"
+            fallo=1
+          fi
+
+          # Los datos del conjunto EchoNext-Mini no entran al repositorio (FR-022 de la 005), cualquiera sea su formato.
+          datos=$(git -c core.quotePath=false ls-files | grep -iE '(^|/)echonext[^/]*\.(csv|npy|npz|parquet|xml|zip)$' || true)
+          if [ -n "$datos" ]; then
+            echo "::error::Hay archivos del conjunto de datos EchoNext versionados (FR-022 de la 005):"
+            echo "$datos"
             fallo=1
           fi
 
@@ -127,7 +135,7 @@ jobs:
       - name: Cada raíz tiene su archivo de bloqueo versionado
         run: |
           fallo=0
-          for dir in infra/bootstrap infra/environments/dev infra/modules/identity infra/modules/model-artifacts infra/modules/sagemaker-execution-role infra/modules/model-endpoints; do
+          for dir in infra/bootstrap infra/environments/dev infra/modules/identity infra/modules/model-artifacts infra/modules/sagemaker-execution-role infra/modules/model-endpoints infra/modules/model-registry; do
             if ! git ls-files --error-unmatch "$dir/.terraform.lock.hcl" >/dev/null 2>&1; then
               echo "::error::Falta versionar $dir/.terraform.lock.hcl"
               fallo=1
@@ -181,6 +189,51 @@ jobs:
           # Se exige la línea sin comentar: una línea con # delante no protege nada.
           if ! grep -qE '^[[:space:]]*prevent_destroy[[:space:]]*=[[:space:]]*true' infra/modules/model-artifacts/main.tf; then
             echo "::error::El bucket de artefactos debe conservar prevent_destroy = true (FR-003)."
+            fallo=1
+          fi
+
+          exit "$fallo"
+
+      # Reglas de la funcionalidad 005 (EchoNext-Mini): imágenes con versión, permisos sin comodines y un solo punto de
+      # inferencia por modelo. El resto de las reglas (origen de la imagen, apagado por defecto, tipos de cómputo) las
+      # comprueban las pruebas de Terraform del paso anterior.
+      - name: Guarda de imágenes, repositorios y permisos de modelos (FR-017, FR-018, FR-020 de la 005)
+        run: |
+          fallo=0
+
+          # Una imagen sin versión fija no es trazable (Principio IV): nunca latest.
+          if git grep -nE 'image_uri[[:space:]]*=[[:space:]]*"[^"]*:latest"' -- 'infra/*.tf'; then
+            echo "::error::Una imagen del catálogo no puede usar la etiqueta latest."
+            fallo=1
+          fi
+
+          # Sin comodines de servicio en los permisos de SageMaker y ECR.
+          if git grep -nE '"(sagemaker|ecr):\*"' -- 'infra/*.tf'; then
+            echo "::error::Los permisos de SageMaker y ECR se enumeran: sin sagemaker:* ni ecr:*."
+            fallo=1
+          fi
+
+          # Los repositorios de imágenes se declaran solo en su módulo, con etiquetas inmutables, escaneo y protección.
+          if git grep -lE '^[[:space:]]*resource[[:space:]]+"aws_ecr_repository"' -- 'infra/*.tf' ':!infra/modules/model-registry/*'; then
+            echo "::error::Un repositorio de ECR solo puede declararse en infra/modules/model-registry."
+            fallo=1
+          fi
+          for regla in '^[[:space:]]*image_tag_mutability[[:space:]]*=[[:space:]]*"IMMUTABLE"' '^[[:space:]]*scan_on_push[[:space:]]*=[[:space:]]*true' '^[[:space:]]*prevent_destroy[[:space:]]*=[[:space:]]*true'; do
+            if ! grep -qE "$regla" infra/modules/model-registry/main.tf; then
+              echo "::error::infra/modules/model-registry/main.tf debe conservar: $regla"
+              fallo=1
+            fi
+          done
+
+          # Un repositorio de imágenes no se abre a otras cuentas ni se replica.
+          if git grep -nE '^[[:space:]]*resource[[:space:]]+"aws_ecr_(repository_policy|registry_policy|replication_configuration|pull_through_cache_rule)"' -- 'infra/*.tf'; then
+            echo "::error::Los repositorios de ECR no llevan política de repositorio ni replicación."
+            fallo=1
+          fi
+
+          # Una sola instancia por punto de inferencia.
+          if git grep -nE 'initial_instance_count[[:space:]]*=' -- 'infra/*.tf' | grep -vE '=[[:space:]]*1[[:space:]]*$'; then
+            echo "::error::Cada punto de inferencia usa exactamente una instancia."
             fallo=1
           fi
 

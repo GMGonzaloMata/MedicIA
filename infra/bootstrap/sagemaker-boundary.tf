@@ -4,7 +4,8 @@
 # con este límite y no puede editar ni borrar esta política (ver operator-policy.tf).
 
 locals {
-  # Fuente única de lo que puede hacer el rol de ejecución: leer artefactos y escribir sus registros.
+  # Fuente única de lo que puede hacer el rol de ejecución: leer artefactos, descargar la imagen de su modelo y
+  # escribir sus registros.
   # El módulo infra/modules/sagemaker-execution-role repite esta lista y sus pruebas fijan la misma, así el límite
   # nunca queda por debajo del permiso del rol. Con la descarga de la imagen de EchoNext-Mini desde ECR (005).
   execution_role_statements = [

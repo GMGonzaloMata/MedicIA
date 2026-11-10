@@ -42,6 +42,7 @@ Organizar la plataforma como un **monolito modular con Next.js full-stack**, sig
 │   ├── modules/identity/          # Grupo de usuarios de Cognito, cliente y usuario de la aplicación
 │   ├── modules/model-artifacts/   # Bucket privado de artefactos de modelos
 │   ├── modules/sagemaker-execution-role/  # Rol de ejecución de SageMaker con su límite de permisos
+│   ├── modules/model-registry/    # Repositorio ECR con la imagen de inferencia de un modelo
 │   ├── modules/model-endpoints/   # Catálogo de modelos; los puntos de inferencia nacen apagados
 │   ├── environments/dev/          # Entorno de desarrollo (usa los módulos y define el catálogo)
 │   └── README.md                  # Guía de uso y operación
@@ -97,7 +98,7 @@ src/modules/studies/
 - **Cookies y redirecciones** viven solo en `src/app/` (Server Actions, Route Handlers y `_lib/`). Los módulos no importan `next/*`: reciben y devuelven datos simples.
 - **Prisma** se reutiliza mediante un cliente compartido por proceso; las consultas del negocio se encapsulan donde corresponda.
 - **Multi-tenancy:** toda operación sensible valida la clínica autorizada. No se confía en el `tenant_id` enviado por el cliente.
-- **Modelos ML:** su entrenamiento y código Python/PyTorch viven en un proyecto o espacio de ML separado; esta aplicación consume inferencia mediante el adaptador de SageMaker.
+- **Modelos ML:** su entrenamiento y código Python/PyTorch viven en un proyecto o espacio de ML separado: el repositorio `medicia-ml` (GitHub `GMGonzaloMata/medicia-ml`), que construye la imagen de inferencia y arma el artefacto de cada modelo. Esta aplicación consume inferencia mediante el adaptador de SageMaker y referencia la imagen y el artefacto por versión.
 - **Tests:** todas las pruebas viven en `tests/`: unitarias en `tests/unit/` (replicando la estructura de `src/`), de integración en `tests/integration/` y E2E en `tests/e2e/`. Los archivos de apoyo compartidos van en `tests/support/`. Excepción: las pruebas de Terraform (`.tftest.hcl`) viven en la carpeta `tests/` de su módulo o raíz dentro de `infra/`, porque `terraform test` solo lee pruebas dentro del directorio de su configuración.
 - Evitar dependencias circulares, duplicación de lógica y nuevas abstracciones sin una necesidad concreta.
 

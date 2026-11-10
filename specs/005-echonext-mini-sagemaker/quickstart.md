@@ -52,3 +52,18 @@ Recorrido de punta a punta para comprobar que la funcionalidad anda. Los comando
 ## Aviso
 
 Las probabilidades son un indicador relativo de riesgo de un posible hallazgo, de apoyo clínico. El modelo es de investigación, entrenado con adultos en un solo centro, y el código original no declara licencia. El uso actual es académico; un uso comercial exige revisar la licencia antes.
+
+## Resultados (2026-11-10)
+
+Verificación hecha con los 5 primeros estudios de la partición de prueba (índices 0 a 4; la partición tiene 5.442). Se registran solo índices y diferencias, nunca datos de estudios (FR-022). Tolerancia: 0,001.
+
+- **Modelo reescrito contra el original, en proceso** (`check_parity.py`, clon de `IntroECG` en el commit `15233e9`): diferencia máxima **0** en los 5 estudios. Un control con un peso alterado a propósito (0,05) dio 0,0067, así que la comparación detecta diferencias.
+- **Imagen en contenedor local, sin red** (`invoke_endpoint.py --url`): diferencias entre 3e-8 y 1,8e-7. La entrada inválida (6 variables) devolvió 400 sin probabilidades. Probado además con ruido aleatorio: `/ping`, mismo resultado ante la misma entrada, 400 ante 4 tipos de entrada inválida y 415 ante otro tipo de contenido, con el contenedor corriendo como usuario sin privilegios y sin internet.
+- **Punto de inferencia real en SageMaker** (`invoke_endpoint.py --endpoint-name`, `ml.t2.medium`, `sa-east-1`): diferencias entre 6e-8 y 1,8e-7. La entrada inválida se rechazó sin probabilidades (SageMaker la devuelve como error 424). **SC-001 y SC-002 cumplidos.**
+- **SC-003:** apagado, el plan propone el modelo y la configuración sin ningún punto de inferencia, y la lista de endpoints quedó vacía; encendido, el plan propuso exactamente 1 punto de inferencia; al apagar se quitó solo ese. Verificado en el plan real y por las pruebas automáticas.
+- **Artefacto:** `echonext-mini/0.1.0/model.tar.gz`, 3.552.110 bytes, SHA-256 `f452421e406c289341a85e6d0c840377ad8cf57c641428867d74253dc3565476`, cifrado AES-256.
+- **Imagen:** `medicia-dev-echonext-mini:0.1.0`, manifiesto simple, 331 MB comprimida en ECR y 1,54 GB descomprimida. Escaneo: 0 críticas, 13 altas, 10 medias y 4 bajas, todas de paquetes del sistema operativo (ver `research.md`, R13).
+- **SC-004 (menos de 30 minutos de subir el artefacto a apagar, con la imagen ya subida):** el encendido tardó los 5 a 10 minutos esperados y la prueba un par de minutos, pero **no se midió con reloj**, así que no hay un tiempo registrado. Queda como objetivo razonable y sin cifra.
+- **Costo de la sesión de pruebas:** una sesión corta con `ml.t2.medium` a 0,089 USD por hora, por debajo de 0,10 USD. La facturación real se revisa una semana después (T059).
+- **Lo que no se pudo probar:** la comparación del punto de inferencia real se hizo con 5 estudios, no con los 5.442 (queda fuera de esta entrega, FR-015). No se midió la calibración de las probabilidades.
+

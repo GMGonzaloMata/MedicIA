@@ -98,7 +98,7 @@ Contenido, sin comodines de acciones ni servicios:
 - **SageMaker, escrituras y lecturas sobre los recursos del entorno:** `CreateModel`, `DeleteModel`, `DescribeModel`, `CreateEndpointConfig`, `DeleteEndpointConfig`, `DescribeEndpointConfig`, `CreateEndpoint`, `UpdateEndpoint`, `DeleteEndpoint`, `DescribeEndpoint`, `AddTags`, `DeleteTags`, `ListTags`, sobre `model/medicia-dev-*`, `endpoint-config/medicia-dev-*` y `endpoint/medicia-dev-*`. También `InvokeEndpoint` sobre `endpoint/medicia-dev-*` para la verificación.
 - **Listados (`ListModels`, `ListEndpoints`, `ListEndpointConfigs`):** SageMaker no admite limitarlos a un recurso, así que `Resource: "*"` en una sentencia aparte y solo de listado.
 - **`iam:PassRole`:** solo sobre el rol de ejecución (`medicia-dev-sagemaker-execution`) y con la condición `iam:PassedToService = sagemaker.amazonaws.com`. Es la protección principal contra escalar privilegios.
-- **ECR:** crear y gestionar el repositorio (`CreateRepository`, `DeleteRepository`, `DescribeRepositories`, `ListTagsForResource`, `TagResource`, `GetLifecyclePolicy`, `PutLifecyclePolicy`, `GetRepositoryPolicy`, `PutImageScanningConfiguration`) y subir imágenes (`BatchCheckLayerAvailability`, `InitiateLayerUpload`, `UploadLayerPart`, `CompleteLayerUpload`, `PutImage`, `DescribeImages`, `ListImages`, `BatchGetImage`, `GetDownloadUrlForLayer`) solo sobre `repository/medicia-dev-*`. `GetAuthorizationToken` exige `Resource: "*"` (AWS no admite otra cosa) en una sentencia aparte.
+- **ECR:** crear y gestionar el repositorio (`CreateRepository`, `DeleteRepository`, `DescribeRepositories`, `ListTagsForResource`, `TagResource`, `GetLifecyclePolicy`, `PutLifecyclePolicy`, `GetRepositoryPolicy`, `PutImageScanningConfiguration`, y, porque las usa Terraform al gestionar el repositorio, `UntagResource`, `DeleteLifecyclePolicy` y `PutImageTagMutability`) y subir imágenes (`BatchCheckLayerAvailability`, `InitiateLayerUpload`, `UploadLayerPart`, `CompleteLayerUpload`, `PutImage`, `DescribeImages`, `ListImages`, `BatchGetImage`, `GetDownloadUrlForLayer`) solo sobre `repository/medicia-dev-*`. `GetAuthorizationToken` exige `Resource: "*"` (AWS no admite otra cosa) en una sentencia aparte.
 - **Sin borrado de imágenes** (`BatchDeleteImage`) para el operador: una imagen publicada es una versión trazable. El ciclo de vida del repositorio las vence.
 - **Sentencias de protección:** un `Deny` sobre `CreatePolicy`, `CreatePolicyVersion`, `DeletePolicy`, `DeletePolicyVersion` y `SetDefaultPolicyVersion` de esta política (se agrega su ARN a `ProtegerLasPoliticasDeAcceso` de la política actual) y, si AWS lo admite, condiciones que exijan `sagemaker:NetworkIsolation = true` al crear un modelo.
 
@@ -154,6 +154,34 @@ El rol de plan gana lecturas enumeradas y sin escrituras: `sagemaker:DescribeMod
 ## R12. Cuota y tipo de cómputo
 
 **Verificado el 2026-11-10:** la cuota aplicada de `ml.t2.medium` para puntos de inferencia es 30. Tipo por defecto: `ml.t2.medium` (el más barato permitido por la 004). El modelo cabe de sobra (4 MB de pesos).
+
+## R13. Resultados de la implementación: imagen y escaneo (2026-11-10)
+
+- **Formato de la imagen.** El primer `docker push` con Docker 29 subió un índice de manifiestos con atestación de procedencia (tipo "Image Index" en ECR), que algunos servicios de AWS no aceptan. Se borró desde la consola con el usuario raíz y se reconstruyó con `--provenance=false --sbom=false`. Ahora `0.1.0` es un manifiesto simple (`application/vnd.docker.distribution.manifest.v2+json`). El comando correcto queda en el `Dockerfile` de `medicia-ml`.
+- **Tamaño.** 1,54 GB descomprimida y 331 MB comprimida en ECR. Es más que los "unos cientos de MB" estimados en R1, porque PyTorch CPU y sus dependencias pesan; el costo de almacenamiento sigue siendo de centavos por mes.
+- **Escaneo de vulnerabilidades de ECR (imagen `0.1.0`):** 0 críticas, 13 altas, 10 medias y 4 bajas. Se revisaron las 27: son de siete paquetes del sistema operativo de la imagen base (`sqlite3`, `krb5`, `glibc`, `util-linux`, `zlib`, `libtirpc` y `gcc-12`), ninguno de PyTorch, NumPy ni del código propio. Todas exigen algo que el contenedor no hace (usar SQLite o Kerberos, acceso local con programas `setuid`, montar discos o la API de archivos `gz*` de zlib): corre como usuario sin privilegios, sin internet, y solo recibe un JSON validado.
+- **Limitación del escaneo.** El escaneo básico de ECR solo mira paquetes del sistema operativo, no las librerías de Python (`torch`, `numpy` y sus dependencias). Cubrirlas exige el escaneo mejorado (Amazon Inspector, con costo) o una herramienta aparte. Queda como pendiente antes de usar datos reales de pacientes.
+- **Decisión: se acepta para esta etapa** (proyecto académico, datos públicos de investigación). **Antes de usar datos reales de pacientes** hay que reconstruir la imagen con una base actualizada (versión `0.1.1`, porque las etiquetas son inmutables) y volver a escanearla.
+- **Permiso faltante, anotado:** el operador no puede leer los resultados del escaneo (`ecr:DescribeImageScanFindings`). Se vieron en la consola. Si hay otra rotación de administrador, se suma a la política del operador (es una lectura).
+
+### Revisión de seguridad de la implementación (2026-11-10): qué se corrigió y qué queda
+
+**Corregido en el código** (en `medicia-ml`, todavía **no está en la imagen `0.1.0` publicada**, va en la `0.1.1`): un JSON anidado miles de veces y un entero de cientos de dígitos escapaban de la validación y el servidor no respondía 400; ahora ambos devuelven 400 y tienen prueba. El servidor suma un tiempo máximo de lectura de 30 segundos. `check_parity.py` verifica la huella SHA-256 del archivo del original antes de ejecutarlo. `medicia-ml` ganó una comprobación de CI y un gancho local contra pesos, datos y artefactos versionados, y su `.gitignore` y los del repositorio principal cubren `*.zip`, `*.xml` y otros formatos.
+
+**Pendiente para la imagen `0.1.1`** (antes de usar datos reales de pacientes; las etiquetas son inmutables, así que va como versión nueva y el catálogo cambia de etiqueta):
+
+- Incluir las correcciones del servidor de arriba.
+- Fijar la imagen base por digest (`python:3.11-slim-bookworm@sha256:...`) y actualizar sus paquetes.
+- Generar `requirements.lock` con hashes para linux/amd64 e instalar con `--require-hashes`. Hoy se instala con `--extra-index-url` sin hashes y el lock se generó en Windows.
+
+**Pendiente para la próxima rotación de administrador** (todo en `operator-policy-ml.tf`):
+
+- Sumar `ecr:DescribeImageScanFindings` (lectura).
+- Evaluar quitar `ecr:PutImageTagMutability`, que permitiría volver mutable el repositorio y resubir una versión con otro contenido. El operador es de confianza y el plan mostraría el cambio, pero contradice la trazabilidad de la imagen. Evaluar también `ecr:PutLifecyclePolicy`, y que la regla "últimas 10 imágenes" no haga vencer la versión en uso.
+- **Aislamiento de red en IAM:** hoy es un `Deny` cuando `sagemaker:NetworkIsolation` vale `false`. Si AWS no informa la clave cuando se omite el parámetro, el `Deny` no cubre una creación por CLI sin aislamiento. La prueba es sin costo: con el perfil del operador, `aws sagemaker create-model` sin `--enable-network-isolation`; si se crea, hay que cambiar a un `Allow` condicionado a `true` (que falla cerrado) y borrar el modelo de prueba. El control principal sigue siendo el módulo `model-endpoints`, que siempre fija el aislamiento.
+- Condición por tipo de instancia (`sagemaker:InstanceTypes`) en `CreateEndpointConfig`, si AWS la admite.
+
+**Límites que se aceptan por ahora:** el repositorio `medicia-ml` está en GitHub (privado); `tabular_transformer.joblib` es un `pickle` que viaja en el artefacto pero el servidor nunca lo carga.
 
 ## Pendientes que se resuelven al implementar
 

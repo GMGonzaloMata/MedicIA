@@ -26,7 +26,7 @@ run "limite_de_sagemaker_con_nombre_esperado" {
   }
 }
 
-# Leer artefactos y escribir registros, nada más. Son tres declaraciones porque cada una apunta a un recurso distinto.
+# Leer artefactos, escribir registros y descargar la imagen, nada más. Son cinco declaraciones porque cada una apunta a un recurso distinto.
 run "limite_de_sagemaker_con_permisos_exactos" {
   command = plan
 

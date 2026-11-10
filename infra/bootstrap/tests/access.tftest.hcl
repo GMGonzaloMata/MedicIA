@@ -94,7 +94,7 @@ run "rol_de_plan_solo_lectura" {
     error_message = "Toda declaración del rol de plan debe permitir y listar acciones y recursos explícitos."
   }
 
-  # Solo lectura: Describe, Get o List de Cognito e IAM, y Get o List de S3. Sin comodines.
+  # Solo lectura: Describe, Get o List de Cognito, IAM, SageMaker y ECR, y Get o List de S3. Sin comodines.
   assert {
     condition = alltrue([
       for a in flatten([for s in jsondecode(aws_iam_role_policy.plan_read.policy).Statement : s.Action]) :
