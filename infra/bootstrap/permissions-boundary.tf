@@ -10,7 +10,7 @@ locals {
 
 resource "aws_iam_policy" "boundary" {
   name        = "medicia-${var.environment}-boundary"
-  description = "Techo de permisos de los principales del entorno: lectura, fijar contraseñas en el grupo de usuarios y guardar estudios."
+  description = "Techo de permisos de los principales del entorno: lectura y fijar contraseñas en el grupo de usuarios."
 
   policy = jsonencode({
     Version = "2012-10-17"
