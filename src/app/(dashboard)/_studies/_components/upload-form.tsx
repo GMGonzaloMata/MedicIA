@@ -17,7 +17,18 @@ interface UploadFormProps {
 // Formulario de carga de un estudio. Comprueba el tamaño antes de enviar para no subir un archivo que el
 // servidor va a rechazar; el servidor lo vuelve a comprobar. El mensaje va en una región `aria-live`.
 export function UploadForm({ patientId, maxBytes }: UploadFormProps) {
-  const [state, action] = useActionState<UploadStudyState, FormData>(uploadStudyAction, undefined);
+  // Un archivo demasiado grande ni siquiera se envía: Next rechazaría el cuerpo entero antes de ejecutar la
+  // acción y la persona no vería el motivo.
+  const submit = async (previous: UploadStudyState, formData: FormData): Promise<UploadStudyState> => {
+    const file = formData.get("file");
+
+    if (file instanceof File && file.size > maxBytes) {
+      return { ok: false, code: "FILE_TOO_LARGE", message: STUDY_MESSAGES.fileTooLarge };
+    }
+
+    return uploadStudyAction(previous, formData);
+  };
+  const [state, action] = useActionState<UploadStudyState, FormData>(submit, undefined);
   const [tooLarge, setTooLarge] = useState(false);
 
   return (
