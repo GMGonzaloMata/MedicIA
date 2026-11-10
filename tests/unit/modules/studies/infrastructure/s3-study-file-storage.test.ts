@@ -1,4 +1,4 @@
-import { DeleteObjectCommand, ListObjectsV2Command, PutObjectCommand } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand, ListObjectsV2Command, PutObjectCommand } from "@aws-sdk/client-s3";
 import { describe, expect, it, vi } from "vitest";
 
 import { createS3StudyFileStorage } from "@/modules/studies/infrastructure/adapters/s3-study-file-storage";
@@ -22,6 +22,30 @@ describe("almacenamiento de estudios en S3", () => {
       Key: "studies/a/uno.ecg1",
       ServerSideEncryption: "AES256",
     });
+  });
+
+  it("lee un objeto y devuelve sus bytes", async () => {
+    const { send, storage } = setup([{ Body: { transformToByteArray: async () => Uint8Array.from([5, 6]) } }]);
+
+    expect(await storage.get("studies/a/uno.ecg1")).toEqual(Uint8Array.from([5, 6]));
+
+    const command = send.mock.calls[0]?.[0] as unknown as GetObjectCommand;
+    expect(command).toBeInstanceOf(GetObjectCommand);
+    expect(command.input).toEqual({ Bucket: "bucket-de-prueba", Key: "studies/a/uno.ecg1" });
+  });
+
+  it("devuelve null si el objeto no existe y propaga cualquier otro error", async () => {
+    const missing = Object.assign(new Error("The specified key does not exist."), { name: "NoSuchKey" });
+    const denied = new Error("AccessDenied");
+    const send = vi.fn().mockRejectedValueOnce(missing).mockRejectedValueOnce(denied);
+    const storage = createS3StudyFileStorage({ client: { send } as never, bucket: "b" });
+
+    expect(await storage.get("studies/a/no-esta.ecg1")).toBeNull();
+    await expect(storage.get("studies/a/uno.ecg1")).rejects.toBe(denied);
+  });
+
+  it("devuelve null si la respuesta no trae contenido", async () => {
+    expect(await setup([{}]).storage.get("studies/a/uno.ecg1")).toBeNull();
   });
 
   it("borra un objeto", async () => {

@@ -1,5 +1,5 @@
 import type { NewStudy, StudyRepository } from "@/modules/studies/application/ports/out/study-repository";
-import type { StudyListItem, StudyRecord } from "@/modules/studies/domain/study";
+import type { StudyDetail, StudyListItem, StudyRecord } from "@/modules/studies/domain/study";
 
 // Cumple el puerto en memoria. Guarda la persona que cargó cada estudio para que la lista pueda decir
 // quién fue; las pruebas registran a esas personas con `registerUploader`.
@@ -37,6 +37,22 @@ export class InMemoryStudyRepository implements StudyRepository {
 
   async findById({ tenantId, studyId }: { tenantId: string; studyId: string }): Promise<StudyRecord | null> {
     return this.studies.find((study) => study.tenantId === tenantId && study.id === studyId) ?? null;
+  }
+
+  async findDetailById({ tenantId, studyId }: { tenantId: string; studyId: string }): Promise<StudyDetail | null> {
+    const study = await this.findById({ tenantId, studyId });
+
+    if (!study) {
+      return null;
+    }
+
+    const uploader = this.uploaders.get(study.uploadedByUserId);
+
+    return {
+      ...study,
+      uploaderName: uploader?.fullName ?? "Sin nombre",
+      uploadedByPatient: uploader?.isPatient ?? false,
+    };
   }
 
   async listByPatient(input: {

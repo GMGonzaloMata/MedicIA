@@ -35,6 +35,10 @@ export function createInMemoryStudyFileStorage(
       objects.set(key, { bytes: bytes.slice(), lastModified: new Date() });
     },
 
+    async get(key) {
+      return objects.get(key)?.bytes.slice() ?? null;
+    },
+
     async delete(key) {
       if (storage.failNextDelete) {
         storage.failNextDelete = false;

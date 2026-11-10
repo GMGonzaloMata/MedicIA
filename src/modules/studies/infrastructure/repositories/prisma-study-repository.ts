@@ -41,6 +41,25 @@ export const prismaStudyRepository: StudyRepository = {
     return prismaClient.study.findUnique({ where: { tenantId_id: { tenantId, id: studyId } } });
   },
 
+  async findDetailById({ tenantId, studyId }) {
+    const row = await prismaClient.study.findUnique({
+      where: { tenantId_id: { tenantId, id: studyId } },
+      include: { uploadedBy: { select: { fullName: true } }, patient: { select: { userId: true } } },
+    });
+
+    if (!row) {
+      return null;
+    }
+
+    const { uploadedBy, patient, ...record } = row;
+
+    return {
+      ...record,
+      uploaderName: uploadedBy.fullName,
+      uploadedByPatient: patient.userId === row.uploadedByUserId,
+    };
+  },
+
   async listByPatient({ tenantId, patientId, page, pageSize }) {
     const where = { tenantId, patientId };
     const [totalItems, rows] = await Promise.all([

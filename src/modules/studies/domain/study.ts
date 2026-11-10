@@ -21,6 +21,13 @@ export interface StudyRecord {
   uploadedAt: Date;
 }
 
+// Un estudio con quién lo cargó, para el encabezado del visor (specs/007-visor-onda-ecg/data-model.md). Lleva la clave
+// del archivo: solo la usa el caso de uso y nunca sale del servidor.
+export interface StudyDetail extends StudyRecord {
+  uploaderName: string;
+  uploadedByPatient: boolean;
+}
+
 // Una fila de la lista de estudios de un paciente, con lo necesario para saber quién lo cargó.
 export interface StudyListItem {
   id: string;

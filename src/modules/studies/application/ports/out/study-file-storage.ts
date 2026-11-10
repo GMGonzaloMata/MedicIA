@@ -8,6 +8,9 @@ export interface StoredObjectInfo {
 export interface StudyFileStorage {
   put(key: string, bytes: Uint8Array): Promise<void>;
 
+  // Los bytes del objeto, o null si no existe. Los demás errores (red, permisos) se propagan.
+  get(key: string): Promise<Uint8Array | null>;
+
   // Borrar un objeto que no existe no es un error.
   delete(key: string): Promise<void>;
 

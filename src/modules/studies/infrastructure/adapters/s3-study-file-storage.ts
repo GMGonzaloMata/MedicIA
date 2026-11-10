@@ -1,5 +1,6 @@
 import {
   DeleteObjectCommand,
+  GetObjectCommand,
   ListObjectsV2Command,
   PutObjectCommand,
   type S3Client,
@@ -24,6 +25,20 @@ export function createS3StudyFileStorage({ client, bucket }: { client: S3Sender;
           ServerSideEncryption: "AES256",
         }),
       );
+    },
+
+    async get(key) {
+      try {
+        const response = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+
+        return (await response.Body?.transformToByteArray()) ?? null;
+      } catch (error) {
+        if (error instanceof Error && error.name === "NoSuchKey") {
+          return null;
+        }
+
+        throw error;
+      }
     },
 
     async delete(key) {

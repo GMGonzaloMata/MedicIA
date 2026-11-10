@@ -1,4 +1,4 @@
-import type { StudyListItem, StudyRecord, StudyType } from "../../../domain/study";
+import type { StudyDetail, StudyListItem, StudyRecord, StudyType } from "../../../domain/study";
 
 export interface NewStudy {
   id: string;
@@ -17,6 +17,9 @@ export interface StudyRepository {
   insertWithNextNumber(study: NewStudy): Promise<StudyRecord>;
 
   findById(input: { tenantId: string; studyId: string }): Promise<StudyRecord | null>;
+
+  // Como `findById`, con quién cargó el estudio (para el encabezado del visor).
+  findDetailById(input: { tenantId: string; studyId: string }): Promise<StudyDetail | null>;
 
   // Del más reciente al más antiguo (número descendente). `page` empieza en 1.
   listByPatient(input: {

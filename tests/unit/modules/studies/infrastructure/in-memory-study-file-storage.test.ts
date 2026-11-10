@@ -25,6 +25,17 @@ describe("almacenamiento simulado de estudios", () => {
     expect(storage.has("studies/clinica-b/dos.ecg1")).toBe(true);
   });
 
+  it("devuelve una copia de los bytes guardados, o null si el objeto no existe", async () => {
+    const storage = newStorage();
+    await storage.put("studies/clinica-a/uno.ecg1", Uint8Array.from([1, 2, 3]));
+
+    const bytes = await storage.get("studies/clinica-a/uno.ecg1");
+    bytes![0] = 99;
+
+    expect(await storage.get("studies/clinica-a/uno.ecg1")).toEqual(Uint8Array.from([1, 2, 3]));
+    expect(await storage.get("studies/no-existe.ecg1")).toBeNull();
+  });
+
   it("borrar un objeto que no existe no es un error", async () => {
     await expect(newStorage().delete("studies/no-existe.ecg1")).resolves.toBeUndefined();
   });
