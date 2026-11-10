@@ -14,6 +14,11 @@ output "app_secret_access_key" {
   sensitive   = true
 }
 
+output "enabled_endpoint_names" {
+  description = "Puntos de inferencia de SageMaker encendidos. Cada uno cobra por hora; vacío significa que no hay costo de cómputo."
+  value       = module.model_endpoints.enabled_endpoint_names
+}
+
 output "models_bucket_name" {
   description = "Nombre del bucket de artefactos de modelos, donde el responsable sube los artefactos."
   value       = module.model_artifacts.bucket_name

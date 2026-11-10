@@ -397,11 +397,35 @@ run "operador_no_edita_sus_politicas_de_acceso" {
         "arn:aws:iam::896618135592:policy/medicia-dev-sagemaker-boundary",
       ])
       && alltrue([
-        for a in ["iam:CreatePolicyVersion", "iam:DeletePolicy", "iam:DeletePolicyVersion", "iam:SetDefaultPolicyVersion"] :
+        for a in ["iam:CreatePolicy", "iam:CreatePolicyVersion", "iam:DeletePolicy", "iam:DeletePolicyVersion", "iam:SetDefaultPolicyVersion"] :
         contains(s.Action, a)
       ])
     ])
-    error_message = "Debe haber un Deny de crear versiones, borrar y cambiar la versión de las políticas del operador y de los dos límites."
+    error_message = "Debe haber un Deny de crear, crear versiones, borrar y cambiar la versión de las políticas del operador y de los dos límites."
+  }
+
+  # Borrar artefactos queda denegado aunque la política del bucket (que el operador puede escribir) lo permitiera.
+  assert {
+    condition = anytrue([
+      for s in jsondecode(aws_iam_policy.operator.policy).Statement :
+      s.Effect == "Deny"
+      && toset(s.Action) == toset(["s3:DeleteObject", "s3:DeleteObjectVersion"])
+      && toset(s.Resource) == toset(["arn:aws:s3:::medicia-models-dev-896618135592/*"])
+    ])
+    error_message = "Debe haber un Deny de s3:DeleteObject y s3:DeleteObjectVersion sobre los objetos del bucket de modelos."
+  }
+
+  # La declaración genérica de roles medicia-dev-* también alcanza al rol de ejecución: sin este Deny, el operador
+  # podría crearlo o cambiarle el límite a medicia-dev-boundary, que es mucho más amplio.
+  assert {
+    condition = anytrue([
+      for s in jsondecode(aws_iam_policy.operator.policy).Statement :
+      s.Effect == "Deny"
+      && toset(s.Action) == toset(["iam:CreateRole", "iam:PutRolePermissionsBoundary", "iam:PutRolePolicy"])
+      && toset(s.Resource) == toset(["arn:aws:iam::896618135592:role/medicia-dev-sagemaker-execution"])
+      && s.Condition.StringNotEquals["iam:PermissionsBoundary"] == "arn:aws:iam::896618135592:policy/medicia-dev-sagemaker-boundary"
+    ])
+    error_message = "Debe haber un Deny que exija medicia-dev-sagemaker-boundary para crear el rol de ejecución, cambiarle el límite o ponerle políticas."
   }
 
   assert {

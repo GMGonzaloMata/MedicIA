@@ -64,7 +64,7 @@ Resultado esperado: tres rechazos o aprobaciones según lo indicado. No queda ni
 2. En una rama aparte, agregar una entrada de ejemplo con `enabled = false` y verificar con `terraform test` (no se aplica) que propone 1 modelo, 1 configuración y 0 puntos de inferencia.
 3. Cambiar la entrada a `enabled = true`: la prueba propone exactamente 1 punto de inferencia.
 4. Poner un `instance_type` fuera de la lista: la validación falla.
-5. Confirmar que la guía de `infra/README.md` trae la tabla de costos por hora, día y mes y los comandos para ver y apagar lo encendido (SC-008).
+5. Confirmar que la guía de `infra/README.md` trae la lista de costos por hora, día y mes y los comandos para ver y apagar lo encendido (SC-008).
 
 Resultado esperado: las pruebas pasan sin crear recursos. La entrada de ejemplo no se versiona.
 

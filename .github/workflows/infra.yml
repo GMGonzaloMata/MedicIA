@@ -42,7 +42,7 @@ jobs:
 
       - name: Inicializar y validar cada raíz y módulo
         run: |
-          for dir in infra/bootstrap infra/environments/dev infra/modules/identity; do
+          for dir in infra/bootstrap infra/environments/dev infra/modules/identity infra/modules/model-artifacts infra/modules/sagemaker-execution-role infra/modules/model-endpoints; do
             echo "::group::$dir"
             terraform -chdir="$dir" init -backend=false -input=false
             terraform -chdir="$dir" validate
@@ -58,7 +58,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           tflint --init --config="$PWD/.tflint.hcl"
-          for dir in bootstrap environments/dev modules/identity; do
+          for dir in bootstrap environments/dev modules/identity modules/model-artifacts modules/sagemaker-execution-role modules/model-endpoints; do
             echo "::group::$dir"
             tflint --config="$PWD/.tflint.hcl" --chdir="$dir"
             echo "::endgroup::"
@@ -66,7 +66,7 @@ jobs:
 
       - name: Pruebas de Terraform
         run: |
-          for dir in infra/bootstrap infra/modules/identity; do
+          for dir in infra/bootstrap infra/environments/dev infra/modules/identity infra/modules/model-artifacts infra/modules/sagemaker-execution-role infra/modules/model-endpoints; do
             echo "::group::$dir"
             terraform -chdir="$dir" test
             echo "::endgroup::"
@@ -102,6 +102,16 @@ jobs:
             fallo=1
           fi
 
+          # Los artefactos de modelos (pesos) viven en el bucket de artefactos, nunca en el repositorio (FR-005).
+          # Se revisa todo el repositorio, no solo infra: un modelo podría subirse desde cualquier carpeta.
+          # Este paso solo corre si la propuesta toca infra/; la misma comprobación está en ci.yml, que corre siempre.
+          artefactos=$(git ls-files | grep -E '\.(pt|pth|onnx|safetensors|h5|ckpt|joblib|pkl|pickle|tgz|tar\.gz|tflite|gguf|keras|mar)$' || true)
+          if [ -n "$artefactos" ]; then
+            echo "::error::Hay artefactos de modelos versionados (FR-005):"
+            echo "$artefactos"
+            fallo=1
+          fi
+
           if git grep -nE '[A]KIA[0-9A-Z]{16}' -- infra .github; then
             echo "::error::Hay un identificador de clave de acceso de AWS en el contenido versionado."
             fallo=1
@@ -117,7 +127,7 @@ jobs:
       - name: Cada raíz tiene su archivo de bloqueo versionado
         run: |
           fallo=0
-          for dir in infra/bootstrap infra/environments/dev infra/modules/identity; do
+          for dir in infra/bootstrap infra/environments/dev infra/modules/identity infra/modules/model-artifacts infra/modules/sagemaker-execution-role infra/modules/model-endpoints; do
             if ! git ls-files --error-unmatch "$dir/.terraform.lock.hcl" >/dev/null 2>&1; then
               echo "::error::Falta versionar $dir/.terraform.lock.hcl"
               fallo=1
@@ -141,6 +151,39 @@ jobs:
             echo "::error::El contrato admite un único cliente de aplicación y hay $clientes."
             fallo=1
           fi
+          exit "$fallo"
+
+      # Protege el costo de la base de SageMaker. La guarda de etiquetas de más abajo, que mira providers.tf,
+      # también cubre FR-016: las etiquetas de los recursos nuevos vienen de default_tags.
+      - name: Guarda de costo (FR-012, FR-013)
+        run: |
+          fallo=0
+
+          # El punto de inferencia es lo único que cobra por hora y solo se crea dentro de su módulo, con enabled.
+          if git grep -lE '^[[:space:]]*resource[[:space:]]+"aws_sagemaker_endpoint"' -- 'infra/*.tf' ':!infra/modules/model-endpoints/*'; then
+            echo "::error::Un punto de inferencia de SageMaker solo puede declararse en infra/modules/model-endpoints."
+            fallo=1
+          fi
+
+          # Recursos que cobran por tiempo de uso y están fuera del alcance de esta base.
+          if git grep -nE '^[[:space:]]*resource[[:space:]]+"aws_sagemaker_(notebook_instance|domain|user_profile|space|app)"' -- 'infra/*.tf'; then
+            echo "::error::Cuadernos, dominios, perfiles, espacios y aplicaciones de SageMaker cobran por tiempo y están fuera de alcance."
+            fallo=1
+          fi
+
+          # GPU y aceleradores son una decisión de costo aparte: se agregan con su precio documentado.
+          if git grep -nE '"ml\.(p[0-9]|g[0-9]|trn|inf|dl)' -- 'infra/*.tf'; then
+            echo "::error::Los tipos de instancia con GPU o aceleradores no están permitidos: solo CPU."
+            fallo=1
+          fi
+
+          # terraform test no ve el ciclo de vida, así que se comprueba acá que el bucket siga protegido (FR-003).
+          # Se exige la línea sin comentar: una línea con # delante no protege nada.
+          if ! grep -qE '^[[:space:]]*prevent_destroy[[:space:]]*=[[:space:]]*true' infra/modules/model-artifacts/main.tf; then
+            echo "::error::El bucket de artefactos debe conservar prevent_destroy = true (FR-003)."
+            fallo=1
+          fi
+
           exit "$fallo"
 
       - name: Guarda de no aplicar (FR-018)

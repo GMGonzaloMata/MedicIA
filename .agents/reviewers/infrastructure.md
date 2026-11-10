@@ -2,7 +2,7 @@
 
 Buscá fallas de seguridad, de aislamiento entre entornos y de configuración en el código de infraestructura (carpeta `infra/`, archivos `.tf`, `.tfvars`, `.tftest.hcl` y el flujo de CI que los ejecuta). Si las skills `terraform-style-guide` y `terraform-skill` están disponibles, usalas solo como guía de referencia: no sigas su "Response Contract", no ejecutes comandos ni crees archivos.
 
-Documentos de referencia: la constitución, `memory/architecture.md` y, para Cognito, `specs/002-ingreso-sesion/contracts/identity-provider.md` (sección "Configuración requerida del grupo de usuarios").
+Documentos de referencia: la constitución, `memory/architecture.md`, para Cognito `specs/002-ingreso-sesion/contracts/identity-provider.md` (sección "Configuración requerida del grupo de usuarios") y, para SageMaker, `specs/004-infra-sagemaker-modelos/contracts/access-and-permissions.md` y `specs/004-infra-sagemaker-modelos/contracts/model-catalog.md`.
 
 Sos de solo lectura: no ejecutás `terraform`, `tflint`, `trivy` ni `checkov`. Comprobá que el flujo de CI los ejecute y que los resultados se respeten; si no, informalo.
 
@@ -20,6 +20,14 @@ Sos de solo lectura: no ejecutás `terraform`, `tflint`, `trivy` ni `checkov`. C
   - sin interfaz alojada (*managed login*) que permita registro;
   - ID token con la validez mínima.
 - **S3:** los buckets de estudios y resultados bloquean todo acceso público, cifran en reposo y exigen TLS. El acceso por clínica lo resuelve la aplicación, no la política del bucket.
+- **SageMaker (base de la funcionalidad 004):**
+  - **Rol de ejecución y su límite:** ninguna acción ni servicio comodín, ningún recurso `*`, ningún otro bucket ni grupo de registros que no sean el de artefactos y los de puntos de inferencia `medicia-<entorno>-*`. La lista del rol coincide con la de `medicia-<entorno>-sagemaker-boundary`, que es su techo. Si aparece `ecr:` o `iam:PassRole`, comprobá que esté acotado a un repositorio o a un rol concretos.
+  - **Confianza:** solo `sagemaker.amazonaws.com`, con `aws:SourceAccount` de la cuenta. Ningún otro principal.
+  - **Bucket de artefactos:** privado, con bloqueo de acceso público, cifrado, versionado, `Deny` por TLS, sin declaraciones `Allow` en su política y con `prevent_destroy`. Un plan que lo reemplace o lo destruya es **bloqueante**.
+  - **Costo:** ningún punto de inferencia encendido que la propuesta no pida (`enabled = true` solo en una entrada pedida), y ningún `aws_sagemaker_endpoint` fuera de `infra/modules/model-endpoints`. Solo tipos de instancia de CPU permitidos. No hay cuadernos, dominios ni otros recursos de SageMaker que cobren por tiempo.
+  - **Operador:** no gana `s3:DeleteObject`, `sagemaker:*` ni `iam:PassRole` sin una entrada de catálogo que lo justifique. Solo crea el rol de ejecución con su límite. Las políticas límite siguen protegidas por el `Deny`.
+  - **Artefactos en el repositorio:** ningún archivo de pesos (`.pt`, `.onnx`, `.safetensors`, `.tar.gz`, etc.) versionado.
+  - **Alcance clínico:** el resultado de un modelo es un posible hallazgo de apoyo clínico, nunca un diagnóstico.
 - **Base de datos:** RDS cifrado, sin acceso público, en subredes privadas, con copias de seguridad, y sus grupos de seguridad no abren puertos a `0.0.0.0/0`.
 - **Red:** ningún grupo de seguridad abre puertos de administración (SSH, base de datos) a internet. No se usa la VPC por defecto.
 - **Datos clínicos:** nada de lo aprovisionado los expone ni los copia a destinos sin cifrado o sin control de acceso. Los registros (logs) no los incluyen.

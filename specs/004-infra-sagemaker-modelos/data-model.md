@@ -49,7 +49,7 @@ Esta funcionalidad no agrega tablas ni modifica la base de datos. Lo que se mode
 
 ## Recursos de una entrada del catálogo
 
-- **Modelo de SageMaker** `medicia-<entorno>-<nombre>`: referencia la imagen, el artefacto y el rol de ejecución. Siempre existe mientras la entrada exista. No cobra.
+- **Modelo de SageMaker** `medicia-<entorno>-<nombre>-<resumen>` (el resumen de 8 caracteres cambia con la imagen, el artefacto o el rol): referencia la imagen, el artefacto y el rol de ejecución. Siempre existe mientras la entrada exista. No cobra.
 - **Configuración del punto de inferencia:** una instancia del tipo elegido, referencia el modelo. Siempre existe con la entrada. No cobra.
 - **Punto de inferencia:** el servicio encendido. Existe solo si `enabled` es `true`. **Cobra por hora mientras existe.**
 - **Relaciones:** entrada → modelo → configuración → punto de inferencia; todos usan el mismo rol de ejecución y el mismo bucket.

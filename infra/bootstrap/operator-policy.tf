@@ -3,7 +3,8 @@
 # Contención de IAM: el operador gestiona usuarios y roles con prefijo medicia-dev-, pero:
 #   - solo puede crearlos o darles políticas si llevan la política límite medicia-dev-boundary
 #     (condición iam:PermissionsBoundary), así que nada de lo que cree supera ese techo;
-#   - el rol de ejecución de SageMaker lleva su propia política límite (medicia-dev-sagemaker-boundary);
+#   - el rol de ejecución de SageMaker lleva su propia política límite (medicia-dev-sagemaker-boundary), y un
+#     Deny impide crearlo o cambiarle el límite a cualquier otro;
 #   - no puede editar ni borrar la propia política del operador ni las políticas límite (Deny), ni quitar
 #     el límite a nadie.
 # Consecuencia: cambiar esta política o el límite exige una vía de administración aparte (el usuario raíz
@@ -237,7 +238,10 @@ resource "aws_iam_policy" "operator" {
         # Un Deny gana a cualquier Allow: el operador no puede darse permisos editando las políticas que lo limitan.
         Sid    = "ProtegerLasPoliticasDeAcceso"
         Effect = "Deny"
+        # CreatePolicy también: si un administrador borrara alguna de estas políticas, el operador no podría
+        # recrearla con otro contenido y quedarse con un techo a su medida.
         Action = [
+          "iam:CreatePolicy",
           "iam:CreatePolicyVersion",
           "iam:DeletePolicy",
           "iam:DeletePolicyVersion",
@@ -248,6 +252,31 @@ resource "aws_iam_policy" "operator" {
           local.boundary_policy_arn,
           local.sagemaker_boundary_policy_arn,
         ]
+      },
+      {
+        # El operador puede escribir la política del bucket de modelos. Sin este Deny, una sentencia Allow para
+        # terraform-dev en esa política le daría el borrado de objetos, que el resto de sus permisos no incluye.
+        # Un Deny gana a cualquier Allow, también al de la política del recurso. El vencimiento por ciclo de vida
+        # lo ejecuta S3 y no se ve afectado.
+        Sid      = "NoBorrarArtefactosDeModelos"
+        Effect   = "Deny"
+        Action   = ["s3:DeleteObject", "s3:DeleteObjectVersion"]
+        Resource = ["${local.models_bucket_arn}/*"]
+      },
+      {
+        # La declaración genérica de roles medicia-dev-* también cubre al rol de ejecución, así que por sí sola
+        # permitiría crearlo o cambiarle el límite a medicia-dev-boundary, un techo mucho más amplio. Este Deny
+        # (que gana a cualquier Allow) obliga a que el rol de ejecución lleve siempre su propio límite.
+        # Con la clave ausente (rol sin límite), StringNotEquals se cumple y el Deny aplica.
+        Sid      = "ElRolDeEjecucionSoloConSuLimite"
+        Effect   = "Deny"
+        Action   = ["iam:CreateRole", "iam:PutRolePermissionsBoundary", "iam:PutRolePolicy"]
+        Resource = [local.execution_role_arn]
+        Condition = {
+          StringNotEquals = {
+            "iam:PermissionsBoundary" = local.sagemaker_boundary_policy_arn
+          }
+        }
       },
       {
         Sid    = "ProtegerElLimiteDeLosPrincipales"

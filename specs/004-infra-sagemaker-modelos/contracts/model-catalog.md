@@ -7,7 +7,7 @@ Define la variable `models` de `infra/environments/dev`, lo que crea cada entrad
 ## La variable `models`
 
 - **Tipo:** mapa de nombre corto a entrada. Valor por defecto: `{}`. Sin archivos `.tfvars` (están prohibidos en git); las entradas se escriben en el código de `environments/dev` y pasan por revisión.
-- **Nombre corto (clave del mapa):** cumple `^[a-z][a-z0-9-]{1,23}$` (2 a 24 caracteres, para que el nombre de la configuración con su sufijo único no pase los 63 caracteres que admite SageMaker). Los recursos se llaman `medicia-dev-<nombre>`.
+- **Nombre corto (clave del mapa):** cumple `^[a-z][a-z0-9-]{1,23}$` (2 a 24 caracteres, para que el nombre de la configuración con su sufijo único no pase los 63 caracteres que admite SageMaker). El punto de inferencia se llama `medicia-dev-<nombre>`. El modelo se llama `medicia-dev-<nombre>-<resumen>`, con un resumen de 8 caracteres de la imagen, el artefacto y el rol: SageMaker no puede actualizar un modelo, y el nombre nuevo permite reemplazarlo (crear antes de borrar) sin chocar con el anterior.
 
 ### Campos de una entrada
 
