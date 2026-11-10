@@ -6,7 +6,7 @@
 //
 // Uso:
 //   npm run studies:reconcile
-//   npm run studies:reconcile -- --apply --min-age 0
+//   npm run studies:reconcile -- --apply --min-age 60
 //
 // Solo corre contra S3 si `STUDY_STORAGE=s3` está definido explícitamente, y usa la clave de la aplicación.
 
@@ -85,6 +85,13 @@ async function main(): Promise<void> {
         },
       },
     });
+
+    if (options.apply && options.minAgeMinutes < 5) {
+      console.warn(
+        "Aviso: con un mínimo menor a 5 minutos, un archivo que se está guardando en este momento puede borrarse " +
+          "antes de que se registre su estudio. Usalo solo para pruebas.",
+      );
+    }
 
     const result = await reconcile(options);
 

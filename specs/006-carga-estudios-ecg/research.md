@@ -216,3 +216,23 @@ Los registros solo incluyen identificadores opacos (`studyId`, `tenantId`) y có
 - Producción: reemplazar el usuario IAM de la aplicación por un rol del servidor (ya anotado en la 002 y en el módulo `identity`).
 - Registrar pacientes, asignar médicos, invitar y vincular cuentas de pacientes: funcionalidad aparte, necesaria antes de usar la plataforma sin el script de datos de prueba.
 - Registro de auditoría de quién consultó qué estudio: ahora que los estudios pertenecen a un paciente, conviene antes de datos reales.
+
+## Resultados de la implementación
+
+**Implementado (2026-11-10):** las cinco historias (carga y lista del paciente, estudios del médico, rechazos con motivo, aislamiento por rol y clínica, eliminación y conciliación), el bucket `medicia-studies-dev-896618135592` aplicado y verificado, el formato guardado `ecg1`, el lector propio de `.npz`, `seed:demo`, `studies:reconcile`, `make_synthetic.py` y `report_ranges.py` en `medicia-ml`. `npm run check` y la suite E2E pasan, con cobertura por archivo sobre el 80 % en `src/modules` y `src/infrastructure`.
+
+**Verificado a mano contra S3 real:** carga, eliminación real sin versiones, numeración que no se reutiliza, detección y borrado de un huérfano (ver `quickstart.md`, «Resultados»).
+
+**Revisión (`review-changes`: arquitectura, seguridad, interfaz e infraestructura):** sin hallazgos bloqueantes. Corregido: rama muerta en la acción de carga, pruebas de aislamiento más estrictas, aviso al conciliar con una antigüedad mínima baja y comentario de la excepción de `findExistingStorageKeys`. Documentado con honestidad: el `Deny` del operador es una defensa adicional (ver `infra/README.md`).
+
+**Pendiente de esta funcionalidad:**
+- `report_ranges.py` con los datos reales (T091) y fijar los límites definitivos de validación (T092): hoy ±100 para la onda y ±20 para las variables estandarizadas son provisionales.
+- Probar a mano los rechazos con los archivos de `make_synthetic.py` (T073) y el aislamiento con cuentas reales (T080); ejecutar el recorrido completo del `quickstart.md` y confirmar `terraform plan` sin cambios (T099).
+
+**Pendiente de la revisión (para el cierre o antes de datos reales):**
+- Interfaz: la advertencia de «archivo pendiente de limpieza» casi nunca se ve porque el diálogo se desmonta con la fila; mostrarla a nivel de página. Estado de error de las listas (`listUnavailable` sin usar). Variante de peligro para el botón destructivo. Limpiar el estado del diálogo al cerrar y reiniciar el formulario tras una carga correcta. `tabular-nums` en las tablas, `aria-current` en la paginación, un componente de título compartido.
+- Arquitectura: el caso de uso de carga está atado a ECG (`validateEcgContent`, extensión `.ecg1`); un segundo tipo de estudio pide un registro por tipo (`StudyTypeHandler`). `canDeleteStudy` inyectable se agrega a la composición en la 008.
+- Infraestructura y seguridad: sacar la clave de la aplicación del estado; un límite propio de la aplicación; política y bloqueo del bucket de estudios por administración; sumar `PutObject` y `PutBucketVersioning` al `Deny` del operador; guardas de CI que cubran recursos fuera del módulo; ajustar `.trivyignore`, las salidas en orden alfabético y la sección «Liberar los recursos» del README; aserciones más estrictas en las pruebas de Terraform.
+- Seguridad menor: `import "server-only"` en `npz-reader.ts` y `in-memory-study-file-storage.ts`; exigir un mínimo de antigüedad al borrar en la conciliación.
+
+**Antes de datos reales de pacientes (R14):** registro de accesos de S3 y alarmas, plazos de conservación y eliminación, auditoría de consultas, limitación de frecuencia de cargas, rol del servidor en lugar del usuario de IAM de la aplicación, y registrar pacientes y asignar médicos desde la interfaz.

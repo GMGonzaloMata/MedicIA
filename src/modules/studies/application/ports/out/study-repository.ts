@@ -29,7 +29,8 @@ export interface StudyRepository {
   // Devuelve false si no había un estudio con ese `id` en esa clínica.
   deleteById(input: { tenantId: string; studyId: string }): Promise<boolean>;
 
-  // Tarea de mantenimiento (conciliación de archivos huérfanos): de las claves recibidas, devuelve las que
-  // tienen un estudio. No expone datos de ningún estudio.
+  // Excepción a la regla de la clínica: tarea de mantenimiento (conciliación de archivos huérfanos). De las claves
+  // recibidas, devuelve las que tienen un estudio, de cualquier clínica. No expone datos de ningún estudio y nunca
+  // debe llamarse desde una acción ni desde una pantalla.
   findExistingStorageKeys(storageKeys: string[]): Promise<Set<string>>;
 }

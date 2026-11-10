@@ -23,7 +23,7 @@ async function uploadValidStudy(page: Page) {
   await page.getByRole("button", { name: "Subir estudio" }).click();
 }
 
-const visibleRows = (page: Page) => page.getByText("Electrocardiograma").filter({ visible: true });
+const visibleRows = (page: Page) => page.getByText("Electrocardiograma", { exact: true }).filter({ visible: true });
 const deleteButton = (page: Page, number: number) =>
   page.getByRole("button", { name: `Eliminar el estudio ${number}` }).filter({ visible: true });
 
@@ -38,9 +38,9 @@ test("el paciente elimina un estudio propio con confirmación y el número no se
 
   // Escape cierra el diálogo sin borrar nada.
   await deleteButton(page, 1).click();
-  await expect(page.getByText("Se borrará el estudio 1 y su archivo. No se puede deshacer.")).toBeVisible();
+  await expect(page.getByText("Se borrará el estudio 1 y su archivo. No se puede deshacer.").filter({ visible: true })).toBeVisible();
   await page.keyboard.press("Escape");
-  await expect(page.getByText("Se borrará el estudio 1 y su archivo. No se puede deshacer.")).toBeHidden();
+  await expect(page.getByText("Se borrará el estudio 1 y su archivo. No se puede deshacer.").filter({ visible: true })).toBeHidden();
   await expect(visibleRows(page)).toHaveCount(1);
 
   // Confirmar elimina el estudio.

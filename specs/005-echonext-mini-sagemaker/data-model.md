@@ -31,8 +31,8 @@ No hay base de datos: esta entrega no toca Prisma. Describe las entidades del sp
 Ubicación en el bucket de la 004: `echonext-mini/<versión>/model.tar.gz`. Contenido:
 
 - `weights.pt`: pesos (4,27 MB). **Lo único que lee la inferencia.**
-- `tabular_transformer.joblib`: transformador de variables (1,5 KB). No se carga en la inferencia; lo usará la 006.
-- `waveform_normalization_params.json`: límites, media y desvío por derivación (1,1 KB). No se aplica en la inferencia; lo usará la 006.
+- `tabular_transformer.joblib`: transformador de variables (1,5 KB). No se carga en la inferencia; lo usaría una funcionalidad futura que acepte estudios sin preprocesar.
+- `waveform_normalization_params.json`: límites, media y desvío por derivación (1,1 KB). No se aplica en la inferencia; lo usaría esa misma funcionalidad futura.
 - `MANIFEST.json`: versión del modelo, huella SHA-256 de cada archivo y versión del código que lo empaquetó.
 
 Regla: sin datos de estudios, nunca. La clave del artefacto lleva la versión; subir una versión nueva no pisa la anterior.

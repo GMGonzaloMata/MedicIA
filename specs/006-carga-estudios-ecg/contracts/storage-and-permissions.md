@@ -20,7 +20,7 @@
 - **Límite de la aplicación** (`medicia-dev-boundary`, `infra/bootstrap/permissions-boundary.tf`): suma un statement con esos mismos permisos de S3. Por la vía de administración.
 - **Operador** (`terraform-dev`, `infra/bootstrap/operator-policy.tf`):
   - Puede crear, configurar y planificar el bucket de estudios (el ARN se suma a los statements que hoy cubren el bucket de modelos).
-  - **No puede leer ni borrar los estudios**: un `Deny` explícito sobre `s3:GetObject`, `s3:GetObjectVersion`, `s3:DeleteObject` y `s3:DeleteObjectVersion` en `arn:aws:s3:::medicia-studies-dev-<cuenta>/*`, que gana a cualquier `Allow` (también a uno que el operador se escriba en la política del bucket).
+  - **No puede leer ni borrar los estudios**: un `Deny` explícito sobre `s3:GetObject`, `s3:GetObjectVersion`, `s3:DeleteObject` y `s3:DeleteObjectVersion` en `arn:aws:s3:::medicia-studies-dev-<cuenta>/*`, que gana a cualquier `Allow` de las peticiones del propio operador. Es una defensa adicional: el operador conserva vías laterales en desarrollo (la clave de la aplicación en el estado, la política del bucket y los principales `medicia-dev-*` con `medicia-dev-boundary`), que se cierran antes de usar datos reales (`infra/README.md`, «Antes de cargar datos reales de pacientes»).
   - Se verifica que la política administrada siga por debajo de los 6.144 caracteres.
 - **Plan de CI** (`medicia-dev-plan`): lectura de la configuración del bucket de estudios (las mismas acciones de lectura que ya tiene para los otros buckets). Sin lectura de objetos.
 - **SageMaker y su rol de ejecución:** sin acceso al bucket de estudios. La 008 enviará los datos al punto de inferencia desde la aplicación, no desde SageMaker.

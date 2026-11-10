@@ -7,7 +7,6 @@ import { getStudiesModule } from "@/modules/studies/composition";
 import { MAX_UPLOAD_BYTES } from "@/modules/studies/domain/ecg-study";
 import {
   StudyForbiddenError,
-  StudyNotFoundError,
   StudyRejectedError,
   describeRejection,
 } from "@/modules/studies/domain/study-errors";
@@ -86,10 +85,6 @@ export async function uploadStudyAction(
 
     if (error instanceof StudyForbiddenError) {
       return failure("FORBIDDEN", STUDY_MESSAGES.forbidden);
-    }
-
-    if (error instanceof StudyNotFoundError) {
-      return failure("NOT_FOUND", error.message);
     }
 
     console.error(`[estudios] error inesperado: ${error instanceof Error ? error.name : "UnknownError"}`);

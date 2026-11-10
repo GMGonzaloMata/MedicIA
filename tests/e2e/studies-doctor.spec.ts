@@ -23,7 +23,7 @@ async function uploadValidStudy(page: Page) {
   await page.getByRole("button", { name: "Subir estudio" }).click();
 }
 
-const visibleRows = (page: Page) => page.getByText("Electrocardiograma").filter({ visible: true });
+const visibleRows = (page: Page) => page.getByText("Electrocardiograma", { exact: true }).filter({ visible: true });
 
 test("el médico ve solo a sus pacientes, les sube estudios y el paciente los ve", async ({ page, browser }) => {
   const tenantId = (await database.seedTenant(uniqueName("Clínica médico"))).id;

@@ -23,7 +23,7 @@ async function uploadValidStudy(page: Page) {
   await page.getByRole("button", { name: "Subir estudio" }).click();
 }
 
-const visibleRows = (page: Page) => page.getByText("Electrocardiograma").filter({ visible: true });
+const visibleRows = (page: Page) => page.getByText("Electrocardiograma", { exact: true }).filter({ visible: true });
 
 test("un paciente no ve estudios de otro ni abre las pantallas del médico", async ({ page, browser }) => {
   const tenantId = (await database.seedTenant(uniqueName("Clínica aislamiento"))).id;

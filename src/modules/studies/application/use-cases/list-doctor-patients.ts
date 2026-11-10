@@ -23,6 +23,7 @@ export interface ListDoctorPatientsInput {
 // de médico no tienen esta lista.
 export function createListDoctorPatients({ directory }: ListDoctorPatientsDependencies) {
   return async ({ actor, page }: ListDoctorPatientsInput): Promise<Page<PatientSummary>> => {
+    // `actor.kind` estrecha el tipo para leer `membershipId`; la regla de acceso la decide el dominio.
     if (actor.kind !== "DOCTOR" || !canListDoctorPatients(actor)) {
       throw new StudyForbiddenError();
     }

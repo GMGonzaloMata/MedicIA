@@ -31,16 +31,16 @@ Decisiones centrales (detalle en [research.md](research.md)): imagen propia pequ
 
 **Constraints**: sin acceso a internet dentro del contenedor; tipos de cómputo solo CPU de la 004; sin comodines en IAM; tope de 6144 caracteres por política administrada; los comandos reservados (`terraform apply`, `git commit`, etc.) los ejecuta el responsable.
 
-**Scale/Scope**: un modelo, una instancia, un operador. 12 salidas. Sin tráfico de usuarios hasta la 006.
+**Scale/Scope**: un modelo, una instancia, un operador. 12 salidas. Sin tráfico de usuarios hasta la 008.
 
 ## Constitution Check
 
 *GATE: pasa antes de la investigación; se vuelve a evaluar después del diseño.*
 
 - **I. Apoyo clínico, no diagnóstico:** PASA. La respuesta son probabilidades de posible hallazgo, sin etiquetas ni umbrales; la guía advierte que pueden no estar calibradas (FR-005).
-- **II. Aislamiento multi-tenant:** PASA, no aplica todavía. No hay datos de clínicas en esta entrega. El bucket de estudios (por clínica) llega con la 006.
-- **III. Arquitectura hexagonal:** PASA, sin cambios en `src/`. El contrato de la respuesta ([contracts/inference-api.md](contracts/inference-api.md)) es lo que consumirá un adaptador de la 006.
-- **IV. Trazabilidad:** PASA. La respuesta incluye `model_version` y los recursos llevan la versión como etiqueta (FR-012); la 006 la guardará en cada análisis.
+- **II. Aislamiento multi-tenant:** PASA, no aplica todavía. No hay datos de clínicas en esta entrega. El bucket de estudios (por clínica) llegó con la 006.
+- **III. Arquitectura hexagonal:** PASA, sin cambios en `src/`. El contrato de la respuesta ([contracts/inference-api.md](contracts/inference-api.md)) es lo que consumirá un adaptador de la 008.
+- **IV. Trazabilidad:** PASA. La respuesta incluye `model_version` y los recursos llevan la versión como etiqueta (FR-012); la 008 la guardará en cada análisis.
 - **V. Extensibilidad por modelo:** PASA. Es una entrada más del catálogo; sumar un modelo no cambia el flujo general.
 - **VI. Datos clínicos:** PASA. Los datos del conjunto nunca van a los repositorios ni al bucket (FR-022); la verificación corre en la máquina del responsable.
 - **VII. Interfaz:** no aplica.

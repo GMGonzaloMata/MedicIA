@@ -314,8 +314,8 @@ El bucket `medicia-studies-dev-896618135592` (módulo `study-storage`) guarda un
 ### Quién accede
 
 - **La aplicación**, con el usuario `medicia-dev-app`: guardar, leer y borrar objetos del prefijo `studies/`, y listar el bucket solo para ese prefijo (lo usa `npm run studies:reconcile`). Lo concede el módulo `identity` cuando recibe `studies_bucket_arn`, y solo tiene efecto porque `medicia-dev-boundary` incluye las mismas acciones.
-- **El operador de Terraform** crea y configura el bucket, pero tiene un `Deny` explícito sobre `GetObject`, `GetObjectVersion`, `DeleteObject` y `DeleteObjectVersion` de sus objetos, que gana a cualquier `Allow` (también al que el operador se escribiera en la política del bucket). **Límite conocido:** en desarrollo la clave del usuario de la aplicación está en el estado, que el operador puede leer; en producción la aplicación usará un rol del servidor y esa vía desaparece.
-- **El plan de CI** lee la configuración del bucket, nunca sus objetos.
+- **El operador de Terraform** crea y configura el bucket, pero tiene un `Deny` explícito sobre `GetObject`, `GetObjectVersion`, `DeleteObject` y `DeleteObjectVersion` de sus objetos, que gana a cualquier `Allow` de sus propias peticiones. **Límites conocidos (dev, sin datos reales):** el `Deny` solo frena las peticiones que firma el propio operador y es una defensa adicional, no una garantía. Con las credenciales del operador todavía se llega a los estudios por otras vías: (1) la clave del usuario de la aplicación, que está en el estado y que el operador puede leer o reemplazar; (2) la política y el bloqueo de acceso público del bucket, que el operador puede escribir; (3) crear un usuario o un rol `medicia-dev-*` con `medicia-dev-boundary`, que ahora incluye los permisos de estudios, y que también es el techo del rol de plan de CI. En producción esas vías se cierran con un rol de servidor, un límite propio de la aplicación y la política del bucket aplicada por administración (ver «Antes de cargar datos reales de pacientes»).
+- **El plan de CI** lee la configuración del bucket y no tiene permisos sobre sus objetos. Pero lee el estado, que guarda la clave de la aplicación, y `medicia-dev-boundary` es su techo: ver los límites conocidos de arriba.
 - **SageMaker y su rol de ejecución** no acceden a este bucket.
 
 ### Orden de los pasos
@@ -336,7 +336,7 @@ Con las credenciales del operador, leer un objeto del bucket debe dar `AccessDen
 
 ### Antes de cargar datos reales de pacientes
 
-Estas medidas quedan fuera de esta etapa y deben resolverse antes: registro de accesos del bucket y alarmas, plazos de conservación y eliminación según los requisitos institucionales, un rol del servidor en lugar del usuario de IAM de la aplicación, y limitación de frecuencia de cargas.
+Estas medidas quedan fuera de esta etapa y deben resolverse antes: sacar la clave de la aplicación del estado (o crearla fuera de Terraform), un límite propio de la aplicación (`medicia-dev-app-boundary`) que el operador solo pueda asignar a su usuario, aplicar la política y el bloqueo de acceso público del bucket de estudios por la vía de administración y sumar `PutObject` y `PutBucketVersioning` al `Deny` del operador, registro de accesos del bucket y alarmas, plazos de conservación y eliminación según los requisitos institucionales, un rol del servidor en lugar del usuario de IAM de la aplicación, y limitación de frecuencia de cargas.
 
 ## Recreación desde cero
 
@@ -415,7 +415,7 @@ El rol de plan de CI también ganó lecturas, y nada más: la configuración del
 - El bucket `medicia-studies-dev-896618135592` se suma a las declaraciones que ya cubrían el de modelos: lectura y configuración, y crear, borrar y fijar política, bloqueo y propiedad.
 - Un `Deny` (`NoLeerNiBorrarEstudios`) sobre `GetObject`, `GetObjectVersion`, `DeleteObject` y `DeleteObjectVersion` de los objetos de estudios: el operador crea el bucket pero no lee ni borra su contenido.
 - En `medicia-dev-boundary`, el permiso de la aplicación de guardar, leer y borrar objetos del prefijo `studies/` y de listar el bucket para ese prefijo. Son los únicos permisos de escritura de S3 del límite.
-- En el rol de plan, la lectura de la configuración del bucket de estudios (nunca sus objetos).
+- En el rol de plan, la lectura de la configuración del bucket de estudios (sin permisos sobre sus objetos; ver los límites conocidos de la sección «Bucket de estudios»).
 
 ## Liberar los recursos al terminar
 

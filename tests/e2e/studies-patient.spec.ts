@@ -24,7 +24,7 @@ async function uploadValidStudy(page: Page) {
 }
 
 // En pantallas anchas la lista es una tabla y en el móvil son tarjetas: solo una de las dos es visible.
-const visibleRows = (page: Page) => page.getByText("Electrocardiograma").filter({ visible: true });
+const visibleRows = (page: Page) => page.getByText("Electrocardiograma", { exact: true }).filter({ visible: true });
 
 test("el paciente sube estudios, ve su lista numerada y otro paciente no los ve", async ({ page, browser }) => {
   const tenantId = (await database.seedTenant(uniqueName("Clínica estudios"))).id;

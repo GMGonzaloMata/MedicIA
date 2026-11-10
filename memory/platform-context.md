@@ -64,7 +64,7 @@ El flujo funcional previsto es:
 
 ## 6. Qué representa un análisis
 
-Un **estudio** es el material médico que se carga en la plataforma, como un ECG, una radiografía, un ecocardiograma o un resultado de laboratorio.
+Un **estudio** es el material médico que se carga en la plataforma, como un ECG, una radiografía, un ecocardiograma o un resultado de laboratorio. Cada estudio pertenece a un **paciente** de la clínica: lo carga el propio paciente o un médico con una asignación vigente a ese paciente, y lo ven esas mismas personas. Un administrador de clínica que no es médico no accede a los estudios.
 
 Un **análisis** es una ejecución de una capacidad de IA sobre un estudio, orientada a buscar uno o más hallazgos concretos.
 

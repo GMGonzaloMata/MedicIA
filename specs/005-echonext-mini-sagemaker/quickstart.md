@@ -47,7 +47,7 @@ Recorrido de punta a punta para comprobar que la funcionalidad anda. Los comando
 - SC-003: apagado, 0 puntos de inferencia en el plan; encendido, exactamente 1 (pasos 6, 7 y 9).
 - SC-004: de subir los artefactos a apagar, menos de 30 minutos siguiendo solo la guía (se mide en el paso 8).
 - SC-005: ningún dato del conjunto en los repositorios ni en el bucket (búsqueda automática en CI y revisión de `.gitignore`).
-- SC-006: la 006 se puede construir con solo el contrato de inferencia.
+- SC-006: la 008 se puede construir con solo el contrato de inferencia.
 
 ## Aviso
 

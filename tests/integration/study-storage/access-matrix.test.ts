@@ -6,7 +6,7 @@ import { createListDoctorPatients } from "@/modules/studies/application/use-case
 import { createListStudies } from "@/modules/studies/application/use-cases/list-studies";
 import { createUploadStudy } from "@/modules/studies/application/use-cases/upload-study";
 import { resolveStudyActor, type StudyActor } from "@/modules/studies/domain/study-access";
-import { StudyForbiddenError } from "@/modules/studies/domain/study-errors";
+import { StudyForbiddenError, StudyNotFoundError } from "@/modules/studies/domain/study-errors";
 import { createInMemoryStudyFileStorage } from "@/modules/studies/infrastructure/adapters/in-memory-study-file-storage";
 import { createNpzStudyFileReader } from "@/modules/studies/infrastructure/adapters/npz-reader";
 import { prismaPatientDirectory } from "@/modules/studies/infrastructure/repositories/prisma-patient-directory";
@@ -255,9 +255,13 @@ describe("matriz de acceso a estudios (US4)", () => {
     const before = await snapshot(w);
 
     // El paciente no elimina lo del médico, el médico no elimina lo del paciente, y los demás tampoco.
-    for (const actor of [w.actors.p1, w.actors.p2, w.actors.doctor2, w.actors.doctorB, w.actors.adminDoctor]) {
-      await expect(deleteStudy({ actor, studyId: byDoctor.studyId })).rejects.toBeDefined();
+    for (const actor of [w.actors.p1, w.actors.p2, w.actors.doctor2, w.actors.adminDoctor]) {
+      await expect(deleteStudy({ actor, studyId: byDoctor.studyId })).rejects.toBeInstanceOf(StudyForbiddenError);
     }
+    // Para otra clínica el estudio no existe.
+    await expect(deleteStudy({ actor: w.actors.doctorB, studyId: byDoctor.studyId })).rejects.toBeInstanceOf(
+      StudyNotFoundError,
+    );
     await expect(deleteStudy({ actor: w.actors.doctor1, studyId: byPatient.studyId })).rejects.toBeInstanceOf(
       StudyForbiddenError,
     );
