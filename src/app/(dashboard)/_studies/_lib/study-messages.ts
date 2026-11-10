@@ -9,6 +9,9 @@ export const STUDY_MESSAGES = {
   adminWithoutStudies: "Tu vínculo con la clínica no incluye estudios.",
   typeLabel: "Electrocardiograma",
   statusLabel: "Cargado",
+  noPatients: "Todavía no tenés pacientes asignados.",
+  patientWithoutName: "Paciente sin nombre",
+  patientNoAccess: "No tenés acceso a este paciente.",
   emptyList: "Todavía no hay estudios cargados.",
   listUnavailable: "No pudimos cargar los estudios. Probá de nuevo en unos minutos.",
 } as const;

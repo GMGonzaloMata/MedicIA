@@ -10,6 +10,13 @@ export interface PatientDirectory {
     pageSize: number;
   }): Promise<{ items: PatientSummary[]; totalItems: number }>;
 
+  // El paciente asignado con vigencia, o null: mismos criterios que `hasActiveAssignment`.
+  findAssignedPatient(input: {
+    tenantId: string;
+    membershipId: string;
+    patientId: string;
+  }): Promise<PatientSummary | null>;
+
   // Una sola consulta que incluye la clínica, el médico y el paciente: un paciente ajeno, de otra clínica,
   // sin asignación o con la asignación terminada devuelve false, sin distinguir los casos.
   hasActiveAssignment(input: {

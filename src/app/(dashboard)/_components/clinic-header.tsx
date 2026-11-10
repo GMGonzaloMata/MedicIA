@@ -45,6 +45,11 @@ async function ActiveClinic() {
           Mis estudios
         </Link>
       ) : null}
+      {context.clinic.relationship.kind === "STAFF" && context.clinic.relationship.isDoctor ? (
+        <Link href="/patients" className={linkClassName}>
+          Mis pacientes
+        </Link>
+      ) : null}
       <Link href="/select-clinic" className={linkClassName}>
         Cambiar de clínica
       </Link>

@@ -46,6 +46,22 @@ export class InMemoryPatientDirectory implements PatientDirectory {
     return { items: all.slice(start, start + input.pageSize), totalItems: all.length };
   }
 
+  async findAssignedPatient(input: {
+    tenantId: string;
+    membershipId: string;
+    patientId: string;
+  }): Promise<PatientSummary | null> {
+    const found = this.assignments.find(
+      (assignment) =>
+        assignment.isActive &&
+        assignment.tenantId === input.tenantId &&
+        assignment.membershipId === input.membershipId &&
+        assignment.patient.id === input.patientId,
+    );
+
+    return found?.patient ?? null;
+  }
+
   async hasActiveAssignment(input: { tenantId: string; membershipId: string; patientId: string }): Promise<boolean> {
     return this.assignments.some(
       (assignment) =>

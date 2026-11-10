@@ -117,6 +117,21 @@ describe("pacientes de un médico", () => {
     ).toBe(false);
   });
 
+  it("busca un paciente asignado solo con asignación vigente en su clínica", async () => {
+    const { tenant, doctor, otherDoctor, assign } = await setup();
+    const patient = await linkedPatient(tenant.id, "Asignado");
+    await assign(doctor.id, patient.id);
+    const input = { tenantId: tenant.id, membershipId: doctor.id, patientId: patient.id };
+
+    expect(await prismaPatientDirectory.findAssignedPatient(input)).toMatchObject({
+      id: patient.id,
+      fullName: "Asignado",
+      studyCount: 0,
+    });
+    expect(await prismaPatientDirectory.findAssignedPatient({ ...input, membershipId: otherDoctor.id })).toBeNull();
+    expect(await prismaPatientDirectory.findAssignedPatient({ ...input, tenantId: (await createTenant()).id })).toBeNull();
+  });
+
   it("cuenta los estudios de cada paciente", async () => {
     const { tenant, doctor, admin, assign } = await setup();
     const patient = await linkedPatient(tenant.id);

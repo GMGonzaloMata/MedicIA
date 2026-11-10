@@ -42,6 +42,34 @@ export const prismaPatientDirectory: PatientDirectory = {
     };
   },
 
+  async findAssignedPatient({ tenantId, membershipId, patientId }) {
+    const row = await prismaClient.patient.findFirst({
+      where: {
+        id: patientId,
+        tenantId,
+        status: "LINKED",
+        assignments: { some: { tenantId, membershipId, endedAt: null } },
+      },
+      select: {
+        id: true,
+        fullName: true,
+        documentType: true,
+        documentNumber: true,
+        _count: { select: { studies: true } },
+      },
+    });
+
+    return row
+      ? {
+          id: row.id,
+          fullName: row.fullName,
+          documentType: row.documentType,
+          documentNumber: row.documentNumber,
+          studyCount: row._count.studies,
+        }
+      : null;
+  },
+
   async hasActiveAssignment({ tenantId, membershipId, patientId }) {
     const count = await prismaClient.patient.count({
       where: {

@@ -100,6 +100,39 @@ describe("subir un estudio", () => {
     expect(await storage.list("studies/")).toHaveLength(0);
   });
 
+  it("el médico no sube a un paciente asignado en otra clínica", async () => {
+    const { studies, storage, directory, upload } = setup();
+    directory.assign({
+      tenantId: "tenant-b",
+      membershipId: "membership-1",
+      patient: { id: "patient-1", fullName: "Otra clínica", documentType: "DNI", documentNumber: "1", studyCount: 0 },
+    });
+
+    await expect(
+      upload({ actor: doctor, patientId: "patient-1", type: "ECG", bytes: validBytes() }),
+    ).rejects.toBeInstanceOf(StudyForbiddenError);
+
+    expect(studies.all()).toHaveLength(0);
+    expect(await storage.list("studies/")).toHaveLength(0);
+  });
+
+  it("una asignación terminada quita el permiso de subir y una nueva lo devuelve", async () => {
+    const { directory, upload } = setup();
+    const patientSummary = { id: "patient-1", fullName: "Uno", documentType: "DNI" as const, documentNumber: "1", studyCount: 0 };
+    const assignment = { tenantId: TENANT, membershipId: "membership-1" };
+    directory.assign({ ...assignment, patient: patientSummary });
+    directory.end({ ...assignment, patientId: "patient-1" });
+
+    await expect(
+      upload({ actor: doctor, patientId: "patient-1", type: "ECG", bytes: validBytes() }),
+    ).rejects.toBeInstanceOf(StudyForbiddenError);
+
+    directory.assign({ ...assignment, patient: patientSummary });
+    await expect(
+      upload({ actor: doctor, patientId: "patient-1", type: "ECG", bytes: validBytes() }),
+    ).resolves.toMatchObject({ number: 1 });
+  });
+
   it("rechaza un archivo inválido sin guardar ni consumir un número", async () => {
     const { studies, storage, upload } = setup();
 
