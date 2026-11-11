@@ -36,8 +36,8 @@ function EmptyState({ tab, hasOtherPages }: { tab: UsersTab; hasOtherPages: bool
   return (
     <div className="flex flex-col items-start gap-3 rounded-card border border-border bg-card p-5">
       <p className="text-base text-muted">{tab === "staff" ? USER_MESSAGES.emptyStaff : USER_MESSAGES.emptyPatients}</p>
-      <Link href="/invitations" className={`${linkClassName} inline-flex min-h-11 items-center`}>
-        Invitar a una persona
+      <Link href="/users/new" className={`${linkClassName} inline-flex min-h-11 items-center`}>
+        Dar de alta a una persona
       </Link>
     </div>
   );
@@ -68,6 +68,7 @@ export async function UsersContent({ searchParams }: { searchParams: Promise<Use
   return (
     <div className="flex flex-col gap-6">
       <p className="max-w-prose text-base text-muted">Personas de <strong className="text-foreground">{context.clinic.tenantName}</strong>. Consultá sus roles, estados y asignaciones.</p>
+      <p><Link href="/users/new" className={`${linkClassName} inline-flex min-h-11 items-center`}>Dar de alta a una persona</Link></p>
       <UsersTabs active={tab} />
       <section aria-label={tab === "staff" ? "Personal" : "Pacientes"} className="flex flex-col gap-4">
         {result.items.length === 0 ? (

@@ -58,9 +58,11 @@ describe("pantalla de usuarios", () => {
 
     expect(staff).toContain("Ana Admin");
     expect(staff).toContain("Activo");
+    expect(staff).toContain("/users/new");
     expect(staff).toContain("?tab=patients&amp;page=1");
     expect(patients).toContain("Pedro Paciente");
     expect(patients).toContain("Vinculado");
+    expect(patients).toContain("Reenviar acceso");
     expect(mocked.listStaff).toHaveBeenCalledOnce();
     expect(mocked.listPatients).toHaveBeenCalledOnce();
   });

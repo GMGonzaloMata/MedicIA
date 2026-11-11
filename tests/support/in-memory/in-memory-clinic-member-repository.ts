@@ -15,6 +15,7 @@ import type {
 } from "@/modules/users/application/ports/out/clinic-member-repository";
 import type { NewClinicUserEvent } from "@/modules/users/domain/clinic-user-events";
 import { canAssignTo } from "@/modules/users/domain/clinic-user-rules";
+import { EnrollmentTenantInactiveError } from "@/modules/users/domain/enrollment-errors";
 
 import type { InMemoryInvitationRepository } from "./in-memory-invitation-repository";
 
@@ -171,22 +172,31 @@ export class InMemoryClinicMemberRepository implements ClinicMemberRepository {
     };
   }
 
-  async runEnrollment<T>(userId: string, work: (transaction: EnrollmentTransaction) => Promise<T>): Promise<T> {
+  async runEnrollment<T>(
+    input: { tenantId: string; account: { userId: string } | { subject: string; email: string; fullName: string }; now: Date },
+    work: (transaction: EnrollmentTransaction, account: { id: string; email: string; fullName: string; isPlatformAdmin: boolean }) => Promise<T>,
+  ): Promise<T> {
     const eventsBefore = this.events.length;
+    const userId = "userId" in input.account ? input.account.userId : input.account.subject;
+    const existed = this.shared.accounts.has(userId);
 
     try {
-      return await this.shared.runAcceptance(userId, (transaction) =>
-        work({
+      return await this.shared.runAcceptance(userId, async (transaction) => {
+        if (this.shared.tenants.get(input.tenantId)?.isActive !== true) throw new EnrollmentTenantInactiveError();
+        if (!existed && "subject" in input.account) {
+          this.shared.accounts.set(userId, { email: input.account.email, fullName: input.account.fullName });
+        }
+        const saved = this.shared.accounts.get(userId);
+        if (!saved) throw new Error("Cuenta inexistente.");
+        return work({
           ...transaction,
-          isTenantActive: async (tenantId) => this.shared.tenants.get(tenantId)?.isActive === true,
-          recordEvent: async (event) => {
-            this.events.push(event);
-          },
-        }),
-      );
+          recordEvent: async (event) => { this.events.push(event); },
+        }, { id: userId, email: saved.email, fullName: saved.fullName, isPlatformAdmin: false });
+      });
     } catch (error) {
       // Si el alta falla se revierte todo, también los eventos.
       this.events.splice(eventsBefore);
+      if (!existed) this.shared.accounts.delete(userId);
 
       throw error;
     }

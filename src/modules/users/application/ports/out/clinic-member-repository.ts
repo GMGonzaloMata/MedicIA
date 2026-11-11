@@ -1,4 +1,5 @@
 import type { NewClinicUserEvent } from "../../../domain/clinic-user-events";
+import type { AccessUser } from "../../../domain/access-context";
 import type { StaffDeactivationCheck } from "../../../domain/clinic-user-rules";
 import type { DocumentType } from "../../../domain/invitation";
 import type { RelationshipTransaction } from "./invitation-repository";
@@ -91,8 +92,6 @@ export type EndAssignmentResult = { status: "UNASSIGNED" } | { status: "NOT_FOUN
 
 // Lo que el alta hace dentro de la transacción: aplicar el vínculo (igual que aceptar un link) y registrar los eventos.
 export interface EnrollmentTransaction extends RelationshipTransaction {
-  // Falso si la clínica se suspendió o ya no existe: no se crea nada en ella.
-  isTenantActive(tenantId: string): Promise<boolean>;
   recordEvent(event: NewClinicUserEvent): Promise<void>;
 }
 
@@ -113,7 +112,10 @@ export interface ClinicMemberRepository {
 
   // Ejecuta el alta con la fila de la cuenta bloqueada: dos altas de la misma persona se ordenan, así la regla del
   // vínculo único por clínica no se puede burlar. Si el trabajo falla se revierte todo.
-  runEnrollment<T>(userId: string, work: (transaction: EnrollmentTransaction) => Promise<T>): Promise<T>;
+  runEnrollment<T>(
+    input: { tenantId: string; account: { userId: string } | { subject: string; email: string; fullName: string }; now: Date },
+    work: (transaction: EnrollmentTransaction, account: AccessUser) => Promise<T>,
+  ): Promise<T>;
 
   // Escribe un evento suelto (por ejemplo, un reenvío del acceso).
   recordEvent(event: NewClinicUserEvent): Promise<void>;

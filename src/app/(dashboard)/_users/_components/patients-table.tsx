@@ -1,6 +1,7 @@
 import type { ClinicPatientSummary } from "@/modules/users/application/use-cases/list-clinic-patients";
 
 import { PATIENT_STATUS_LABELS, USER_MESSAGES } from "../_lib/user-messages";
+import { ResendAccessButton } from "./resend-access-button";
 
 const DOCUMENT_LABELS = { DNI: "DNI", PASSPORT: "Pasaporte", OTHER: "Documento" } as const;
 
@@ -39,6 +40,7 @@ export function PatientsTable({ patients }: { patients: ClinicPatientSummary[] }
               <th scope="col" className="px-3 py-3 font-medium">Documento</th>
               <th scope="col" className="px-3 py-3 font-medium">Médicos asignados</th>
               <th scope="col" className="px-3 py-3 font-medium">Estado</th>
+              <th scope="col" className="px-3 py-3 font-medium">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -48,6 +50,8 @@ export function PatientsTable({ patients }: { patients: ClinicPatientSummary[] }
                 <td className="break-all px-3 py-4">{document(patient)}</td>
                 <td className="break-words px-3 py-4">{doctors(patient)}</td>
                 <td className="px-3 py-4"><Status patient={patient} /></td>
+                <td className="px-3 py-4">{patient.canResendAccess
+                  ? <ResendAccessButton target={{ kind: "PATIENT", patientId: patient.patientId }} /> : null}</td>
               </tr>
             ))}
           </tbody>
@@ -62,6 +66,7 @@ export function PatientsTable({ patients }: { patients: ClinicPatientSummary[] }
             </div>
             <p className="mt-2 break-all text-sm text-muted">{document(patient)}</p>
             <p className="mt-2 break-words text-sm"><span className="font-medium">Médicos asignados:</span> {doctors(patient)}</p>
+            {patient.canResendAccess ? <div className="mt-3"><ResendAccessButton target={{ kind: "PATIENT", patientId: patient.patientId }} /></div> : null}
           </li>
         ))}
       </ul>

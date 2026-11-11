@@ -6,11 +6,14 @@ import { z } from "zod";
 
 import { linkClassName } from "@/components/form/button-styles";
 import { getStudiesModule } from "@/modules/studies/composition";
+import { getUsersModule } from "@/modules/users/composition";
 import { MAX_UPLOAD_BYTES } from "@/modules/studies/domain/ecg-study";
 import { StudyForbiddenError } from "@/modules/studies/domain/study-errors";
 
 import { requireClinicContext } from "../../../_lib/access";
 import { toStudyActor } from "../../../_lib/study-actor";
+import { toClinicUserActor } from "../../../_lib/clinic-user-actor";
+import { ResendAccessButton } from "../../_users/_components/resend-access-button";
 import { Pagination } from "../../_studies/_components/pagination";
 import { StudiesList } from "../../_studies/_components/studies-list";
 import { UploadForm } from "../../_studies/_components/upload-form";
@@ -42,14 +45,15 @@ function NoAccess() {
   );
 }
 
-async function PatientStudiesContent({
+export async function PatientStudiesContent({
   params,
   searchParams,
 }: {
   params: DetailProps["params"];
   searchParams: DetailProps["searchParams"];
 }) {
-  const actor = toStudyActor(await requireClinicContext());
+  const context = await requireClinicContext();
+  const actor = toStudyActor(context);
 
   if (!actor) {
     return <p className="text-base">{STUDY_MESSAGES.adminWithoutStudies}</p>;
@@ -87,12 +91,17 @@ async function PatientStudiesContent({
     throw error;
   }
 
+  const clinicActor = toClinicUserActor(context);
+  const canResendAccess = clinicActor?.isDoctor
+    ? await getUsersModule().canResendPatientAccess({ actor: clinicActor, patientId }) : false;
+
   return (
     <>
       <h1 className="text-[28px] font-semibold leading-tight sm:text-4xl">
         Estudios de {patient.fullName ?? STUDY_MESSAGES.patientWithoutName}
       </h1>
       <p className="text-base text-muted">Documento {patient.documentNumber}</p>
+      {canResendAccess ? <ResendAccessButton target={{ kind: "PATIENT", patientId }} /> : null}
       <div className="flex flex-col gap-6">
         <UploadForm patientId={patientId} maxBytes={MAX_UPLOAD_BYTES} />
         <StudiesList studies={result.items} />

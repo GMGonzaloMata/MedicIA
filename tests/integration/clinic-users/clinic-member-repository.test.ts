@@ -291,19 +291,19 @@ describe("repositorio de gestión de usuarios: integridad y aislamiento", () => 
       now,
     };
 
-    expect(await repository.runEnrollment(actor.userId, async (transaction) => {
-      expect(await transaction.isTenantActive(tenant.id)).toBe(true);
+    const enrollment = { tenantId: tenant.id, account: { userId: actor.userId }, now };
+    expect(await repository.runEnrollment(enrollment, async (transaction) => {
       await transaction.recordEvent(event);
       return "OK";
     })).toBe("OK");
-    await expect(repository.runEnrollment(actor.userId, async (transaction) => {
+    await expect(repository.runEnrollment(enrollment, async (transaction) => {
       await transaction.recordEvent(event);
       throw new Error("falló el alta");
     })).rejects.toThrow("falló el alta");
     expect(await prismaClient.clinicUserEvent.count()).toBe(1);
 
     await prismaClient.tenant.update({ where: { id: tenant.id }, data: { status: "SUSPENDED" } });
-    expect(await repository.runEnrollment(actor.userId, (transaction) => transaction.isTenantActive(tenant.id))).toBe(false);
+    await expect(repository.runEnrollment(enrollment, async () => true)).rejects.toThrow("La clínica no está activa.");
   });
 
   it("rechaza estados, asignaciones y destinos ajenos sin modificar registros", async () => {

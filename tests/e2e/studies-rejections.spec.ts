@@ -23,6 +23,7 @@ test.afterAll(async () => {
 });
 
 async function chooseAndSubmit(page: Page, buffer: Buffer) {
+  await page.getByLabel("Archivo del electrocardiograma").setInputFiles([]);
   await page.getByLabel("Archivo del electrocardiograma").setInputFiles({
     name: "estudio.npz",
     mimeType: "application/octet-stream",

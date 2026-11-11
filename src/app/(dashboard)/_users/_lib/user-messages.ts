@@ -11,8 +11,8 @@ export const PATIENT_STATUS_LABELS = {
 
 export const USER_MESSAGES = {
   forbidden: "No tenés permiso para gestionar los usuarios de esta clínica.",
-  emptyStaff: "Todavía no hay personal en esta clínica. Podés invitar a una persona para empezar.",
-  emptyPatients: "Todavía no hay pacientes en esta clínica. Podés invitar a una persona para empezar.",
+  emptyStaff: "Todavía no hay personal en esta clínica. Podés dar de alta a una persona para empezar.",
+  emptyPatients: "Todavía no hay pacientes en esta clínica. Podés dar de alta a una persona para empezar.",
   emptyPage: "No hay personas en esta página. Volvé a la primera página.",
   noName: "Sin nombre",
   noDoctors: "Sin médicos asignados",

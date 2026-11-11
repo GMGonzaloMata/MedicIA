@@ -15,6 +15,8 @@ import { createGetAccessContext } from "./application/use-cases/get-access-conte
 import { createListInvitations } from "./application/use-cases/list-invitations";
 import { createListClinicStaff } from "./application/use-cases/list-clinic-staff";
 import { createListClinicPatients } from "./application/use-cases/list-clinic-patients";
+import { createEnrollMember } from "./application/use-cases/enroll-member";
+import { createCanResendPatientAccess, createResendAccess } from "./application/use-cases/resend-access";
 import { createListAvailableClinics } from "./application/use-cases/list-available-clinics";
 import { createPreviewInvitation } from "./application/use-cases/preview-invitation";
 import { createRegisterAccount } from "./application/use-cases/register-account";
@@ -73,6 +75,16 @@ function buildUsersModule() {
     listInvitations: createListInvitations({ invitations: prismaInvitationRepository, now }),
     listClinicStaff: createListClinicStaff({ members: prismaClinicMemberRepository }),
     listClinicPatients: createListClinicPatients({ members: prismaClinicMemberRepository }),
+    enrollMember: createEnrollMember({
+      members: prismaClinicMemberRepository, invitations: prismaInvitationRepository,
+      users: prismaUserRepository, identity, mailer: lazyMailer,
+      appBaseUrl: () => (appBaseUrl ??= loadAppBaseUrl(process.env)), now,
+    }),
+    resendAccess: createResendAccess({
+      members: prismaClinicMemberRepository, identity, mailer: lazyMailer,
+      appBaseUrl: () => (appBaseUrl ??= loadAppBaseUrl(process.env)), now,
+    }),
+    canResendPatientAccess: createCanResendPatientAccess({ members: prismaClinicMemberRepository }),
     revokeInvitation: createRevokeInvitation({ invitations: prismaInvitationRepository, now }),
   };
 }

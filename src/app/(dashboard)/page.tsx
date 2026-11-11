@@ -40,11 +40,10 @@ async function ActiveClinicSummary() {
         </p>
       ) : null}
       {clinic.relationship.kind === "STAFF" && clinic.relationship.isDoctor ? (
-        <p className="text-base">
-          <Link href="/patients" className={linkClassName}>
-            Mis pacientes
-          </Link>
-        </p>
+        <>
+          <p className="text-base"><Link href="/patients" className={linkClassName}>Mis pacientes</Link></p>
+          <p className="text-base"><Link href="/users/new" className={linkClassName}>Dar de alta a un paciente</Link></p>
+        </>
       ) : null}
       {clinic.relationship.kind === "STAFF" && clinic.relationship.isClinicAdmin ? (
         <p className="text-base">

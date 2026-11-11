@@ -14,6 +14,7 @@ import type {
 } from "../../application/ports/out/clinic-member-repository";
 import type { NewClinicUserEvent } from "../../domain/clinic-user-events";
 import { canAssignTo } from "../../domain/clinic-user-rules";
+import { EnrollmentTenantInactiveError } from "../../domain/enrollment-errors";
 import { createRelationshipTransaction } from "./relationship-transaction";
 
 // Toda consulta y toda escritura lleva el `tenantId` del actor. Los identificadores que llegan del cliente se buscan
@@ -202,23 +203,41 @@ export const prismaClinicMemberRepository: ClinicMemberRepository = {
     };
   },
 
-  runEnrollment(userId, work) {
+  runEnrollment({ tenantId, account: candidate, now }, work) {
     return prismaClient.$transaction(async (tx) => {
-      // Bloquea la fila de la cuenta: dos altas de la misma persona se ejecutan una detrás de otra, así la regla del
-      // vínculo único por clínica (que cruza dos tablas) no se puede burlar.
-      await tx.$queryRaw`SELECT "id" FROM "users" WHERE "id" = ${userId}::uuid FOR UPDATE`;
+      // El bloqueo de la clínica ordena también dos altas con correos diferentes y el mismo documento.
+      await lockTenant(tx, tenantId);
+      const tenant = await tx.tenant.findUnique({ where: { id: tenantId }, select: { status: true } });
+      if (tenant?.status !== "ACTIVE") {
+        throw new EnrollmentTenantInactiveError();
+      }
+
+      // La cuenta y el vínculo se crean juntos. El upsert preserva el nombre y demás datos de una cuenta existente.
+      const account = "userId" in candidate
+        ? await tx.user.findUniqueOrThrow({
+            where: { id: candidate.userId },
+            select: { id: true, email: true, fullName: true, isPlatformAdmin: true },
+          })
+        : await tx.user.upsert({
+            where: { cognitoSub: candidate.subject },
+            create: {
+              cognitoSub: candidate.subject,
+              email: candidate.email,
+              fullName: candidate.fullName,
+              sessionsValidFrom: now,
+              createdAt: now,
+            },
+            update: {},
+            select: { id: true, email: true, fullName: true, isPlatformAdmin: true },
+          });
+      await tx.$queryRaw`SELECT "id" FROM "users" WHERE "id" = ${account.id}::uuid FOR UPDATE`;
 
       return work({
         ...createRelationshipTransaction(tx),
-        async isTenantActive(tenantId) {
-          const tenant = await tx.tenant.findUnique({ where: { id: tenantId }, select: { status: true } });
-
-          return tenant?.status === "ACTIVE";
-        },
         async recordEvent(event) {
           await insertEvent(tx, event);
         },
-      });
+      }, account);
     });
   },
 

@@ -1,6 +1,7 @@
 import type { ClinicStaffSummary } from "@/modules/users/application/use-cases/list-clinic-staff";
 
 import { STAFF_STATUS_LABELS } from "../_lib/user-messages";
+import { ResendAccessButton } from "./resend-access-button";
 
 function roles(member: ClinicStaffSummary): string {
   if (member.isClinicAdmin && member.isDoctor) return "Administrador y médico";
@@ -37,6 +38,7 @@ export function StaffTable({ members }: { members: ClinicStaffSummary[] }) {
               <th scope="col" className="px-3 py-3 font-medium">Correo</th>
               <th scope="col" className="px-3 py-3 font-medium">Rol</th>
               <th scope="col" className="px-3 py-3 font-medium">Estado</th>
+              <th scope="col" className="px-3 py-3 font-medium">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -49,6 +51,8 @@ export function StaffTable({ members }: { members: ClinicStaffSummary[] }) {
                   {details(member) ? <span className="block text-muted">{details(member)}</span> : null}
                 </td>
                 <td className="px-3 py-4"><Status member={member} /></td>
+                <td className="px-3 py-4">{member.canResendAccess
+                  ? <ResendAccessButton target={{ kind: "STAFF", membershipId: member.membershipId }} /> : null}</td>
               </tr>
             ))}
           </tbody>
@@ -64,6 +68,7 @@ export function StaffTable({ members }: { members: ClinicStaffSummary[] }) {
             <p className="mt-2 break-all text-sm text-muted">{member.email}</p>
             <p className="mt-2 text-sm">{roles(member)}</p>
             {details(member) ? <p className="break-all text-sm text-muted">{details(member)}</p> : null}
+            {member.canResendAccess ? <div className="mt-3"><ResendAccessButton target={{ kind: "STAFF", membershipId: member.membershipId }} /></div> : null}
           </li>
         ))}
       </ul>
