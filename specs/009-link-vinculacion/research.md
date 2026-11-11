@@ -6,7 +6,7 @@ Cada decisión indica qué se eligió, por qué y qué alternativas se descartar
 
 ## R1. Servicio de envío de correo propio
 
-**Decisión**: un servidor SMTP, usado con una cuenta de Gmail dedicada al proyecto y una contraseña de aplicación, detrás de un puerto de salida `InvitationMailer`. Hay dos adaptadores, elegidos por la variable `INVITATION_MAILER` (`smtp` o `fake`, sin valor por defecto, como `MODEL_INFERENCE` y `STUDY_STORAGE`). El adaptador `smtp` es genérico: no sabe nada de Gmail. Gmail es solo el servidor que se configura (`smtp.gmail.com`), así que más adelante se puede apuntar a Amazon SES por SMTP, a Brevo o a otro servidor cambiando variables, o escribir un adaptador propio de SES sin tocar el resto. La librería es `nodemailer`, en una versión exacta fijada al instalarla.
+**Decisión**: un servidor SMTP, usado con una cuenta de Gmail dedicada al proyecto y una contraseña de aplicación, detrás de un puerto de salida `InvitationMailer`. Hay dos adaptadores, elegidos por la variable `INVITATION_MAILER` (`smtp` o `fake`, sin valor por defecto, como `MODEL_INFERENCE` y `STUDY_STORAGE`). El adaptador `smtp` es genérico: no sabe nada de Gmail. Gmail es solo el servidor que se configura (`smtp.gmail.com`), así que más adelante se puede apuntar a Amazon SES por SMTP, a Brevo o a otro servidor cambiando variables, o escribir un adaptador propio de SES sin tocar el resto. La librería es `nodemailer`, en una versión exacta fijada al instalarla: la 10.2.1 (publicada el 2026-10-22), con `@types/nodemailer` 8.0.2. Se evitó la última, la 10.5.0, porque se había publicado el día anterior y la librería maneja la contraseña del correo.
 
 **Por qué**:
 - Es gratis y no necesita dominio ni infraestructura nueva: no hay módulo de Terraform ni permisos de IAM.
@@ -86,6 +86,8 @@ Cada decisión indica qué se eligió, por qué y qué alternativas se descartar
 **Por qué la pantalla no revela datos**: `/invitation` solo muestra la clínica y el tipo de vínculo si la cuenta con sesión tiene el correo del link y el link es utilizable. En cualquier otro caso muestra el mismo mensaje genérico (FR-024).
 
 **Alternativas descartadas**: token en `next` o en la URL de registro (queda en historial y registros); guardarlo en el almacenamiento del navegador (no llega al servidor en una navegación); arrastrarlo como campo oculto por las tres pantallas de la 002 (cambia pantallas que no son de esta funcionalidad y se pierde si la persona cierra y vuelve).
+
+**Verificado en la guía instalada (T003)**: `cookies()` solo permite escribir (`set` y `delete`) en un Route Handler o en una Server Function, nunca durante el render; leer cookies en una pantalla vuelve dinámica la ruta y, con `cacheComponents`, debe ir dentro de `<Suspense>` (guías de `cookies`, Route Handlers y autenticación con Cache Components). Un `GET` que usa `cookies()` es dinámico, sin problema para `/invite/[token]`. Sin diferencias con lo planeado.
 
 ## R6. Un solo tipo de vínculo por clínica
 

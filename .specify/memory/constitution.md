@@ -85,6 +85,7 @@ a los pacientes y a las instituciones.
 - **Autenticación:** Amazon Cognito. La aplicación DEBE validar los JWT y autorizar cada operación.
 - **Archivos:** Amazon S3 con acceso privado.
 - **Inferencia:** Amazon SageMaker AI, consumido mediante un adaptador.
+- **Correo transaccional:** servidor SMTP, consumido mediante un adaptador; en esta etapa, una cuenta de Gmail dedicada al proyecto con contraseña de aplicación. La contraseña es un secreto: vive fuera de git y de los registros y nunca llega al navegador. Antes de operar con clínicas o personas reales, el servicio DEBE pasar a uno transaccional con dominio propio. Motivo de la enmienda 1.7.0: la plataforma debe enviar correos con links propios (invitaciones a clínicas) y Cognito solo envía sus mensajes de verificación y recuperación con plantillas fijas.
 - **Infraestructura:** Terraform, en la carpeta `infra/` de este repositorio. El estado vive en un backend remoto cifrado y con bloqueo, nunca en git; los comandos que modifican infraestructura real (`terraform apply`, `destroy`, `import` y `state`) los ejecuta solo el responsable del proyecto.
 
 **Límites de responsabilidad.** El entrenamiento y el código Python/PyTorch de los modelos DEBEN vivir fuera de este repositorio.
@@ -127,4 +128,4 @@ aprobación del responsable del proyecto y actualizar los documentos de `memory/
 **Cumplimiento.** Toda revisión de planes y cambios DEBE verificar el cumplimiento de esta
 constitución. La complejidad adicional DEBE justificarse.
 
-**Version**: 1.6.1 | **Ratified**: 2026-11-04 | **Last Amended**: 2026-11-09
+**Version**: 1.7.0 | **Ratified**: 2026-11-04 | **Last Amended**: 2026-11-11

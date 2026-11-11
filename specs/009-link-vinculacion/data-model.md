@@ -96,6 +96,66 @@ Todo ocurre en una sola transacción, después de bloquear la fila de la cuenta 
 
 Decenas de links por clínica y por semana. Las consultas frecuentes (buscar por hash y listar los pendientes de una clínica o de una membresía) usan los índices de arriba y devuelven pocas filas. La lista se limita a 100 filas.
 
+## SQL a mano en la migración
+
+Se pega al final del `migration.sql` que genera `prisma migrate dev --create-only`, después de las sentencias que Prisma escribe solo. Los nombres de las restricciones y del índice son los que mencionan las tareas y las pruebas.
+
+```sql
+-- invitations: un solo link pendiente por correo y clínica (FR-009)
+CREATE UNIQUE INDEX "invitations_one_pending_per_email"
+    ON "invitations"("tenant_id", "email")
+    WHERE "status" = 'PENDING';
+
+-- invitations: el correo viene normalizado (minúsculas, sin espacios en los extremos) y no vacío
+ALTER TABLE "invitations" ADD CONSTRAINT "invitations_email_lowercase"
+    CHECK ("email" = lower(btrim("email")) AND btrim("email") <> '');
+
+-- invitations: los datos del tipo de vínculo (matrícula para médico, documento para paciente)
+ALTER TABLE "invitations" ADD CONSTRAINT "invitations_kind_fields"
+    CHECK (
+        ("kind" = 'DOCTOR'
+            AND "license_number" IS NOT NULL AND btrim("license_number") <> ''
+            AND "document_type" IS NULL AND "document_number" IS NULL)
+        OR ("kind" = 'PATIENT'
+            AND "document_type" IS NOT NULL
+            AND "document_number" IS NOT NULL AND btrim("document_number") <> ''
+            AND "license_number" IS NULL)
+    );
+
+-- invitations: solo un link de paciente puede asignar a quien lo generó
+ALTER TABLE "invitations" ADD CONSTRAINT "invitations_assign_only_patient"
+    CHECK (NOT "assign_to_creator" OR "kind" = 'PATIENT');
+
+-- invitations: los campos de aceptación y de revocación dependen del estado
+ALTER TABLE "invitations" ADD CONSTRAINT "invitations_status_fields"
+    CHECK (
+        ("status" = 'PENDING'
+            AND "accepted_at" IS NULL AND "accepted_by_user_id" IS NULL
+            AND "revoked_at" IS NULL AND "end_reason" IS NULL)
+        OR ("status" = 'ACCEPTED'
+            AND "accepted_at" IS NOT NULL AND "accepted_by_user_id" IS NOT NULL
+            AND "revoked_at" IS NULL AND "end_reason" IS NULL)
+        OR ("status" = 'REVOKED'
+            AND "revoked_at" IS NOT NULL AND "end_reason" IS NOT NULL
+            AND "accepted_at" IS NULL AND "accepted_by_user_id" IS NULL)
+        OR ("status" = 'EXPIRED'
+            AND "accepted_at" IS NULL AND "accepted_by_user_id" IS NULL
+            AND "revoked_at" IS NULL AND "end_reason" IS NULL)
+    );
+
+-- invitations: intentos incorrectos de 0 a 5
+ALTER TABLE "invitations" ADD CONSTRAINT "invitations_attempts_range"
+    CHECK ("failed_attempts" BETWEEN 0 AND 5);
+
+-- invitations: el vencimiento es posterior a la creación
+ALTER TABLE "invitations" ADD CONSTRAINT "invitations_expiry_after_creation"
+    CHECK ("expires_at" > "created_at");
+
+-- invitations: el envío del correo es posterior a la creación
+ALTER TABLE "invitations" ADD CONSTRAINT "invitations_sent_after_creation"
+    CHECK ("sent_at" IS NULL OR "sent_at" >= "created_at");
+```
+
 ## Migración
 
 El comando lo ejecuta el responsable del proyecto desde su terminal (el agente no corre `prisma migrate`, `prisma db` ni `prisma generate`). Orden:

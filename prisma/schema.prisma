@@ -54,6 +54,7 @@ model Tenant {
   assignments DoctorPatientAssignment[]
   studies     Study[]
   analyses    Analysis[]
+  invitations Invitation[]
 
   @@map("tenants")
 }
@@ -76,6 +77,8 @@ model User {
   sessions           Session[]
   studiesUploaded    Study[]
   analysesRequested  Analysis[]
+  invitationsCreated  Invitation[] @relation("InvitationCreatedBy")
+  invitationsAccepted Invitation[] @relation("InvitationAcceptedBy")
 
   @@map("users")
 }
@@ -97,6 +100,7 @@ model StaffMembership {
   user        User                      @relation(fields: [userId], references: [id], onDelete: Restrict)
   assignments DoctorPatientAssignment[]
   sessions    Session[]
+  invitationsCreated Invitation[]
 
   @@unique([tenantId, userId])
   @@unique([tenantId, licenseNumber])
@@ -292,4 +296,80 @@ model Analysis {
   @@index([tenantId, studyId, requestedAt(sort: Desc)])
   @@index([requestedByUserId])
   @@map("analyses")
+}
+
+// Tipo de vínculo al que invita un link de vinculación (specs/009-link-vinculacion/data-model.md).
+enum InvitationKind {
+  DOCTOR
+  PATIENT
+
+  @@map("invitation_kind")
+}
+
+// Estado de una invitación. `EXPIRED` se escribe de forma perezosa: la lectura calcula el estado efectivo
+// (un `PENDING` con `expires_at` vencido se trata como vencido).
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+
+  @@map("invitation_status")
+}
+
+// Por qué se revocó una invitación. Solo se usa con `REVOKED`.
+enum InvitationEndReason {
+  BY_SENDER
+  REPLACED
+  ATTEMPTS_EXCEEDED
+
+  @@map("invitation_end_reason")
+}
+
+// Invitación a unirse a una clínica como médico o como paciente (specs/009-link-vinculacion/data-model.md). Guarda el
+// hash del token, nunca el token, y el documento o la matrícula normalizados que la persona debe volver a escribir
+// para vincularse. Se agregan a mano en el SQL de la migración: el índice único parcial
+// `invitations_one_pending_per_email` (un solo link pendiente por correo y clínica) y los `CHECK` de coherencia entre
+// el tipo, el estado y los demás campos.
+model Invitation {
+  id                    String               @id @default(uuid(7)) @db.Uuid
+  tenantId              String               @map("tenant_id") @db.Uuid
+  kind                  InvitationKind
+  // Correo de la persona invitada, normalizado a minúsculas y sin espacios en los extremos.
+  email                 String
+  // SHA-256 del token en hexadecimal. El token solo existe en el correo; no se guarda ni se registra.
+  tokenHash             String               @unique @map("token_hash")
+  // Solo en `PATIENT`: el documento que la persona debe volver a escribir, normalizado.
+  documentType          DocumentType?        @map("document_type")
+  documentNumber        String?              @map("document_number")
+  // Solo en `DOCTOR`: la matrícula que la persona debe volver a escribir, normalizada.
+  licenseNumber         String?              @map("license_number")
+  // La membresía y la cuenta de quien invita. Se toman siempre de la sesión.
+  createdByMembershipId String               @map("created_by_membership_id") @db.Uuid
+  createdByUserId       String               @map("created_by_user_id") @db.Uuid
+  // Verdadero cuando invita un médico a un paciente: al aceptar se crea la asignación con `createdByMembershipId`.
+  assignToCreator       Boolean              @default(false) @map("assign_to_creator")
+  status                InvitationStatus     @default(PENDING)
+  // Solo con `REVOKED`.
+  endReason             InvitationEndReason? @map("end_reason")
+  // Intentos incorrectos del documento o la matrícula, de 0 a 5. Al llegar a 5 la invitación se revoca.
+  failedAttempts        Int                  @default(0) @map("failed_attempts")
+  // 7 días después de `createdAt`.
+  expiresAt             DateTime             @map("expires_at") @db.Timestamptz(3)
+  // Cuándo el servicio de correo aceptó el mensaje. Vacío si el envío falló o todavía no ocurrió.
+  sentAt                DateTime?            @map("sent_at") @db.Timestamptz(3)
+  createdAt             DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  revokedAt             DateTime?            @map("revoked_at") @db.Timestamptz(3)
+  acceptedAt            DateTime?            @map("accepted_at") @db.Timestamptz(3)
+  acceptedByUserId      String?              @map("accepted_by_user_id") @db.Uuid
+
+  tenant              Tenant          @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  // Clave compuesta: una invitación no puede quedar en una clínica distinta de la de quien la generó.
+  createdByMembership StaffMembership @relation(fields: [tenantId, createdByMembershipId], references: [tenantId, id], onDelete: Restrict)
+  createdBy           User            @relation("InvitationCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  acceptedBy          User?           @relation("InvitationAcceptedBy", fields: [acceptedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, createdByMembershipId, status])
+  @@index([tenantId, status, createdAt(sort: Desc)])
+  @@map("invitations")
 }

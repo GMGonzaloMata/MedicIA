@@ -12,7 +12,7 @@
 - **Presentación:** Server Components y Client Components de Next.js; Server Actions para operaciones de la web y Route Handlers para la API REST.
 - **Aplicación:** Casos de uso, servicios de aplicación y puertos de entrada y salida que permiten coordinar operaciones sin depender de implementaciones externas.
 - **Dominio:** Entidades, objetos de valor y reglas de negocio independientes de tecnologías externas.
-- **Infraestructura:** Implementaciones de persistencia y adaptadores para Cognito, S3 y SageMaker.
+- **Infraestructura:** Implementaciones de persistencia y adaptadores para Cognito, S3, SageMaker y el servidor de correo (SMTP).
 
 ### Reglas principales
 
@@ -37,6 +37,14 @@
 
 - **Tecnología:** Amazon Cognito.
 - **Responsabilidad:** Registro, verificación del correo, inicio de sesión y recuperación de contraseña. La aplicación valida el JWT que emite Cognito al iniciar sesión y lo descarta; después mantiene su propia sesión en la base de datos, con una cookie opaca, y autoriza cada operación contra esa sesión y los vínculos vigentes de la persona.
+
+### Correo transaccional
+
+- **Tecnología:** servidor SMTP, consumido mediante el puerto `InvitationMailer` del módulo `users`. En esta etapa es una cuenta de Gmail dedicada al proyecto con contraseña de aplicación; antes de operar con clínicas o personas reales hay que pasar a un servicio transaccional con dominio propio (por ejemplo, Amazon SES), que solo exige escribir o configurar otro adaptador.
+- **Responsabilidad:** enviar el correo de las invitaciones a una clínica (funcionalidad 009), con un link propio de la plataforma. Cognito sigue enviando solo sus mensajes de verificación y recuperación.
+- **Adaptadores:** `smtp` (`nodemailer`, conexión siempre cifrada) y `fake` (escribe cada correo en el archivo de `FAKE_MAIL_OUTBOX_FILE`, solo para desarrollo y pruebas), elegidos por `INVITATION_MAILER`, sin valor por defecto.
+- **Secreto:** `SMTP_PASSWORD` es la contraseña de aplicación. Vive fuera de git y de los registros, nunca llega al navegador y se revoca desde la cuenta de Google si se filtra. La dirección base de los links sale de `APP_BASE_URL`, nunca de un encabezado de la solicitud.
+- **Sin infraestructura:** no hay recursos de AWS ni cambios de Terraform para el correo.
 
 ### Base de datos
 

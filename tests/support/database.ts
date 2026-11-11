@@ -21,6 +21,7 @@ export async function resetDatabase(): Promise<void> {
 
   await prismaClient.$executeRaw`
     TRUNCATE TABLE
+      "invitations",
       "analyses",
       "studies",
       "study_counters",
