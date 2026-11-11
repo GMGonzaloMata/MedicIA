@@ -6,6 +6,8 @@ loadEnvFile({ path: ".env.local", quiet: true });
 
 const BASE_URL = "http://localhost:3000";
 const BUILD_TIMEOUT_MS = 180_000;
+// Mismo archivo que leen las pruebas con `tests/support/e2e-mail.ts`; queda en `.tmp/`, fuera de git.
+const E2E_MAIL_OUTBOX_FILE = ".tmp/e2e-outbox.jsonl";
 
 const isContinuousIntegration = Boolean(process.env.CI);
 
@@ -39,6 +41,10 @@ export default defineConfig({
       // El modelo es el simulado y tarda 1,5 s: el estado «en curso» se ve siempre y ninguna prueba usa AWS.
       MODEL_INFERENCE: "fake",
       FAKE_MODEL_DELAY_MS: "1500",
+      // El correo es el simulado: escribe cada mensaje en un archivo local que leen las pruebas.
+      INVITATION_MAILER: "fake",
+      APP_BASE_URL: BASE_URL,
+      FAKE_MAIL_OUTBOX_FILE: E2E_MAIL_OUTBOX_FILE,
       ...(process.env.DATABASE_URL ? { DATABASE_URL: process.env.DATABASE_URL } : {}),
     },
   },

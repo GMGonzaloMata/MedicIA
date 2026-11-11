@@ -46,7 +46,7 @@ Lo arma una función de aplicación pura (`render-invitation-email.ts`), probada
   - destinatario rechazado por el servidor: `REJECTED`.
   La persona ve el mismo mensaje en todos los casos ("No pudimos enviar el correo"); el código solo sirve para el registro de errores y para que el responsable distinga una contraseña vencida de un fallo de red.
 - No registra el destinatario, el asunto, el cuerpo, el link, la respuesta del servidor ni la contraseña; solo el nombre del error y el código. Los mensajes de error de la librería pueden incluir el destinatario o datos de la conexión, así que nunca se propagan ni se escriben.
-- El transporte se crea una vez por proceso, al primer envío, y se guarda en `globalThis` como el resto de las composiciones (Next puede cargar el archivo más de una vez).
+- El transporte se crea una sola vez, al armar el adaptador. El módulo de usuarios ya se arma una vez por proceso y se guarda en `globalThis` (Next puede cargar el archivo más de una vez), así que el adaptador no repite ese mecanismo.
 
 ## Adaptador simulado
 
@@ -54,7 +54,8 @@ Lo arma una función de aplicación pura (`render-invitation-email.ts`), probada
 
 - Agrega una línea JSON al archivo de `FAKE_MAIL_OUTBOX_FILE` por cada correo: `{ to, subject, text, html, link, sentAt }`. Es lo que leen las pruebas de extremo a extremo y quien desarrolla para abrir el link.
 - Un destinatario con el valor especial `fail@invitations.test` lanza `MailDeliveryError` (`UNAVAILABLE`), para probar el envío fallido.
-- Nunca se usa en producción: `createInvitationMailer` rechaza `fake` cuando `NODE_ENV` es `production`.
+- No se usa con una dirección pública real en producción: `createInvitationMailer` rechaza `fake` cuando `NODE_ENV` es `production` y `APP_BASE_URL` no es de la propia máquina. Con una dirección local se permite, porque las pruebas de extremo a extremo corren contra el build de producción.
+- `APP_BASE_URL` exige `https`, salvo en la propia máquina (`localhost`, `127.0.0.1` o `[::1]`).
 
 ## Fábrica
 

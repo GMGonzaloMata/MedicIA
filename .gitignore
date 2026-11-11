@@ -96,3 +96,6 @@ EchoNext*.xml
 echonext*.zip
 EchoNext*.zip
 *.zip
+
+# Correo simulado y otros archivos temporales de desarrollo y pruebas
+.tmp/

@@ -88,6 +88,10 @@ jobs:
       STUDY_STORAGE: fake
       MODEL_INFERENCE: fake
       FAKE_MODEL_DELAY_MS: "1500"
+      # Correo simulado: escribe los mensajes en un archivo local, ninguna prueba envía correos.
+      INVITATION_MAILER: fake
+      APP_BASE_URL: http://localhost:3000
+      FAKE_MAIL_OUTBOX_FILE: .tmp/e2e-outbox.jsonl
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
