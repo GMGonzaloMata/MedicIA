@@ -10,16 +10,18 @@ import type { StudyActor } from "@/modules/studies/domain/study-access";
 
 import { requireClinicContext } from "../../../_lib/access";
 import { toStudyActor } from "../../../_lib/study-actor";
+import { AnalysisSection } from "../../_studies/_components/analysis/analysis-section";
 import { StudyViewer } from "../../_studies/_components/viewer/study-viewer";
 import { StudyNoAccess, WaveformUnavailable } from "../../_studies/_components/viewer/viewer-states";
 import { WaveformSummary } from "../../_studies/_components/viewer/waveform-summary";
+import { ANALYSIS_MESSAGES } from "../../_studies/_lib/analysis-messages";
 import { STUDY_MESSAGES, formatUploadedAt } from "../../_studies/_lib/study-messages";
 
 export const metadata: Metadata = { title: "Estudio de ECG" };
 
 type StudyPageProps = PageProps<"/studies/[studyId]">;
 
-export default function StudyPage({ params }: StudyPageProps) {
+export default function StudyPage({ params, searchParams }: StudyPageProps) {
   // Leer la sesión y los parámetros ocurre en cada solicitud, así que va dentro de Suspense.
   return (
     <Suspense
@@ -29,7 +31,7 @@ export default function StudyPage({ params }: StudyPageProps) {
         </p>
       }
     >
-      <StudyContent params={params} />
+      <StudyContent params={params} searchParams={searchParams} />
     </Suspense>
   );
 }
@@ -42,7 +44,13 @@ function listLink(actor: StudyActor, patientId?: string) {
       : { href: "/patients", label: "Volver a mis pacientes" };
 }
 
-async function StudyContent({ params }: { params: StudyPageProps["params"] }) {
+async function StudyContent({
+  params,
+  searchParams,
+}: {
+  params: StudyPageProps["params"];
+  searchParams: StudyPageProps["searchParams"];
+}) {
   const actor = toStudyActor(await requireClinicContext());
 
   if (!actor) {
@@ -69,6 +77,25 @@ async function StudyContent({ params }: { params: StudyPageProps["params"] }) {
 
   const { study } = result;
   const back = listLink(actor, study.patientId);
+  // Un `analysisId` mal formado se ignora y se muestra el análisis más reciente.
+  const requestedAnalysis = z.uuid().safeParse((await searchParams).analysisId);
+  const analysis = (
+    // Se muestra siempre que el estudio sea accesible, incluso con la onda no disponible. Tiene su propio
+    // `Suspense`: el visor no espera al análisis.
+    <Suspense
+      fallback={
+        <p role="status" className="text-muted">
+          {ANALYSIS_MESSAGES.loading}
+        </p>
+      }
+    >
+      <AnalysisSection
+        actor={actor}
+        studyId={parsedId.data}
+        analysisId={requestedAnalysis.success ? requestedAnalysis.data : undefined}
+      />
+    </Suspense>
+  );
 
   return (
     <>
@@ -90,6 +117,7 @@ async function StudyContent({ params }: { params: StudyPageProps["params"] }) {
         <>
           <StudyViewer leads={result.leads} />
           <WaveformSummary />
+          {analysis}
           <p>
             <Link href={back.href} className={`${linkClassName} inline-flex min-h-11 items-center`}>
               {back.label}
@@ -97,7 +125,10 @@ async function StudyContent({ params }: { params: StudyPageProps["params"] }) {
           </p>
         </>
       ) : (
-        <WaveformUnavailable back={back} />
+        <>
+          {analysis}
+          <WaveformUnavailable back={back} />
+        </>
       )}
     </>
   );

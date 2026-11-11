@@ -62,6 +62,8 @@ Decisiones técnicas de la 008. Cada una con su motivo y las alternativas descar
 - *Un proceso periódico para vencer análisis*: otro componente que operar; la regla perezosa alcanza.
 - *Inferencia asíncrona de SageMaker*: fuera de alcance de la 004 y la 005 (punto de inferencia en tiempo real).
 
+**Verificado en las guías de Next 16.4.4 (implementación):** `after` se puede llamar desde una Server Function y corre aunque la respuesta ya se haya enviado; `refresh()` de `next/cache` solo existe dentro de Server Actions, así que el progreso usa `router.refresh()` del cliente. Sin diferencias que cambien el diseño.
+
 ## R4. Actualización de la pantalla y ubicación del resultado
 
 **Decisión:** el resultado y el historial viven dentro de `/studies/[studyId]` (sin ruta nueva): una sección «Análisis» debajo del visor, con el botón, el resultado seleccionado y la lista. El análisis a mostrar se elige con el parámetro de búsqueda `analysisId` (UUID); si falta, se muestra el más reciente completado. La sección es un componente de servidor propio dentro de su `Suspense`, así que la onda y los análisis llegan por separado.
