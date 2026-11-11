@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useActionState } from "react";
 
 import { primaryButtonClassName } from "@/components/form/button-styles";
@@ -15,6 +14,7 @@ import {
 import type { InvitationKind } from "@/modules/users/domain/invitation";
 
 import { acceptInvitation } from "../_actions/accept-invitation";
+import { dismissInvitation } from "../_actions/dismiss-invitation";
 import { DOCUMENT_TYPE_OPTIONS } from "../_lib/document-types";
 import { INVITATION_MESSAGES } from "../_lib/invitation-messages";
 
@@ -28,11 +28,11 @@ export function AcceptInvitationForm({ kind }: { kind: InvitationKind }) {
     return (
       <div className="flex max-w-md flex-col gap-4">
         <FormMessage tone={state.status === "already-member" ? "success" : "error"}>{state.message}</FormMessage>
-        <p>
-          <Link href="/" className={primaryButtonClassName}>
+        <form action={dismissInvitation}>
+          <button type="submit" className={primaryButtonClassName}>
             Ir al inicio
-          </Link>
-        </p>
+          </button>
+        </form>
       </div>
     );
   }
@@ -57,6 +57,7 @@ export function AcceptInvitationForm({ kind }: { kind: InvitationKind }) {
             label="Especialidad"
             autoComplete="off"
             maxLength={SPECIALTY_MAX_LENGTH}
+            defaultValue={state?.values?.specialty}
             errors={state?.fieldErrors?.specialty}
           />
         </>
@@ -67,7 +68,7 @@ export function AcceptInvitationForm({ kind }: { kind: InvitationKind }) {
             name="documentType"
             label="Tipo de documento"
             options={DOCUMENT_TYPE_OPTIONS}
-            defaultValue="DNI"
+            defaultValue={state?.values?.documentType ?? "DNI"}
             errors={state?.fieldErrors?.documentType}
           />
           <FormField

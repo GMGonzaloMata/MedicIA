@@ -51,7 +51,7 @@ export interface AcceptanceFacts {
 export interface AcceptanceTransaction {
   // Actualización condicional: pasa a `ACCEPTED` solo si sigue pendiente, no venció y le quedan intentos.
   // Devuelve si lo logró; si no, el link no es válido y no se escribe nada más.
-  claim(input: { invitationId: string; accountId: string; now: Date }): Promise<boolean>;
+  claim(input: { tenantId: string; invitationId: string; accountId: string; now: Date }): Promise<boolean>;
 
   findRelationshipFacts(input: {
     tenantId: string;
@@ -119,7 +119,7 @@ export interface InvitationRepository {
   findByTokenHash(tokenHash: string): Promise<InvitationContext | null>;
 
   // Suma un intento incorrecto de forma atómica; al llegar al máximo revoca la invitación con `ATTEMPTS_EXCEEDED`.
-  registerFailedAttempt(input: { invitationId: string; now: Date }): Promise<{ attemptsLeft: number }>;
+  registerFailedAttempt(input: { tenantId: string; invitationId: string; now: Date }): Promise<{ attemptsLeft: number }>;
 
   runAcceptance<T>(userId: string, work: (transaction: AcceptanceTransaction) => Promise<T>): Promise<T>;
 

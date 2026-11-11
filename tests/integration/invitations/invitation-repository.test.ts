@@ -347,13 +347,13 @@ describe("repositorio de invitaciones: intentos incorrectos", () => {
     const record = await repository.createReplacing(buildInvitation(world, {}, now).input, now);
 
     for (let attempt = 1; attempt < INVITATION_MAX_FAILED_ATTEMPTS; attempt += 1) {
-      expect(await repository.registerFailedAttempt({ invitationId: record.id, now })).toEqual({
+      expect(await repository.registerFailedAttempt({ tenantId: record.tenantId, invitationId: record.id, now })).toEqual({
         attemptsLeft: INVITATION_MAX_FAILED_ATTEMPTS - attempt,
       });
     }
 
     expect((await prismaClient.invitation.findUnique({ where: { id: record.id } }))?.status).toBe("PENDING");
-    expect(await repository.registerFailedAttempt({ invitationId: record.id, now })).toEqual({ attemptsLeft: 0 });
+    expect(await repository.registerFailedAttempt({ tenantId: record.tenantId, invitationId: record.id, now })).toEqual({ attemptsLeft: 0 });
     expect(await prismaClient.invitation.findUnique({ where: { id: record.id } })).toMatchObject({
       status: "REVOKED",
       endReason: "ATTEMPTS_EXCEEDED",
@@ -368,7 +368,7 @@ describe("repositorio de invitaciones: intentos incorrectos", () => {
     const record = await repository.createReplacing(buildInvitation(world, {}, now).input, now);
     await repository.revoke({ tenantId: world.tenantA.id, invitationId: record.id, now });
 
-    expect(await repository.registerFailedAttempt({ invitationId: record.id, now })).toEqual({ attemptsLeft: 0 });
+    expect(await repository.registerFailedAttempt({ tenantId: record.tenantId, invitationId: record.id, now })).toEqual({ attemptsLeft: 0 });
     expect((await prismaClient.invitation.findUnique({ where: { id: record.id } }))?.failedAttempts).toBe(0);
   });
 
@@ -378,7 +378,7 @@ describe("repositorio de invitaciones: intentos incorrectos", () => {
     const record = await repository.createReplacing(buildInvitation(world, {}, now).input, now);
 
     await Promise.all(
-      Array.from({ length: 8 }, () => repository.registerFailedAttempt({ invitationId: record.id, now })),
+      Array.from({ length: 8 }, () => repository.registerFailedAttempt({ tenantId: record.tenantId, invitationId: record.id, now })),
     );
 
     expect((await prismaClient.invitation.findUnique({ where: { id: record.id } }))?.failedAttempts).toBe(
@@ -395,8 +395,8 @@ describe("repositorio de invitaciones: transacción de aceptación", () => {
     const account = await createUser();
 
     const claims = await repository.runAcceptance(account.id, async (transaction) => [
-      await transaction.claim({ invitationId: record.id, accountId: account.id, now }),
-      await transaction.claim({ invitationId: record.id, accountId: account.id, now }),
+      await transaction.claim({ tenantId: record.tenantId, invitationId: record.id, accountId: account.id, now }),
+      await transaction.claim({ tenantId: record.tenantId, invitationId: record.id, accountId: account.id, now }),
     ]);
 
     expect(claims).toEqual([true, false]);
@@ -417,8 +417,8 @@ describe("repositorio de invitaciones: transacción de aceptación", () => {
     await prismaClient.invitation.update({ where: { id: exhausted.id }, data: { failedAttempts: INVITATION_MAX_FAILED_ATTEMPTS } });
 
     const claims = await repository.runAcceptance(account.id, async (transaction) => [
-      await transaction.claim({ invitationId: expired.id, accountId: account.id, now }),
-      await transaction.claim({ invitationId: exhausted.id, accountId: account.id, now }),
+      await transaction.claim({ tenantId: expired.tenantId, invitationId: expired.id, accountId: account.id, now }),
+      await transaction.claim({ tenantId: exhausted.tenantId, invitationId: exhausted.id, accountId: account.id, now }),
     ]);
 
     expect(claims).toEqual([false, false]);
@@ -432,7 +432,7 @@ describe("repositorio de invitaciones: transacción de aceptación", () => {
 
     await expect(
       repository.runAcceptance(account.id, async (transaction) => {
-        await transaction.claim({ invitationId: record.id, accountId: account.id, now });
+        await transaction.claim({ tenantId: record.tenantId, invitationId: record.id, accountId: account.id, now });
 
         throw new Error("falla");
       }),
@@ -737,5 +737,29 @@ describe("repositorio de invitaciones: nombre de la clínica", () => {
 
     expect(await repository.findTenantName({ tenantId: world.tenantA.id })).toBe(world.tenantA.name);
     expect(await repository.findTenantName({ tenantId: "0198d6c4-2f3a-7c11-8d2e-5a1b2c3d4e5f" })).toBeNull();
+  });
+});
+
+describe("repositorio de invitaciones: reclamar y contar intentos con otra clínica", () => {
+  it("no reclama ni cuenta intentos si la clínica no es la de la invitación", async () => {
+    const world = await createInvitationWorld();
+    const now = new Date();
+    const account = await createUser();
+    const { input } = buildInvitation(world, {}, now);
+    const record = await repository.createReplacing(input, now);
+
+    expect(await repository.registerFailedAttempt({ tenantId: world.tenantB.id, invitationId: record.id, now })).toEqual({
+      attemptsLeft: 0,
+    });
+    const claimed = await repository.runAcceptance(account.id, (transaction) =>
+      transaction.claim({ tenantId: world.tenantB.id, invitationId: record.id, accountId: account.id, now }),
+    );
+
+    expect(claimed).toBe(false);
+    expect(await prismaClient.invitation.findUniqueOrThrow({ where: { id: record.id } })).toMatchObject({
+      status: "PENDING",
+      failedAttempts: 0,
+      acceptedAt: null,
+    });
   });
 });

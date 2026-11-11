@@ -34,7 +34,7 @@ export function RevokeInvitationDialog({ invitationId, email }: { invitationId: 
           <h2 id={`revoke-title-${invitationId}`} className="text-lg font-semibold">
             Revocar invitación
           </h2>
-          <p className="text-base">El link enviado a {email} dejará de servir de inmediato.</p>
+          <p className="break-all text-base">El link enviado a {email} dejará de servir de inmediato.</p>
 
           <div aria-live="polite">
             {state?.ok === false ? <FormMessage tone="error">{state.message}</FormMessage> : null}

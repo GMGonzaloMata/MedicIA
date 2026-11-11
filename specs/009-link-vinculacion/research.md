@@ -162,3 +162,19 @@ La guía de `node_modules/next/dist/docs/` sobre Route Handlers confirma lo que 
 - **Administrador que también atiende**: un administrador sin rol de médico no puede pasar a ser médico con un link (R6). Se resuelve en la gestión de usuarios (010).
 - **Credencial de correo**: la contraseña de aplicación de Gmail vive en el entorno del servidor. Una filtración permite enviar correos como esa cuenta hasta que se revoque. Se mitiga con una cuenta dedicada, verificación en dos pasos y la revocación inmediata desde Google (R1).
 - **Datos reales**: Gmail como servicio de envío es válido solo para esta etapa académica. Antes de operar con clínicas o personas reales hay que migrar a un servicio transaccional con dominio propio (por ejemplo, SES) y cerrar las vías de acceso del operador descritas en `infra/README.md`.
+
+## Resultados de la implementación
+
+Revisión final con `review-changes` (arquitectura, seguridad e interfaz; sin cambios de infraestructura). Ningún hallazgo fue bloqueante.
+
+Corregido:
+- Interfaz: los formularios de aceptar conservan la especialidad y el tipo de documento tras un error (la matrícula y el número no se repueblan a propósito); el correo largo del diálogo de revocar ya no desborda en móvil.
+- Seguridad: `claim` y `registerFailedAttempt` ahora también filtran por la clínica de la invitación, con prueba de integración; el correo simulado importa `server-only`.
+- Se aparta de R5, punto 5: la cookie `medicia_invitation` no se borra al mostrar «Ya pertenecés a…» ni al agotar los intentos, porque cambiarla vuelve a renderizar la pantalla y tapa el mensaje. La borra el botón «Ir al inicio». Tampoco se borra al cerrar sesión, para que quien ingresó con otro correo retome la invitación; vence sola a las 2 horas.
+
+Pendiente (decisión del responsable):
+- **Reemplazo entre emisores (FR-009 frente a FR-021):** al invitar a un correo que ya tiene un link pendiente, el nuevo reemplaza al anterior aunque lo haya generado otra persona. Un médico que no es administrador puede así anular el link que mandó el administrador o el de otro médico, sin enterarse. No expone datos, pero permite entorpecer un alta. Conviene decidir con `speckit-clarify` si un médico solo puede reemplazar sus propios links.
+- Avisar al paciente, antes de aceptar, que el médico que lo invitó va a poder ver sus estudios (hoy solo dice «<Clínica> te invitó como paciente»). Es una decisión de producto.
+- La vista previa y la lista no comprueban que quien generó un link con asignación siga siendo médico; solo lo comprueba la aceptación. Hoy ningún código cambia ese rol.
+- Sugerencias menores: mover `isInvitationUsable` al dominio y `renderInvitationEmail` fuera de `use-cases/`; ícono de error y `spellCheck` en los campos; texto de ayuda junto a «Envío fallido»; un color de superposición como token en el diálogo; limpiar el error al reabrir el diálogo de revocar.
+- Ya documentado: sin tope de envíos y cuota de Gmail compartida (R14); el token queda en los registros de acceso (R2).

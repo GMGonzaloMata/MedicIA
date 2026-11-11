@@ -67,3 +67,19 @@ Todo esto lo prepara el responsable:
 ## Qué no se pudo verificar sin el entorno real
 
 El envío por SMTP y la entrega del correo (bandeja de entrada o spam) solo se pueden comprobar con el paso anterior: con el correo simulado se verifica el contenido, el link y el flujo, no la entrega. Queda como verificación manual del responsable. El límite diario de Gmail y un posible bloqueo de Google por envíos automáticos tampoco se pueden probar de antemano.
+
+## Resultados
+
+Ejecutado con el correo simulado (`INVITATION_MAILER=fake`) y el proveedor de identidad simulado, sobre la base local.
+
+Automático:
+- `npm run check`: tipos, lint, pruebas unitarias y de integración, cobertura por archivo y build, en verde.
+- Integración contra la base: aceptación simultánea del mismo link (un solo vínculo), intentos incorrectos simultáneos (no pasan de 5), rechazo desde otra clínica al generar, listar, revocar y aceptar, link vencido, revocado, reemplazado, usado, de clínica suspendida y de emisor desactivado, reutilización del paciente revocado, asignación al médico sin duplicados, y segunda clínica con selección de las dos.
+- Extremo a extremo (`tests/e2e/invitations.spec.ts`, 10 pruebas en escritorio, tablet y móvil; la de anchos de pantalla y modo oscuro solo en escritorio): escenarios 1 a 4 completos. En una corrida de toda la suite fallaron 4 pruebas de las funcionalidades 007 y 008 (proyecto móvil) por datos de clínica que desaparecieron durante la corrida; al repetirlas solas pasaron las 9 que corren.
+
+A mano (responsable), con el correo simulado:
+- Escenario 1 (administrador invita a un médico): comprobado en el navegador hasta recibir el correo simulado; el recorrido completo y los escenarios 2 a 5 los cubre la prueba extremo a extremo.
+
+Pendiente del responsable:
+- Prueba con Gmail real: escenario 1 con un destinatario verdadero y `INVITATION_MAILER=smtp`; comprobar que el correo llega y que no cae en spam.
+- Revocar la contraseña de aplicación de Gmail si deja de usarse.

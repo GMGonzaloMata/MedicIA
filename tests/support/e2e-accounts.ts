@@ -12,6 +12,14 @@ export async function createVerifiedAccount(page: Page, database: E2eDatabase) {
   const fullName = uniqueName("Persona");
   const user = await database.seedUser({ email, fullName });
 
+  await registerAccount(page, { email, fullName });
+
+  return { user, email };
+}
+
+// Registra y verifica una cuenta nueva por la interfaz, sin crearla antes en la base: es lo que hace una persona que
+// llega desde el link de una invitación. Termina en la pantalla de ingreso.
+export async function registerAccount(page: Page, { email, fullName }: { email: string; fullName: string }) {
   await page.goto("/sign-up");
   await page.getByLabel("Nombre completo").fill(fullName);
   await page.getByLabel("Correo electrónico").fill(email);
@@ -24,8 +32,6 @@ export async function createVerifiedAccount(page: Page, database: E2eDatabase) {
   await page.getByRole("button", { name: "Verificar correo" }).click();
   // Esperar el aviso (y no solo la URL) asegura que ya se muestra la pantalla de ingreso nueva.
   await expect(page.getByText("Tu cuenta quedó verificada. Ya podés ingresar.")).toBeVisible();
-
-  return { user, email };
 }
 
 // Completa la pantalla de ingreso que ya está abierta.

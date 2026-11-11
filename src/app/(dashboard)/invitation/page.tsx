@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
@@ -9,6 +8,7 @@ import { getUsersModule } from "@/modules/users/composition";
 import { getAccessContext } from "../../_lib/access";
 import { readInvitationToken } from "../../_lib/invitation-cookie";
 import { SignOutButton } from "../_components/sign-out-button";
+import { dismissInvitation } from "../_invitations/_actions/dismiss-invitation";
 import { AcceptInvitationForm } from "../_invitations/_components/accept-invitation-form";
 import { INVITATION_MESSAGES, invitedAsMessage } from "../_invitations/_lib/invitation-messages";
 
@@ -33,9 +33,11 @@ function InvalidInvitation({ withSignOut }: { withSignOut: boolean }) {
       <p>{INVITATION_MESSAGES.invalidLink}</p>
       {withSignOut ? <p className="text-muted">{INVITATION_MESSAGES.otherEmailHint}</p> : null}
       <div className="flex flex-wrap gap-3">
-        <Link href="/" className={primaryButtonClassName}>
-          Ir al inicio
-        </Link>
+        <form action={dismissInvitation}>
+          <button type="submit" className={primaryButtonClassName}>
+            Ir al inicio
+          </button>
+        </form>
         {withSignOut ? <SignOutButton /> : null}
       </div>
     </div>

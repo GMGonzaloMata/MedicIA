@@ -193,10 +193,10 @@ export class InMemoryInvitationRepository implements InvitationRepository {
     };
   }
 
-  async registerFailedAttempt({ invitationId, now }: { invitationId: string; now: Date }) {
+  async registerFailedAttempt({ tenantId, invitationId, now }: { tenantId: string; invitationId: string; now: Date }) {
     const invitation = this.findInvitation(invitationId);
 
-    if (!invitation || invitation.status !== "PENDING" || invitation.failedAttempts >= INVITATION_MAX_FAILED_ATTEMPTS) {
+    if (!invitation || invitation.tenantId !== tenantId || invitation.status !== "PENDING" || invitation.failedAttempts >= INVITATION_MAX_FAILED_ATTEMPTS) {
       return { attemptsLeft: 0 };
     }
 
@@ -287,11 +287,12 @@ export class InMemoryInvitationRepository implements InvitationRepository {
 
   private createTransaction(): AcceptanceTransaction {
     return {
-      claim: async ({ invitationId, accountId: claimingAccountId, now }) => {
+      claim: async ({ tenantId, invitationId, accountId: claimingAccountId, now }) => {
         const invitation = this.findInvitation(invitationId);
 
         if (
           !invitation ||
+          invitation.tenantId !== tenantId ||
           invitation.status !== "PENDING" ||
           invitation.expiresAt.getTime() <= now.getTime() ||
           invitation.failedAttempts >= INVITATION_MAX_FAILED_ATTEMPTS

@@ -138,40 +138,49 @@ describe("acción de aceptar una invitación", () => {
     expect(invitationCookie.clear).toHaveBeenCalled();
   });
 
-  it("si ya pertenecía, avisa y borra la cookie", async () => {
+  it("si ya pertenecía, avisa y deja la cookie para que «Ir al inicio» la borre", async () => {
     usersModule.acceptInvitation.mockResolvedValue({ status: "ALREADY_MEMBER", tenantName: "Clínica del Sol" });
 
     expect(await acceptInvitation(undefined, form(DOCTOR_FORM))).toEqual({
       status: "already-member",
       message: "Ya pertenecés a Clínica del Sol.",
     });
-    expect(invitationCookie.clear).toHaveBeenCalled();
+    expect(invitationCookie.clear).not.toHaveBeenCalled();
+  });
+
+  it("tras un error conserva la especialidad y el tipo de documento, pero no la matrícula ni el número", async () => {
+    usersModule.acceptInvitation.mockResolvedValue({ status: "PROOF_MISMATCH", attemptsLeft: 3 });
+
+    const result = await acceptInvitation(undefined, form({ ...DOCTOR_FORM, documentType: "PASSPORT" }));
+
+    expect(result).toMatchObject({ values: { specialty: "Cardiología", documentType: "PASSPORT" } });
+    expect(JSON.stringify(result)).not.toContain("MN123");
   });
 
   it("con un dato incorrecto avisa cuántos intentos quedan y conserva la cookie", async () => {
     usersModule.acceptInvitation.mockResolvedValue({ status: "PROOF_MISMATCH", attemptsLeft: 3 });
 
-    expect(await acceptInvitation(undefined, form(DOCTOR_FORM))).toEqual({
+    expect(await acceptInvitation(undefined, form(DOCTOR_FORM))).toMatchObject({
       status: "error",
       message: "Los datos no coinciden. Te quedan 3 intentos.",
     });
     expect(invitationCookie.clear).not.toHaveBeenCalled();
   });
 
-  it("con el último intento fallido informa la invalidación y borra la cookie", async () => {
+  it("con el último intento fallido informa la invalidación y deja la cookie para «Ir al inicio»", async () => {
     usersModule.acceptInvitation.mockResolvedValue({ status: "PROOF_MISMATCH", attemptsLeft: 0 });
 
     expect(await acceptInvitation(undefined, form(DOCTOR_FORM))).toMatchObject({
       status: "finished",
       message: expect.stringContaining("demasiados intentos"),
     });
-    expect(invitationCookie.clear).toHaveBeenCalled();
+    expect(invitationCookie.clear).not.toHaveBeenCalled();
   });
 
   it("ante un conflicto explica el motivo y conserva la cookie", async () => {
     usersModule.acceptInvitation.mockResolvedValue({ status: "CONFLICT", reason: "ROLE_CHANGE_NOT_SUPPORTED" });
 
-    expect(await acceptInvitation(undefined, form(DOCTOR_FORM))).toEqual({
+    expect(await acceptInvitation(undefined, form(DOCTOR_FORM))).toMatchObject({
       status: "error",
       message: "Sumar el rol de médico lo gestiona la clínica: pedíselo a un administrador.",
     });
@@ -191,7 +200,7 @@ describe("acción de aceptar una invitación", () => {
   it("un error inesperado se registra solo por su nombre", async () => {
     usersModule.acceptInvitation.mockRejectedValue(new TypeError(`falló con ${COOKIE_TOKEN} y MN123`));
 
-    expect(await acceptInvitation(undefined, form(DOCTOR_FORM))).toEqual({
+    expect(await acceptInvitation(undefined, form(DOCTOR_FORM))).toMatchObject({
       status: "error",
       message: "No pudimos completar la vinculación. Probá de nuevo.",
     });

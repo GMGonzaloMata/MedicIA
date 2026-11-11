@@ -23,6 +23,9 @@ export interface AcceptFormState {
   status: "error" | "finished" | "already-member";
   message?: string;
   fieldErrors?: Partial<Record<string, string[]>>;
+  // Lo que no es sensible y conviene no reescribir tras un error: la especialidad y el tipo de documento. La matrícula
+  // y el número de documento no se repueblan a propósito: son el dato que se verifica.
+  values?: { specialty?: string; documentType?: string };
 }
 
 // Solo los campos que el formulario mandó: los del tipo de invitación que se está aceptando.
@@ -77,8 +80,10 @@ export async function acceptInvitation(
 
   const proof = acceptInvitationSchema.safeParse(readProof(formData));
 
+  const values = { specialty: readOptionalText(formData, "specialty"), documentType: readOptionalText(formData, "documentType") };
+
   if (!proof.success) {
-    return { status: "error", fieldErrors: z.flattenError(proof.error).fieldErrors };
+    return { status: "error", fieldErrors: z.flattenError(proof.error).fieldErrors, values };
   }
 
   let result: Awaited<ReturnType<ReturnType<typeof getUsersModule>["acceptInvitation"]>>;
@@ -92,7 +97,7 @@ export async function acceptInvitation(
   } catch (error) {
     console.error(`[invitaciones] error inesperado: ${error instanceof Error ? error.name : "UnknownError"}`);
 
-    return { status: "error", message: INVITATION_MESSAGES.unexpected };
+    return { status: "error", message: INVITATION_MESSAGES.unexpected, values };
   }
 
   switch (result.status) {
@@ -105,22 +110,20 @@ export async function acceptInvitation(
       redirect(isActive ? "/" : "/select-clinic");
     }
 
+    // En estos dos resultados no se borra la cookie: cambiarla vuelve a renderizar la pantalla y taparía el mensaje. La
+    // borra «Ir al inicio» (dismiss-invitation).
     case "ALREADY_MEMBER":
-      await clearInvitationCookie();
-
       return { status: "already-member", message: alreadyMemberMessage(result.tenantName) };
 
     case "PROOF_MISMATCH":
       if (result.attemptsLeft <= 0) {
-        await clearInvitationCookie();
-
         return { status: "finished", message: INVITATION_MESSAGES.attemptsExhausted };
       }
 
-      return { status: "error", message: attemptsLeftMessage(result.attemptsLeft) };
+      return { status: "error", message: attemptsLeftMessage(result.attemptsLeft), values };
 
     case "CONFLICT":
-      return { status: "error", message: acceptConflictMessage(result.reason) };
+      return { status: "error", message: acceptConflictMessage(result.reason), values };
 
     case "INVALID":
       await clearInvitationCookie();

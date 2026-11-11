@@ -46,6 +46,14 @@
 - **Secreto:** `SMTP_PASSWORD` es la contraseña de aplicación. Vive fuera de git y de los registros, nunca llega al navegador y se revoca desde la cuenta de Google si se filtra. La dirección base de los links sale de `APP_BASE_URL`, nunca de un encabezado de la solicitud.
 - **Sin infraestructura:** no hay recursos de AWS ni cambios de Terraform para el correo.
 
+### Invitaciones a una clínica
+
+- **Responsabilidad:** incorporar médicos y pacientes a una clínica por un link que la plataforma envía por correo (funcionalidad 009). Lo generan el administrador (médicos y pacientes) o un médico (solo pacientes, que además quedan asignados a él). Viven en el módulo `users`, sobre la tabla `invitations`.
+- **Token:** 32 bytes aleatorios en base64url. Solo se guarda su hash SHA-256: el link no se puede reconstruir desde la base. Vence a los 7 días, se usa una sola vez y queda atado al correo al que se envió.
+- **Verificación del dato:** quien acepta debe estar ingresado con el correo del link y escribir el documento (paciente) o la matrícula (médico) que cargó quien invitó. Cinco datos incorrectos invalidan el link. Las comparaciones usan el dato normalizado y no distinguen la causa de un link no válido.
+- **Retomar el link:** `GET /invite/[token]` es público, guarda el token en la cookie `medicia_invitation` (`httpOnly`, 2 horas) y redirige a `/invitation`, donde la persona ingresa o crea su cuenta con la autenticación de siempre. Aceptar es una sola transacción que bloquea la cuenta y reclama el link de forma condicional, así dos intentos simultáneos dejan un solo vínculo.
+- **Regla de vínculo:** en una clínica una persona es personal o paciente, nunca las dos cosas. Aceptar no cambia la contraseña ni los vínculos con otras clínicas.
+
 ### Base de datos
 
 - **Tecnología:** Amazon RDS con PostgreSQL.

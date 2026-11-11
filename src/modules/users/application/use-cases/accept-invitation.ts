@@ -236,7 +236,11 @@ export function createAcceptInvitation({ invitations, now }: Dependencies) {
 
     // 5: el dato que cargó quien invitó. Un fallo cuenta un intento; con el último, el link queda invalidado.
     if (!verification.matches) {
-      const { attemptsLeft } = await invitations.registerFailedAttempt({ invitationId: invitation.id, now: now() });
+      const { attemptsLeft } = await invitations.registerFailedAttempt({
+        tenantId: invitation.tenantId,
+        invitationId: invitation.id,
+        now: now(),
+      });
 
       return { status: "PROOF_MISMATCH", attemptsLeft };
     }
@@ -257,7 +261,12 @@ export function createAcceptInvitation({ invitations, now }: Dependencies) {
         }
 
         const moment = now();
-        const claimed = await transaction.claim({ invitationId: invitation.id, accountId: account.id, now: moment });
+        const claimed = await transaction.claim({
+          tenantId: invitation.tenantId,
+          invitationId: invitation.id,
+          accountId: account.id,
+          now: moment,
+        });
 
         if (!claimed) {
           return { status: "INVALID" };

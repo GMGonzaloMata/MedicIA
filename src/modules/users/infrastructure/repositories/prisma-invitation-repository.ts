@@ -17,9 +17,10 @@ function isUniqueViolation(error: unknown): boolean {
 // Operaciones de la transacción de aceptación. Toda consulta lleva la clínica de la invitación.
 function createAcceptanceTransaction(tx: Prisma.TransactionClient): AcceptanceTransaction {
   return {
-    async claim({ invitationId, accountId, now }) {
+    async claim({ tenantId, invitationId, accountId, now }) {
       const result = await tx.invitation.updateMany({
         where: {
+          tenantId,
           id: invitationId,
           status: "PENDING",
           expiresAt: { gt: now },
@@ -151,7 +152,7 @@ function createAcceptanceTransaction(tx: Prisma.TransactionClient): AcceptanceTr
 }
 
 // Toda consulta incluye `tenantId`, salvo la búsqueda por el hash del token (único y secreto): quien la usa valida
-// después todo contra la clínica de la invitación. No hay ninguna que busque una invitación por `id` solo.
+// después todo contra la clínica de la invitación. No hay ninguna que busque o escriba una invitación por `id` solo.
 export const prismaInvitationRepository: InvitationRepository = {
   async createReplacing(input, now) {
     const attempt = (): Promise<InvitationRecord> =>
@@ -249,7 +250,7 @@ export const prismaInvitationRepository: InvitationRepository = {
     };
   },
 
-  async registerFailedAttempt({ invitationId, now }) {
+  async registerFailedAttempt({ tenantId, invitationId, now }) {
     // Una sola sentencia: suma el intento y, al llegar al máximo, revoca la invitación. Es atómica, así que dos
     // intentos simultáneos nunca pasan del máximo ni se pisan.
     const rows = await prismaClient.$queryRaw<Array<{ failedAttempts: number }>>`
@@ -262,6 +263,7 @@ export const prismaInvitationRepository: InvitationRepository = {
           "revoked_at" = CASE WHEN "failed_attempts" + 1 >= ${INVITATION_MAX_FAILED_ATTEMPTS}::int
                               THEN ${now}::timestamptz ELSE "revoked_at" END
       WHERE "id" = ${invitationId}::uuid
+        AND "tenant_id" = ${tenantId}::uuid
         AND "status" = 'PENDING'
         AND "failed_attempts" < ${INVITATION_MAX_FAILED_ATTEMPTS}::int
       RETURNING "failed_attempts" AS "failedAttempts"
