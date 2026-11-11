@@ -80,6 +80,7 @@ Automático:
 A mano (responsable), con el correo simulado:
 - Escenario 1 (administrador invita a un médico): comprobado en el navegador hasta recibir el correo simulado; el recorrido completo y los escenarios 2 a 5 los cubre la prueba extremo a extremo.
 
+Prueba con Gmail real (responsable): escenario 1 con un destinatario verdadero y `INVITATION_MAILER=smtp`; el correo se envió y el recorrido funcionó. No se registró si el mensaje cayó en spam.
+
 Pendiente del responsable:
-- Prueba con Gmail real: escenario 1 con un destinatario verdadero y `INVITATION_MAILER=smtp`; comprobar que el correo llega y que no cae en spam.
 - Revocar la contraseña de aplicación de Gmail si deja de usarse.

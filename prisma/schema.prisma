@@ -49,12 +49,13 @@ model Tenant {
   createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  memberships StaffMembership[]
-  patients    Patient[]
-  assignments DoctorPatientAssignment[]
-  studies     Study[]
-  analyses    Analysis[]
-  invitations Invitation[]
+  memberships      StaffMembership[]
+  patients         Patient[]
+  assignments      DoctorPatientAssignment[]
+  studies          Study[]
+  analyses         Analysis[]
+  invitations      Invitation[]
+  clinicUserEvents ClinicUserEvent[]
 
   @@map("tenants")
 }
@@ -70,15 +71,16 @@ model User {
   createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  memberships        StaffMembership[]
-  patients           Patient[]
-  assignmentsCreated DoctorPatientAssignment[] @relation("AssignmentCreatedBy")
-  assignmentsEnded   DoctorPatientAssignment[] @relation("AssignmentEndedBy")
-  sessions           Session[]
-  studiesUploaded    Study[]
-  analysesRequested  Analysis[]
-  invitationsCreated  Invitation[] @relation("InvitationCreatedBy")
-  invitationsAccepted Invitation[] @relation("InvitationAcceptedBy")
+  memberships          StaffMembership[]
+  patients             Patient[]
+  assignmentsCreated   DoctorPatientAssignment[] @relation("AssignmentCreatedBy")
+  assignmentsEnded     DoctorPatientAssignment[] @relation("AssignmentEndedBy")
+  sessions             Session[]
+  studiesUploaded      Study[]
+  analysesRequested    Analysis[]
+  invitationsCreated   Invitation[]              @relation("InvitationCreatedBy")
+  invitationsAccepted  Invitation[]              @relation("InvitationAcceptedBy")
+  clinicUserEventsMade ClinicUserEvent[]         @relation("EventActorUser")
 
   @@map("users")
 }
@@ -96,11 +98,13 @@ model StaffMembership {
   createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  tenant      Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
-  user        User                      @relation(fields: [userId], references: [id], onDelete: Restrict)
-  assignments DoctorPatientAssignment[]
-  sessions    Session[]
+  tenant             Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  user               User                      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  assignments        DoctorPatientAssignment[]
+  sessions           Session[]
   invitationsCreated Invitation[]
+  eventsAsActor      ClinicUserEvent[]         @relation("EventActorMembership")
+  eventsAsTarget     ClinicUserEvent[]         @relation("EventTargetMembership")
 
   @@unique([tenantId, userId])
   @@unique([tenantId, licenseNumber])
@@ -131,6 +135,7 @@ model Patient {
   sessions     Session[]
   studies      Study[]
   studyCounter StudyCounter?
+  events       ClinicUserEvent[]
 
   @@unique([tenantId, documentType, documentNumber])
   @@unique([tenantId, userId])
@@ -372,4 +377,47 @@ model Invitation {
   @@index([tenantId, createdByMembershipId, status])
   @@index([tenantId, status, createdAt(sort: Desc)])
   @@map("invitations")
+}
+
+// Qué hizo alguien sobre una persona de la clínica (specs/010-gestion-usuarios-clinica/data-model.md).
+enum ClinicUserAction {
+  STAFF_ENROLLED
+  PATIENT_ENROLLED
+  STAFF_DEACTIVATED
+  STAFF_REACTIVATED
+  PATIENT_REVOKED
+  PATIENT_REACTIVATED
+  ASSIGNMENT_CREATED
+  ASSIGNMENT_ENDED
+  ACCESS_RESENT
+
+  @@map("clinic_user_action")
+}
+
+// Registro de gestión: quién dio de alta, asignó, dio de baja o reactivó a quién y cuándo (FR-030). Solo se inserta.
+// No guarda correo, documento ni matrícula: se resuelven por las claves. Los CHECK de coherencia entre la acción y los
+// destinos se agregan a mano en el SQL de la migración.
+model ClinicUserEvent {
+  id                 String           @id @default(uuid(7)) @db.Uuid
+  tenantId           String           @map("tenant_id") @db.Uuid
+  action             ClinicUserAction
+  actorUserId        String           @map("actor_user_id") @db.Uuid
+  actorMembershipId  String           @map("actor_membership_id") @db.Uuid
+  // El integrante afectado, o el médico de una asignación.
+  targetMembershipId String?          @map("target_membership_id") @db.Uuid
+  targetPatientId    String?          @map("target_patient_id") @db.Uuid
+  // Lo pone la aplicación con su reloj.
+  createdAt          DateTime         @map("created_at") @db.Timestamptz(3)
+
+  tenant           Tenant           @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  actor            User             @relation("EventActorUser", fields: [actorUserId], references: [id], onDelete: Restrict)
+  // Claves compuestas: un evento no puede atribuirse ni apuntar a una membresía o un paciente de otra clínica.
+  actorMembership  StaffMembership  @relation("EventActorMembership", fields: [tenantId, actorMembershipId], references: [tenantId, id], onDelete: Restrict)
+  targetMembership StaffMembership? @relation("EventTargetMembership", fields: [tenantId, targetMembershipId], references: [tenantId, id], onDelete: Restrict)
+  targetPatient    Patient?         @relation(fields: [tenantId, targetPatientId], references: [tenantId, id], onDelete: Restrict)
+
+  @@index([tenantId, createdAt(sort: Desc)])
+  @@index([tenantId, targetMembershipId, createdAt(sort: Desc)])
+  @@index([tenantId, targetPatientId, createdAt(sort: Desc)])
+  @@map("clinic_user_events")
 }

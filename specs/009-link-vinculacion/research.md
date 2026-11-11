@@ -172,9 +172,9 @@ Corregido:
 - Seguridad: `claim` y `registerFailedAttempt` ahora también filtran por la clínica de la invitación, con prueba de integración; el correo simulado importa `server-only`.
 - Se aparta de R5, punto 5: la cookie `medicia_invitation` no se borra al mostrar «Ya pertenecés a…» ni al agotar los intentos, porque cambiarla vuelve a renderizar la pantalla y tapa el mensaje. La borra el botón «Ir al inicio». Tampoco se borra al cerrar sesión, para que quien ingresó con otro correo retome la invitación; vence sola a las 2 horas.
 
-Pendiente (decisión del responsable):
-- **Reemplazo entre emisores (FR-009 frente a FR-021):** al invitar a un correo que ya tiene un link pendiente, el nuevo reemplaza al anterior aunque lo haya generado otra persona. Un médico que no es administrador puede así anular el link que mandó el administrador o el de otro médico, sin enterarse. No expone datos, pero permite entorpecer un alta. Conviene decidir con `speckit-clarify` si un médico solo puede reemplazar sus propios links.
-- Avisar al paciente, antes de aceptar, que el médico que lo invitó va a poder ver sus estudios (hoy solo dice «<Clínica> te invitó como paciente»). Es una decisión de producto.
+Pendiente y decidido:
+- **Reemplazo entre emisores (FR-009 frente a FR-021):** decidido por el responsable, se mantiene como está. Un link nuevo para un correo reemplaza al pendiente aunque lo haya generado otra persona, incluso si quien invita es un médico y el anterior lo mandó el administrador u otro médico. El efecto (un médico puede anular un link ajeno sin enterarse) es conocido y aceptado.
+- **Aviso al paciente de que el médico verá sus estudios:** decidido por el responsable, no se agrega.
 - La vista previa y la lista no comprueban que quien generó un link con asignación siga siendo médico; solo lo comprueba la aceptación. Hoy ningún código cambia ese rol.
 - Sugerencias menores: mover `isInvitationUsable` al dominio y `renderInvitationEmail` fuera de `use-cases/`; ícono de error y `spellCheck` en los campos; texto de ayuda junto a «Envío fallido»; un color de superposición como token en el diálogo; limpiar el error al reabrir el diálogo de revocar.
 - Ya documentado: sin tope de envíos y cuota de Gmail compartida (R14); el token queda en los registros de acceso (R2).
