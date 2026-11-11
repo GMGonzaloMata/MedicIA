@@ -44,6 +44,15 @@ resource "aws_iam_policy" "boundary" {
             }
           }
         },
+        {
+          # El análisis de estudios (008): la aplicación invoca el punto de inferencia de EchoNext-Mini y nada más de
+          # SageMaker. Es la misma acción y el mismo recurso que concede infra/modules/identity (model-endpoint-invoke);
+          # sin esta sentencia aquella política no tiene efecto, y sin aquella esta tampoco.
+          Sid      = "InvocarModelo"
+          Effect   = "Allow"
+          Action   = ["sagemaker:InvokeEndpoint"]
+          Resource = [local.model_endpoint_arn]
+        },
       ],
     )
   })

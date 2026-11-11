@@ -44,6 +44,17 @@ describe("acceso a los análisis de un estudio", () => {
     expect(await prismaClient.analysis.count()).toBe(before);
   });
 
+  it("leer la entrada del modelo se rechaza igual para quien no tiene acceso al estudio", async () => {
+    const w = await createAnalysisWorld();
+
+    for (const actor of [w.actors.p2, w.actors.doctor2, w.actors.doctorB]) {
+      expect(await w.studySource.readModelInput({ actor, studyId: w.study.id })).toEqual({ status: "NO_ACCESS" });
+    }
+    expect(await w.studySource.readModelInput({ actor: w.actors.p1, studyId: w.study.id })).toMatchObject({
+      status: "READY",
+    });
+  });
+
   it("una asignación terminada quita el acceso y una reiniciada lo devuelve", async () => {
     const w = await createAnalysisWorld();
     const { analysis, run } = await w.requestAnalysis({ actor: w.actors.p1, studyId: w.study.id });

@@ -34,3 +34,14 @@ variable "studies_bucket_arn" {
     error_message = "El bucket de estudios debe ser el ARN de un bucket de S3 (arn:aws:s3:::nombre), sin ruta."
   }
 }
+
+variable "model_endpoint_arn" {
+  description = "ARN del punto de inferencia de EchoNext-Mini (infra/modules/model-endpoints). Vacío por defecto: sin él, el usuario de la aplicación no puede invocar ningún modelo. Con valor, puede invocar solo ese punto (specs/008-analisis-estudio-ecg). El ARN se arma por nombre, así que existe aunque el punto esté apagado."
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.model_endpoint_arn == "" || can(regex("^arn:aws:sagemaker:[a-z0-9-]+:[0-9]{12}:endpoint/[a-zA-Z0-9][a-zA-Z0-9-]{0,62}$", var.model_endpoint_arn))
+    error_message = "El punto de inferencia debe ser el ARN de un endpoint de SageMaker (arn:aws:sagemaker:región:cuenta:endpoint/nombre), sin comodines."
+  }
+}

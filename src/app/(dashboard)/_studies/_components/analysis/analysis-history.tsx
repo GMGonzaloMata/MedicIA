@@ -48,7 +48,7 @@ export function AnalysisHistory({ studyId, items, selectedId }: AnalysisHistoryP
               {item.status === "COMPLETED" ? (
                 <Link
                   href={`/studies/${studyId}?analysisId=${item.id}`}
-                  aria-label={`Ver el resultado del análisis del ${date}`}
+                  aria-label={`Ver resultado del análisis del ${date}`}
                   className={`${linkClassName} inline-flex min-h-11 items-center self-start`}
                 >
                   Ver resultado

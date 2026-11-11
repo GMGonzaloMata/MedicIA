@@ -111,3 +111,9 @@ export class StudyInUseError extends Error {
     this.name = "StudyInUseError";
   }
 }
+
+// Next puede cargar este módulo más de una vez (una copia por ruta), y entonces `instanceof` falla entre copias: la
+// pantalla del estudio distingue «sin acceso» por el nombre del error.
+export function isStudyAccessError(error: unknown): boolean {
+  return error instanceof Error && (error.name === "StudyForbiddenError" || error.name === "StudyNotFoundError");
+}

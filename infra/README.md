@@ -338,6 +338,29 @@ Con las credenciales del operador, leer un objeto del bucket debe dar `AccessDen
 
 Estas medidas quedan fuera de esta etapa y deben resolverse antes: sacar la clave de la aplicación del estado (o crearla fuera de Terraform), un límite propio de la aplicación (`medicia-dev-app-boundary`) que el operador solo pueda asignar a su usuario, aplicar la política y el bloqueo de acceso público del bucket de estudios por la vía de administración y sumar `PutObject` y `PutBucketVersioning` al `Deny` del operador, registro de accesos del bucket y alarmas, plazos de conservación y eliminación según los requisitos institucionales, un rol del servidor en lugar del usuario de IAM de la aplicación, y limitación de frecuencia de cargas.
 
+## Permiso para invocar el modelo
+
+La aplicación analiza los estudios invocando el punto de inferencia de EchoNext-Mini (`specs/008-analisis-estudio-ecg`). Para eso el usuario de la aplicación recibe una sola acción sobre un solo recurso.
+
+### Qué se concede
+
+- Acción: `sagemaker:InvokeEndpoint`. Recurso: `arn:aws:sagemaker:sa-east-1:896618135592:endpoint/medicia-dev-echonext-mini`. Nada más de SageMaker: no puede crear, cambiar, listar ni borrar.
+- El ARN se arma por nombre, así que el permiso existe aunque el punto de inferencia esté apagado. Lo que cuesta es el punto encendido, no el permiso.
+- Dos lugares tienen que coincidir: la política `model-endpoint-invoke` del módulo `identity` (variable opcional `model_endpoint_arn`, que `environments/dev` rellena) y la sentencia `InvocarModelo` del techo `medicia-dev-boundary` en `infra/bootstrap/permissions-boundary.tf`. Sin una de las dos, la otra no tiene efecto.
+
+### Orden de los pasos
+
+1. **(administrador)** Aplicá `infra/bootstrap` por la vía de administración, como en "Cambiar los permisos del operador". Cambia solo `medicia-dev-boundary`: agrega la sentencia `InvocarModelo`.
+2. **(responsable)** `terraform -chdir=infra/environments/dev plan` con el perfil del operador. Tiene que proponer **una política de usuario nueva (`model-endpoint-invoke`) y ningún otro cambio**. Después `apply`. Un segundo `plan` debe dar `No changes`.
+3. No se rota la clave de acceso de la aplicación: el usuario es el mismo.
+4. **(responsable)** Variables de entorno en `.env.local` para usar el modelo real: `MODEL_INFERENCE=sagemaker`, `SAGEMAKER_ENDPOINT_NAME=medicia-dev-echonext-mini` y `AWS_REGION=sa-east-1`. Con `MODEL_INFERENCE=fake` la aplicación usa un modelo simulado y no toca AWS. No hay valor por defecto: si falta, la aplicación no arma el módulo.
+
+### Límites conocidos
+
+- Con este permiso la aplicación podría invocar el punto de inferencia con cualquier entrada. La barrera entre clínicas es la aplicación, no IAM.
+- Mientras el punto de inferencia esté encendido, quien tenga acceso a un estudio puede provocar costo pidiendo análisis. Está acotado por «un análisis en curso por estudio», pero no hay límite de frecuencia: forma parte de la lista «antes de cargar datos reales» del bucket de estudios.
+- El punto de inferencia nace apagado. Encenderlo, probarlo y apagarlo sigue el procedimiento de "Modelo EchoNext-Mini".
+
 ## Recreación desde cero
 
 Para levantar todo en una cuenta limpia:

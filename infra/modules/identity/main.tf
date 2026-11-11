@@ -170,6 +170,29 @@ resource "aws_iam_user_policy" "studies" {
   })
 }
 
+# Invocar el punto de inferencia de EchoNext-Mini (008). Una sola acción sobre un solo recurso: la aplicación no puede
+# crear, cambiar ni listar nada de SageMaker. El límite de permisos (medicia-dev-boundary, en infra/bootstrap) debe
+# incluir la misma acción y el mismo recurso; si no, esta política no tiene efecto. Quién puede pedir un análisis lo
+# decide la aplicación en cada operación, no IAM.
+resource "aws_iam_user_policy" "model_endpoint" {
+  count = var.model_endpoint_arn == "" ? 0 : 1
+
+  name = "model-endpoint-invoke"
+  user = aws_iam_user.app.name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid      = "InvocarModelo"
+        Effect   = "Allow"
+        Action   = ["sagemaker:InvokeEndpoint"]
+        Resource = [var.model_endpoint_arn]
+      },
+    ]
+  })
+}
+
 # La clave de acceso queda en el estado, que es privado y cifrado (research.md, R9).
 resource "aws_iam_access_key" "app" {
   user = aws_iam_user.app.name

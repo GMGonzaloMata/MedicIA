@@ -33,3 +33,17 @@ export class ModelInferenceError extends Error {
     this.code = code;
   }
 }
+
+// Next puede cargar este módulo más de una vez (una copia por ruta), y entonces `instanceof` falla entre copias: la
+// capa de pantalla distingue estos errores por su nombre.
+function hasName(error: unknown, name: string): boolean {
+  return error instanceof Error && error.name === name;
+}
+
+export function isAnalysisNotFoundError(error: unknown): boolean {
+  return hasName(error, "AnalysisNotFoundError");
+}
+
+export function isAnalysisInProgressError(error: unknown): boolean {
+  return hasName(error, "AnalysisInProgressError");
+}

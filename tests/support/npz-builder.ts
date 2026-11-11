@@ -161,6 +161,22 @@ export function syntheticTabular(): Float32Array {
   return Float32Array.from([1, 0.35, -0.12, 0, 0.4, -0.2, 0.1]);
 }
 
+// Las siete variables sintéticas con algunos valores reemplazados por posición (empezando en 0). Sirve para armar un
+// estudio con un valor reconocible o con uno de los centinelas del modelo simulado (cuarto lugar: 7.77, 7.78, 7.79).
+export function tabularWith(overrides: Readonly<Record<number, number>>): Float32Array {
+  const values = syntheticTabular();
+
+  for (const [position, value] of Object.entries(overrides)) {
+    values[Number(position)] = value;
+  }
+
+  return values;
+}
+
+export function buildNpzWithTabular(overrides: Readonly<Record<number, number>>): Buffer {
+  return buildNpz({ tabular: { descr: "<f4", shape: [TABULAR_VALUES], values: tabularWith(overrides) } });
+}
+
 export interface NpzOptions {
   waveform?: NpyOptions | Buffer;
   tabular?: NpyOptions | Buffer;

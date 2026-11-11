@@ -5,7 +5,7 @@ import { after } from "next/server";
 import { z } from "zod";
 
 import { getAnalysesModule } from "@/modules/analyses/composition";
-import { AnalysisInProgressError, AnalysisNotFoundError } from "@/modules/analyses/domain/analysis-errors";
+import { isAnalysisInProgressError, isAnalysisNotFoundError } from "@/modules/analyses/domain/analysis-errors";
 
 import { requireClinicContextForAction } from "../../../_lib/access";
 import { toStudyActor } from "../../../_lib/study-actor";
@@ -49,12 +49,12 @@ export async function requestAnalysisAction(
 
     return { ok: true };
   } catch (error) {
-    if (error instanceof AnalysisNotFoundError) {
+    if (isAnalysisNotFoundError(error)) {
       return failure("NOT_FOUND", ANALYSIS_MESSAGES.forbidden);
     }
 
-    if (error instanceof AnalysisInProgressError) {
-      return failure("IN_PROGRESS", error.message);
+    if (isAnalysisInProgressError(error)) {
+      return failure("IN_PROGRESS", (error as Error).message);
     }
 
     console.error(`[análisis] error inesperado al pedir: ${error instanceof Error ? error.name : "UnknownError"}`);

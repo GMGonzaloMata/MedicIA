@@ -335,3 +335,86 @@ run "rechaza_un_bucket_de_estudios_que_no_es_un_arn_de_s3" {
     var.studies_bucket_arn,
   ]
 }
+
+run "sin_punto_de_inferencia_no_hay_politica_de_modelo" {
+  command = plan
+
+  assert {
+    condition     = length(aws_iam_user_policy.model_endpoint) == 0
+    error_message = "Sin model_endpoint_arn no debe crearse ninguna política de SageMaker."
+  }
+
+  assert {
+    condition     = output.model_access_granted == false
+    error_message = "Sin model_endpoint_arn la salida debe indicar que no se concedió el permiso."
+  }
+}
+
+run "con_punto_de_inferencia_solo_invoca_ese_punto" {
+  command = plan
+
+  variables {
+    model_endpoint_arn = "arn:aws:sagemaker:sa-east-1:896618135592:endpoint/medicia-dev-echonext-mini"
+  }
+
+  assert {
+    condition     = length(aws_iam_user_policy.model_endpoint) == 1 && aws_iam_user_policy.model_endpoint[0].user == "medicia-dev-app"
+    error_message = "La política del modelo debe colgar del usuario de la aplicación."
+  }
+
+  assert {
+    condition = (
+      length(jsondecode(aws_iam_user_policy.model_endpoint[0].policy).Statement) == 1
+      && alltrue([
+        for s in jsondecode(aws_iam_user_policy.model_endpoint[0].policy).Statement :
+        s.Effect == "Allow"
+        && toset(s.Action) == toset(["sagemaker:InvokeEndpoint"])
+        && toset(s.Resource) == toset(["arn:aws:sagemaker:sa-east-1:896618135592:endpoint/medicia-dev-echonext-mini"])
+      ])
+    )
+    error_message = "La única sentencia debe permitir sagemaker:InvokeEndpoint sobre ese punto de inferencia."
+  }
+
+  assert {
+    condition = alltrue([
+      for a in flatten([for s in jsondecode(aws_iam_user_policy.model_endpoint[0].policy).Statement : s.Action]) :
+      !strcontains(a, "*")
+    ])
+    error_message = "La política del modelo no puede tener acciones con comodín."
+  }
+
+  assert {
+    condition     = output.model_access_granted == true
+    error_message = "Con model_endpoint_arn la salida debe indicar que se concedió el permiso."
+  }
+
+  # Las políticas anteriores no cambian.
+  assert {
+    condition     = aws_iam_user_policy.app.name == "cognito-set-user-password"
+    error_message = "La política de Cognito del usuario de la aplicación no debe cambiar de nombre."
+  }
+}
+
+run "rechaza_un_punto_de_inferencia_que_no_es_un_arn_de_endpoint" {
+  command = plan
+
+  variables {
+    model_endpoint_arn = "medicia-dev-echonext-mini"
+  }
+
+  expect_failures = [
+    var.model_endpoint_arn,
+  ]
+}
+
+run "rechaza_un_punto_de_inferencia_con_comodin" {
+  command = plan
+
+  variables {
+    model_endpoint_arn = "arn:aws:sagemaker:sa-east-1:896618135592:endpoint/*"
+  }
+
+  expect_failures = [
+    var.model_endpoint_arn,
+  ]
+}

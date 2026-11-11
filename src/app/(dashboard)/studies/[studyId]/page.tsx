@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { linkClassName } from "@/components/form/button-styles";
 import { getStudiesModule } from "@/modules/studies/composition";
-import { StudyForbiddenError, StudyNotFoundError } from "@/modules/studies/domain/study-errors";
+import { isStudyAccessError } from "@/modules/studies/domain/study-errors";
 import type { StudyActor } from "@/modules/studies/domain/study-access";
 
 import { requireClinicContext } from "../../../_lib/access";
@@ -69,7 +69,7 @@ async function StudyContent({
   try {
     result = await getStudiesModule().getStudyWaveform({ actor, studyId: parsedId.data });
   } catch (error) {
-    if (error instanceof StudyForbiddenError || error instanceof StudyNotFoundError) {
+    if (isStudyAccessError(error)) {
       return <StudyNoAccess back={listLink(actor)} />;
     }
     throw error;

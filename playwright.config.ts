@@ -36,6 +36,9 @@ export default defineConfig({
       IDENTITY_PROVIDER: "fake",
       // Los estudios se guardan en memoria: ninguna prueba usa AWS.
       STUDY_STORAGE: "fake",
+      // El modelo es el simulado y tarda 1,5 s: el estado «en curso» se ve siempre y ninguna prueba usa AWS.
+      MODEL_INFERENCE: "fake",
+      FAKE_MODEL_DELAY_MS: "1500",
       ...(process.env.DATABASE_URL ? { DATABASE_URL: process.env.DATABASE_URL } : {}),
     },
   },

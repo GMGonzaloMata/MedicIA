@@ -135,7 +135,7 @@ describe("historial de análisis", () => {
 
     expect(links).toHaveLength(1);
     expect(links[0]?.getAttribute("href")).toBe("/studies/study-1?analysisId=a1");
-    expect(links[0]?.getAttribute("aria-label")).toMatch(/^Ver el resultado del análisis del /);
+    expect(links[0]?.getAttribute("aria-label")).toMatch(/^Ver resultado del análisis del /);
     expect(rows[2]?.getAttribute("aria-current")).toBe("true");
     expect(rows[0]?.getAttribute("aria-current")).toBeNull();
   });

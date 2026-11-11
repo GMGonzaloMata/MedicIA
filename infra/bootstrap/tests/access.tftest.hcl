@@ -271,9 +271,9 @@ run "politica_limite_solo_lectura_y_fijar_contrasena" {
   assert {
     condition = alltrue([
       for a in flatten([for s in jsondecode(aws_iam_policy.boundary.policy).Statement : s.Action]) :
-      can(regex("^(s3:(Get|List)[A-Za-z]+|s3:(PutObject|DeleteObject)|cognito-idp:(AdminSetUserPassword|(Describe|Get|List)[A-Za-z]*)|iam:(Get|List)[A-Za-z]*|(sagemaker|ecr):(Describe|Get|List)[A-Za-z]*)$", a))
+      can(regex("^(s3:(Get|List)[A-Za-z]+|s3:(PutObject|DeleteObject)|cognito-idp:(AdminSetUserPassword|(Describe|Get|List)[A-Za-z]*)|iam:(Get|List)[A-Za-z]*|sagemaker:InvokeEndpoint|(sagemaker|ecr):(Describe|Get|List)[A-Za-z]*)$", a))
     ])
-    error_message = "El límite solo admite lectura, cognito-idp:AdminSetUserPassword y, sobre los estudios, PutObject y DeleteObject."
+    error_message = "El límite solo admite lectura, cognito-idp:AdminSetUserPassword y, sobre los estudios, PutObject y DeleteObject, y sagemaker:InvokeEndpoint sobre el punto de inferencia."
   }
 
   assert {
@@ -780,5 +780,47 @@ run "limite_de_la_aplicacion_con_el_bucket_de_estudios" {
       contains(flatten([for s in jsondecode(aws_iam_policy.boundary.policy).Statement : s.Action]), a)
     ])
     error_message = "El límite debe incluir todas las acciones de S3 que concede el módulo identity."
+  }
+}
+
+run "limite_de_la_aplicacion_con_el_punto_de_inferencia" {
+  command = plan
+
+  # La sentencia InvocarModelo existe, con una sola acción y un solo recurso.
+  assert {
+    condition = anytrue([
+      for s in jsondecode(aws_iam_policy.boundary.policy).Statement :
+      s.Sid == "InvocarModelo"
+      && s.Effect == "Allow"
+      && toset(s.Action) == toset(["sagemaker:InvokeEndpoint"])
+      && toset(s.Resource) == toset(["arn:aws:sagemaker:sa-east-1:896618135592:endpoint/medicia-dev-echonext-mini"])
+    ])
+    error_message = "El límite debe permitir sagemaker:InvokeEndpoint solo sobre el punto de inferencia de EchoNext-Mini."
+  }
+
+  # Fuera de la lectura que ya tenía el límite, la única acción de SageMaker es InvokeEndpoint: nada de crear,
+  # cambiar ni borrar, y sin comodines.
+  assert {
+    condition = alltrue([
+      for a in flatten([for s in jsondecode(aws_iam_policy.boundary.policy).Statement : s.Action]) :
+      a == "sagemaker:InvokeEndpoint" || can(regex("^sagemaker:(Describe|List)[A-Za-z]+$", a))
+      if startswith(a, "sagemaker:")
+    ])
+    error_message = "El límite de la aplicación no puede incluir ninguna otra acción de SageMaker."
+  }
+
+  # Lo que concede el módulo identity cabe dentro del límite.
+  assert {
+    condition     = contains(flatten([for s in jsondecode(aws_iam_policy.boundary.policy).Statement : s.Action]), "sagemaker:InvokeEndpoint")
+    error_message = "El límite debe incluir la acción que concede el módulo identity."
+  }
+
+  # La política del operador no cambia: no recibe la acción de invocar.
+  assert {
+    condition = !contains(
+      flatten([for s in jsondecode(aws_iam_policy.operator.policy).Statement : s.Action]),
+      "sagemaker:InvokeEndpoint",
+    )
+    error_message = "El operador no debe poder invocar el punto de inferencia."
   }
 }

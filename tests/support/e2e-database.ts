@@ -176,6 +176,16 @@ export function createE2eDatabase() {
       return { id, number };
     },
 
+    // Cuántos análisis hay en la clínica: sirve para comprobar que un acceso rechazado no creó ninguno.
+    async countAnalyses(tenantId: string): Promise<number> {
+      const result = await pool.query<{ total: string }>(
+        `SELECT count(*)::text AS total FROM analyses WHERE tenant_id = $1`,
+        [tenantId],
+      );
+
+      return Number(result.rows[0]?.total ?? 0);
+    },
+
     async setTenantStatus(tenantId: string, status: "ACTIVE" | "SUSPENDED") {
       await pool.query(`UPDATE tenants SET status = $2, updated_at = now() WHERE id = $1`, [tenantId, status]);
     },

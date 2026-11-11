@@ -40,3 +40,8 @@ output "studies_access_granted" {
   description = "Si el usuario de la aplicación recibió acceso al bucket de estudios (depende de studies_bucket_arn)."
   value       = length(aws_iam_user_policy.studies) == 1
 }
+
+output "model_access_granted" {
+  description = "Si el usuario de la aplicación recibió permiso para invocar el punto de inferencia (depende de model_endpoint_arn)."
+  value       = length(aws_iam_user_policy.model_endpoint) == 1
+}

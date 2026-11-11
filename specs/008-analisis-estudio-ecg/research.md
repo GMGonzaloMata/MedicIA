@@ -137,3 +137,25 @@ Con el ritmo rápido pedido: pocas pruebas, puestas donde está el riesgo.
 4. **E2E y cierre:** pruebas de extremo a extremo, guía de verificación, actualización de `memory/` y revisión final con `review-changes`.
 
 **Variables de entorno nuevas:** `MODEL_INFERENCE` (`sagemaker` o `fake`, obligatoria), `SAGEMAKER_ENDPOINT_NAME` (solo con `sagemaker`) y `FAKE_MODEL_DELAY_MS` (opcional, solo con `fake`). `playwright.config.ts` y el flujo de CI fijan `MODEL_INFERENCE=fake`. `.env.example` lo actualiza el responsable (el agente no puede editarlo).
+
+## Resultados de la implementación
+
+Cierre del 11 de noviembre de 2026. `npm run check` pasa (91 archivos, 793 pruebas, cobertura y compilación), `terraform fmt`, `validate` y `test` pasan en `identity`, `bootstrap` y `environments/dev`, y `npm run test:e2e` pasa completo con el servidor de producción (107 pruebas; 10 se omiten a propósito).
+
+**Revisión final (una sola vez, con los cuatro revisores):**
+- **Arquitectura:** sin hallazgos. Observación menor: `getAnalysesModule()` arma el adaptador del modelo al construirse, así que sin `MODEL_INFERENCE` también falla `canDeleteStudy` (eliminar estudios). Es coherente con la regla «sin valor por defecto»; si molesta, el adaptador se puede construir de forma perezosa.
+- **Seguridad:** sin bloqueantes. Importante, corregido: faltaban pruebas de aislamiento entre clínicas de `complete`, `failStale` y `readModelInput`; ya están en `analysis-repository.test.ts` y `analysis-access.test.ts`.
+- **Interfaz:** sin bloqueantes. Dos importantes, corregidos: el nombre accesible del vínculo «Ver resultado» ahora empieza con el texto visible, y la región `aria-live` está siempre montada en la sección para anunciar el paso de «Analizando…» a terminado o fallido.
+- **Infraestructura:** un bloqueante, corregido: a un mensaje de `access.tftest.hcl` le faltaba la comilla de cierre. Se volvieron a correr `fmt`, `validate` y `test`.
+
+**Hallazgos durante la implementación:**
+- Con `next dev` corriendo en el puerto 3000, Playwright reutiliza ese servidor y ocho pruebas fallan, porque el modo desarrollo carga los módulos más de una vez y `instanceof` falla entre copias. Con el puerto libre pasan todas. Por eso la pantalla del estudio y la sección de análisis reconocen los errores por su nombre. Las acciones de la 006 y de acceso siguen usando `instanceof`; conviene unificar el criterio.
+- Un punto de inferencia apagado responde `ValidationError` con 400. Se clasifica como «modelo no disponible» antes que como «entrada rechazada».
+
+**Pendiente del responsable:**
+- Prueba real con el punto de inferencia encendido (0,089 USD por hora; apagarlo después).
+- Confirmar contra la descripción de EchoNext-Mini los umbrales de las etiquetas de los 12 hallazgos (`_lib/findings-labels.ts`).
+- Comprobar a mano la actualización automática en un móvil real y el contraste de la barra en modo oscuro.
+- Actualizar `.env.example` con `MODEL_INFERENCE`, `SAGEMAKER_ENDPOINT_NAME` y `FAKE_MODEL_DELAY_MS`.
+- Agregar al commit el archivo `infra/environments/dev/tests/model-invoke.tftest.hcl` y los archivos nuevos que no tienen seguimiento.
+- Sin límite de frecuencia de pedidos de análisis: forma parte de la lista «antes de datos reales».

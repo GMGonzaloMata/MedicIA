@@ -6,6 +6,10 @@ module "identity" {
   # Acceso de la aplicación al bucket de estudios. Se pasa el ARN, no una dependencia entre módulos.
   studies_bucket_arn = module.study_storage.bucket_arn
 
+  # Permiso de la aplicación para invocar el punto de inferencia de EchoNext-Mini (008). Se arma por nombre, igual que
+  # el nombre que le pone infra/modules/model-endpoints, así que existe aunque el punto esté apagado.
+  model_endpoint_arn = "arn:aws:sagemaker:sa-east-1:896618135592:endpoint/medicia-dev-echonext-mini"
+
   # La crea infra/bootstrap. Se escribe el ARN porque cada raíz tiene su propio estado.
   permissions_boundary_arn = "arn:aws:iam::896618135592:policy/medicia-dev-boundary"
 }

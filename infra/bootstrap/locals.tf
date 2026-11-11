@@ -32,6 +32,11 @@ locals {
   # Recursos de SageMaker del entorno (modelos, configuraciones y puntos de inferencia).
   sagemaker_arn_prefix = "arn:aws:sagemaker:${var.region}:${var.account_id}"
 
+  # Punto de inferencia de EchoNext-Mini (lo crea infra/modules/model-endpoints cuando se enciende). El ARN se arma por
+  # nombre, así que existe aunque el punto esté apagado. Debe coincidir con el que pasa infra/environments/dev al
+  # módulo identity.
+  model_endpoint_arn = "${local.sagemaker_arn_prefix}:endpoint/medicia-${var.environment}-echonext-mini"
+
   # Segunda política del operador (SageMaker, PassRole y ECR); ver operator-policy-ml.tf.
   operator_ml_policy_arn = "arn:aws:iam::${var.account_id}:policy/medicia-${var.environment}-terraform-operator-ml"
 }

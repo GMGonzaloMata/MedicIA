@@ -47,9 +47,5 @@ export function AnalysisProgress() {
     };
   }, [router]);
 
-  return (
-    <div aria-live="polite">
-      <p className="text-base">{ANALYSIS_MESSAGES.progress}</p>
-    </div>
-  );
+  return <p className="text-base">{ANALYSIS_MESSAGES.progress}</p>;
 }

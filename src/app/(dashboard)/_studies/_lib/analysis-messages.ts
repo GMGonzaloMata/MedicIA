@@ -10,6 +10,7 @@ export const ANALYSIS_MESSAGES = {
   requestPending: "Pidiendo el análisis…",
   requestInProgress: "Hay un análisis en curso",
   progress: "Analizando el estudio…",
+  finished: "El análisis terminó. El resultado está más abajo.",
   loading: "Cargando análisis…",
   notAvailable: "No pudimos cargar el análisis. Probá de nuevo en unos minutos.",
   forbidden: "No tenés acceso a este estudio.",

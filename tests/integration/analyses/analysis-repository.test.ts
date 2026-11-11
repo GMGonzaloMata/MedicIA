@@ -180,6 +180,32 @@ describe("repositorio de análisis", () => {
         finishedAt: new Date(),
       }),
     ).toBe(false);
+    expect(
+      await prismaAnalysisRepository.failStale({
+        ...other,
+        olderThan: new Date(Date.now() + 60_000),
+        finishedAt: new Date(),
+      }),
+    ).toBe(0);
+    expect(await prismaAnalysisRepository.findById({ ...w.scope, analysisId: pending.id })).toMatchObject({
+      status: "PENDING",
+    });
+
+    // Completar con otra clínica un análisis ya reclamado en la correcta tampoco lo toca.
+    await prismaAnalysisRepository.claim({ ...w.scope, analysisId: pending.id, startedAt: new Date() });
+    expect(
+      await prismaAnalysisRepository.complete({
+        ...other,
+        analysisId: pending.id,
+        modelName: "m",
+        modelVersion: "1",
+        probabilities: sampleProbabilities(),
+        finishedAt: new Date(),
+      }),
+    ).toBe(false);
+    expect(await prismaAnalysisRepository.findById({ ...w.scope, analysisId: pending.id })).toMatchObject({
+      status: "PROCESSING",
+    });
     expect(await prismaAnalysisRepository.hasInProgress({ ...other, since: new Date(0) })).toBe(false);
     expect(await prismaAnalysisRepository.hasInProgress({ ...w.scope, since: new Date(0) })).toBe(true);
   });
