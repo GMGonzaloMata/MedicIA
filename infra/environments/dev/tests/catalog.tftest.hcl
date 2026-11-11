@@ -130,3 +130,24 @@ run "entrada_de_ejemplo_encendida" {
     error_message = "Una entrada encendida debe tener exactamente un punto de inferencia."
   }
 }
+
+# Bucket de estudios (006): existe, el usuario de la aplicación recibe su acceso y ninguna entrada del catálogo de
+# modelos lo referencia (los estudios nunca viajan a SageMaker desde la infraestructura).
+run "bucket_de_estudios_y_acceso_de_la_aplicacion" {
+  command = plan
+
+  assert {
+    condition     = output.studies_bucket_name == "medicia-studies-dev-896618135592"
+    error_message = "El entorno debe exponer el bucket de estudios medicia-studies-dev-896618135592."
+  }
+
+  assert {
+    condition     = module.identity.studies_access_granted
+    error_message = "El usuario de la aplicación debe recibir la política del bucket de estudios."
+  }
+
+  assert {
+    condition     = module.study_storage.bucket_name != module.model_artifacts.bucket_name
+    error_message = "Los estudios y los artefactos de modelos deben ir en buckets distintos."
+  }
+}

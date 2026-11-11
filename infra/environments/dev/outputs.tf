@@ -24,6 +24,11 @@ output "models_bucket_name" {
   value       = module.model_artifacts.bucket_name
 }
 
+output "studies_bucket_name" {
+  description = "Nombre del bucket de estudios de ECG (variable STUDIES_BUCKET de la aplicación)."
+  value       = module.study_storage.bucket_name
+}
+
 output "region" {
   description = "Región de AWS del grupo de usuarios (variable COGNITO_REGION)."
   value       = module.identity.region

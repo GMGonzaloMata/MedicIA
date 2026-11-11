@@ -14,10 +14,14 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
+    "studies:reconcile": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file=.env.local scripts/reconcile-study-files.ts",
+    "seed:demo": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --env-file=.env.local scripts/seed-demo-clinic.ts",
     "check": "npm run typecheck && npm run lint && npm run test:coverage && npm run build"
   },
   "dependencies": {
     "@aws-sdk/client-cognito-identity-provider": "3.1164.0",
+    "@aws-sdk/client-s3": "3.1164.0",
+    "@aws-sdk/client-sagemaker-runtime": "3.1164.0",
     "@prisma/adapter-pg": "^7.10.1",
     "@prisma/client": "^7.10.1",
     "aws-jwt-verify": "5.2.1",

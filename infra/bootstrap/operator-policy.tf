@@ -32,7 +32,7 @@ resource "aws_iam_policy" "operator" {
         # cambia versionado, cifrado, etiquetas y ciclo de vida. La política del bucket y el bloqueo de
         # acceso público NO están acá: con ellas el operador podría darse acceso al estado (que contiene
         # secretos) saltándose el límite. Esos cambios van por la vía de administración (README).
-        Sid    = "GestionarLosBucketsDeEstadoYModelos"
+        Sid    = "GestionarLosBucketsDeEstadoModelosYEstudios"
         Effect = "Allow"
         Action = [
           "s3:GetAccelerateConfiguration",
@@ -57,15 +57,17 @@ resource "aws_iam_policy" "operator" {
           "s3:PutEncryptionConfiguration",
           "s3:PutLifecycleConfiguration",
         ]
-        # El bucket de artefactos de modelos comparte esta lista (lectura, versionado, cifrado, ciclo de vida y
-        # etiquetas) para no repetir las acciones y no superar el tope de tamaño de una política administrada.
-        Resource = [local.state_bucket_arn, local.models_bucket_arn]
+        # Los buckets de artefactos de modelos y de estudios comparten esta lista (lectura, versionado, cifrado, ciclo
+        # de vida y etiquetas) para no repetir las acciones y no superar el tope de tamaño de una política administrada.
+        Resource = [local.state_bucket_arn, local.models_bucket_arn, local.studies_bucket_arn]
       },
       {
-        # Crear, borrar y fijar política, bloqueo de acceso público y propiedad: solo el bucket de artefactos.
-        # Terraform no puede crearlo sin estos permisos. Se acepta, a diferencia del bucket del estado, porque no
-        # guarda secretos; las pruebas y el análisis de seguridad de CI fallan si deja de ser privado o cifrado (R5).
-        Sid    = "CrearYConfigurarElBucketDeModelos"
+        # Crear, borrar y fijar política, bloqueo de acceso público y propiedad: solo los buckets de artefactos y
+        # de estudios. Terraform no puede crearlos sin estos permisos. Se acepta, a diferencia del bucket del estado,
+        # porque no guardan secretos; las pruebas y el análisis de seguridad de CI fallan si dejan de ser privados o
+        # cifrados (R5). Con la política del bucket de estudios el operador podría darse acceso a los estudios: por eso
+        # existe el Deny de más abajo, que gana a cualquier Allow.
+        Sid    = "CrearYConfigurarLosBucketsDeModelosYEstudios"
         Effect = "Allow"
         Action = [
           "s3:CreateBucket",
@@ -75,7 +77,7 @@ resource "aws_iam_policy" "operator" {
           "s3:PutBucketPolicy",
           "s3:PutBucketPublicAccessBlock",
         ]
-        Resource = [local.models_bucket_arn]
+        Resource = [local.models_bucket_arn, local.studies_bucket_arn]
       },
       {
         # Subir y leer artefactos con las credenciales del responsable. Sin borrado: un artefacto puede ser
@@ -263,6 +265,16 @@ resource "aws_iam_policy" "operator" {
         Effect   = "Deny"
         Action   = ["s3:DeleteObject", "s3:DeleteObjectVersion"]
         Resource = ["${local.models_bucket_arn}/*"]
+      },
+      {
+        # Los estudios son datos clínicos: el operador crea el bucket pero no puede leer ni borrar sus objetos, ni siquiera
+        # escribiendo una política que se lo permita (un Deny gana a cualquier Allow, también al de la política del
+        # recurso). Límite conocido: en desarrollo la clave del usuario de la aplicación vive en el estado, que el
+        # operador sí puede leer; en producción la aplicación usará un rol del servidor y esa vía desaparece.
+        Sid      = "NoLeerNiBorrarEstudios"
+        Effect   = "Deny"
+        Action   = ["s3:GetObject", "s3:GetObjectVersion", "s3:DeleteObject", "s3:DeleteObjectVersion"]
+        Resource = ["${local.studies_bucket_arn}/*"]
       },
       {
         # La declaración genérica de roles medicia-dev-* también cubre al rol de ejecución, así que por sí sola

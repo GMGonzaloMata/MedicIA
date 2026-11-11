@@ -42,7 +42,7 @@ jobs:
 
       - name: Inicializar y validar cada raíz y módulo
         run: |
-          for dir in infra/bootstrap infra/environments/dev infra/modules/identity infra/modules/model-artifacts infra/modules/sagemaker-execution-role infra/modules/model-endpoints infra/modules/model-registry; do
+          for dir in infra/bootstrap infra/environments/dev infra/modules/identity infra/modules/model-artifacts infra/modules/sagemaker-execution-role infra/modules/model-endpoints infra/modules/model-registry infra/modules/study-storage; do
             echo "::group::$dir"
             terraform -chdir="$dir" init -backend=false -input=false
             terraform -chdir="$dir" validate
@@ -58,7 +58,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           tflint --init --config="$PWD/.tflint.hcl"
-          for dir in bootstrap environments/dev modules/identity modules/model-artifacts modules/sagemaker-execution-role modules/model-endpoints modules/model-registry; do
+          for dir in bootstrap environments/dev modules/identity modules/model-artifacts modules/sagemaker-execution-role modules/model-endpoints modules/model-registry modules/study-storage; do
             echo "::group::$dir"
             tflint --config="$PWD/.tflint.hcl" --chdir="$dir"
             echo "::endgroup::"
@@ -66,7 +66,7 @@ jobs:
 
       - name: Pruebas de Terraform
         run: |
-          for dir in infra/bootstrap infra/environments/dev infra/modules/identity infra/modules/model-artifacts infra/modules/sagemaker-execution-role infra/modules/model-endpoints infra/modules/model-registry; do
+          for dir in infra/bootstrap infra/environments/dev infra/modules/identity infra/modules/model-artifacts infra/modules/sagemaker-execution-role infra/modules/model-endpoints infra/modules/model-registry infra/modules/study-storage; do
             echo "::group::$dir"
             terraform -chdir="$dir" test
             echo "::endgroup::"
@@ -105,7 +105,7 @@ jobs:
           # Los artefactos de modelos (pesos) viven en el bucket de artefactos, nunca en el repositorio (FR-005).
           # Se revisa todo el repositorio, no solo infra: un modelo podría subirse desde cualquier carpeta.
           # Este paso solo corre si la propuesta toca infra/; la misma comprobación está en ci.yml, que corre siempre.
-          artefactos=$(git -c core.quotePath=false ls-files | grep -E '\.(pt|pth|onnx|safetensors|h5|ckpt|joblib|pkl|pickle|tgz|tar\.gz|tflite|gguf|keras|mar|npy|npz|parquet)$' || true)
+          artefactos=$(git -c core.quotePath=false ls-files | grep -E '\.(pt|pth|onnx|safetensors|h5|ckpt|joblib|pkl|pickle|tgz|tar\.gz|tflite|gguf|keras|mar|npy|npz|parquet|ecg1)$' || true)
           if [ -n "$artefactos" ]; then
             echo "::error::Hay artefactos de modelos o arreglos de datos versionados (FR-005 de la 004, FR-022 de la 005):"
             echo "$artefactos"
@@ -135,7 +135,7 @@ jobs:
       - name: Cada raíz tiene su archivo de bloqueo versionado
         run: |
           fallo=0
-          for dir in infra/bootstrap infra/environments/dev infra/modules/identity infra/modules/model-artifacts infra/modules/sagemaker-execution-role infra/modules/model-endpoints infra/modules/model-registry; do
+          for dir in infra/bootstrap infra/environments/dev infra/modules/identity infra/modules/model-artifacts infra/modules/sagemaker-execution-role infra/modules/model-endpoints infra/modules/model-registry infra/modules/study-storage; do
             if ! git ls-files --error-unmatch "$dir/.terraform.lock.hcl" >/dev/null 2>&1; then
               echo "::error::Falta versionar $dir/.terraform.lock.hcl"
               fallo=1
@@ -189,6 +189,35 @@ jobs:
           # Se exige la línea sin comentar: una línea con # delante no protege nada.
           if ! grep -qE '^[[:space:]]*prevent_destroy[[:space:]]*=[[:space:]]*true' infra/modules/model-artifacts/main.tf; then
             echo "::error::El bucket de artefactos debe conservar prevent_destroy = true (FR-003)."
+            fallo=1
+          fi
+
+          exit "$fallo"
+
+      # Bucket de estudios de ECG (006): eliminar un estudio debe borrarlo de verdad y nadie más que las identidades
+      # de IAM accede a él. terraform test no puede afirmar que un recurso no existe, así que se comprueba acá.
+      - name: Guarda del bucket de estudios (FR-009, FR-015 de la 006)
+        run: |
+          fallo=0
+          archivo=infra/modules/study-storage/main.tf
+
+          if git grep -nE '^[[:space:]]*resource[[:space:]]+"aws_s3_bucket_versioning"' -- infra/modules/study-storage; then
+            echo "::error::El bucket de estudios no puede tener versionado: eliminar un estudio debe borrarlo de forma definitiva."
+            fallo=1
+          fi
+
+          if git grep -nE 'Effect[[:space:]]*=[[:space:]]*"Allow"' -- infra/modules/study-storage/main.tf; then
+            echo "::error::La política del bucket de estudios no puede tener declaraciones Allow: el acceso va por IAM."
+            fallo=1
+          fi
+
+          if ! grep -qE '^[[:space:]]*prevent_destroy[[:space:]]*=[[:space:]]*true' "$archivo"; then
+            echo "::error::El bucket de estudios debe conservar prevent_destroy = true."
+            fallo=1
+          fi
+
+          if git grep -nE 'expiration[[:space:]]*\{' -- infra/modules/study-storage; then
+            echo "::error::Los estudios no pueden vencer solos: la conservación se define antes de operar con datos reales."
             fallo=1
           fi
 

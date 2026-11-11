@@ -51,8 +51,9 @@ locals {
       Resource = ["arn:aws:iam::${var.account_id}:user/medicia-${var.environment}-*"]
     },
     {
-      # Configuración del bucket de artefactos de modelos (lo que lee el refresco del bucket). Nunca sus objetos.
-      Sid    = "LeerElBucketDeModelos"
+      # Configuración de los buckets de artefactos de modelos y de estudios (lo que lee el refresco del bucket).
+      # Nunca sus objetos: el plan de CI no puede leer estudios.
+      Sid    = "LeerLosBucketsDeModelosYEstudios"
       Effect = "Allow"
       Action = [
         "s3:GetAccelerateConfiguration",
@@ -73,7 +74,7 @@ locals {
         "s3:GetReplicationConfiguration",
         "s3:ListBucket",
       ]
-      Resource = [local.models_bucket_arn]
+      Resource = [local.models_bucket_arn, local.studies_bucket_arn]
     },
     {
       # Acciones que usa el refresco del rol de ejecución de SageMaker y su política en línea.

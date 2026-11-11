@@ -9,6 +9,9 @@ const REQUIRED_TABLES = [
   "patients",
   "doctor_patient_assignments",
   "sessions",
+  "studies",
+  "study_counters",
+  "analyses",
 ];
 
 // Preparación global de las pruebas de integración. No ejecuta ningún comando de Prisma:

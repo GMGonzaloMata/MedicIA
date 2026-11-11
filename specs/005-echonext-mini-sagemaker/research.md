@@ -29,7 +29,7 @@ Lo que se verificó leyendo el código del repositorio original (`PierreElias/In
 - Respuesta: `{"model": "echonext-mini", "model_version": "...", "probabilities": {...12 claves en orden fijo...}}`.
 
 **Por qué:**
-- La 006 es una aplicación TypeScript que lee el archivo cargado y llama al punto de inferencia. JSON se arma y se valida sin librerías de NumPy y se puede probar a mano.
+- La 008 es una aplicación TypeScript que lee el estudio guardado por la 006 y llama al punto de inferencia. JSON se arma y se valida sin librerías de NumPy y se puede probar a mano.
 - El tamaño es chico: 30 000 números son cerca de 0,6 MB, muy por debajo del límite de 25 MB de una solicitud de SageMaker.
 - La respuesta por nombre (no por posición) evita cruzar hallazgos; el orden fijo se mantiene además por contrato.
 - Mismos resultados que el flujo original: el original convierte float64 a float32 al cargar, y el servidor hace lo mismo con los números del JSON.
@@ -68,9 +68,9 @@ Lo que se verificó leyendo el código del repositorio original (`PierreElias/In
 - **Variables:** sexo se codifica 1 si es hombre y 0 si es mujer; atrial y PR faltantes se toman como 0; las seis variables numéricas pasan por un `StandardScaler` y luego una imputación por mediana (el transformador guardado en `tabular_transformer.joblib`, un `Pipeline` de scikit-learn 1.1.3). El sexo no se estandariza.
 - **El modelo no aplica ninguna de las dos cosas:** el script de inferencia lee los arreglos ya procesados y llama al modelo. Los arreglos del conjunto de datos de PhysioNet ya están procesados (confirmado empíricamente).
 
-**Decisión:** el punto de inferencia recibe datos ya normalizados y **no** aplica el transformador ni la normalización. El `model.tar.gz` incluye igualmente `tabular_transformer.joblib` y `waveform_normalization_params.json` (pesan 1,5 KB y 1,1 KB) porque la 006 los necesitará para convertir estudios propios. La inferencia solo lee `weights.pt`.
+**Decisión:** el punto de inferencia recibe datos ya normalizados y **no** aplica el transformador ni la normalización. El `model.tar.gz` incluye igualmente `tabular_transformer.joblib` y `waveform_normalization_params.json` (pesan 1,5 KB y 1,1 KB) por si más adelante la plataforma acepta estudios sin preprocesar (la 006 exige archivos ya preprocesados y no los usa). La inferencia solo lee `weights.pt`.
 
-**Por qué no cargar el `.joblib` en la inferencia:** es un archivo `pickle` (cargar uno de origen desconocido ejecuta código), exige scikit-learn 1.1.3 (arrastra Python 3.8 o similar) y no hace falta para predecir. La 006 decidirá cómo reproducir la normalización (por ejemplo, con los números del `.json` y los valores de la media y el desvío del transformador exportados a un formato de datos).
+**Por qué no cargar el `.joblib` en la inferencia:** es un archivo `pickle` (cargar uno de origen desconocido ejecuta código), exige scikit-learn 1.1.3 (arrastra Python 3.8 o similar) y no hace falta para predecir. Una funcionalidad futura decidirá cómo reproducir la normalización (por ejemplo, con los números del `.json` y los valores de la media y el desvío del transformador exportados a un formato de datos).
 
 ## R5. ECR: Terraform o a mano
 

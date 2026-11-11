@@ -87,6 +87,8 @@ override.tf.json
 *.npy
 *.npz
 *.parquet
+# Estudios guardados en el formato propio de la plataforma (006): viven en S3, nunca en git
+*.ecg1
 echonext*.csv
 EchoNext*.csv
 echonext*.xml

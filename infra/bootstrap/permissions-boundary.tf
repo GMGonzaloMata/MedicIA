@@ -24,6 +24,35 @@ resource "aws_iam_policy" "boundary" {
           Action   = ["cognito-idp:AdminSetUserPassword"]
           Resource = ["arn:aws:cognito-idp:${var.region}:${var.account_id}:userpool/*"]
         },
+        {
+          # Los estudios de ECG (006): la aplicación guarda, lee y borra los objetos del prefijo studies/. Es la
+          # misma lista que concede infra/modules/identity al usuario de la aplicación; sin ella allá, esta no tiene
+          # efecto, y sin esta, aquella tampoco. Nunca el bucket de artefactos de modelos.
+          Sid      = "GuardarLeerYBorrarEstudios"
+          Effect   = "Allow"
+          Action   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
+          Resource = ["${local.studies_bucket_arn}/studies/*"]
+        },
+        {
+          Sid      = "ListarEstudiosParaConciliar"
+          Effect   = "Allow"
+          Action   = ["s3:ListBucket"]
+          Resource = [local.studies_bucket_arn]
+          Condition = {
+            StringLike = {
+              "s3:prefix" = ["studies/*"]
+            }
+          }
+        },
+        {
+          # El análisis de estudios (008): la aplicación invoca el punto de inferencia de EchoNext-Mini y nada más de
+          # SageMaker. Es la misma acción y el mismo recurso que concede infra/modules/identity (model-endpoint-invoke);
+          # sin esta sentencia aquella política no tiene efecto, y sin aquella esta tampoco.
+          Sid      = "InvocarModelo"
+          Effect   = "Allow"
+          Action   = ["sagemaker:InvokeEndpoint"]
+          Resource = [local.model_endpoint_arn]
+        },
       ],
     )
   })

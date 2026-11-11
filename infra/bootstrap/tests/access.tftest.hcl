@@ -110,10 +110,11 @@ run "rol_de_plan_solo_lectura" {
       alltrue([
         for r in s.Resource :
         startswith(r, "arn:aws:s3:::medicia-tfstate-dev-896618135592") || startswith(r, "arn:aws:s3:::medicia-models-dev-896618135592")
+        || startswith(r, "arn:aws:s3:::medicia-studies-dev-896618135592")
       ])
       if anytrue([for a in s.Action : startswith(a, "s3:")])
     ])
-    error_message = "Las acciones de S3 del rol de plan deben limitarse al bucket del estado y al de artefactos."
+    error_message = "Las acciones de S3 del rol de plan deben limitarse al bucket del estado, al de artefactos y al de estudios."
   }
 
   # El plan lee la configuración del bucket de artefactos, nunca sus objetos (R4).
@@ -218,10 +219,11 @@ run "politica_del_operador_limita_iam_y_estado" {
       alltrue([
         for r in s.Resource :
         startswith(r, "arn:aws:s3:::medicia-tfstate-dev-896618135592") || startswith(r, "arn:aws:s3:::medicia-models-dev-896618135592")
+        || startswith(r, "arn:aws:s3:::medicia-studies-dev-896618135592")
       ])
       if anytrue([for a in s.Action : startswith(a, "s3:")])
     ])
-    error_message = "Las acciones de S3 del operador deben limitarse al bucket del estado y al de artefactos."
+    error_message = "Las acciones de S3 del operador deben limitarse al bucket del estado, al de artefactos y al de estudios."
   }
 
   # Cognito: solo grupos de esta cuenta y región.
@@ -269,9 +271,9 @@ run "politica_limite_solo_lectura_y_fijar_contrasena" {
   assert {
     condition = alltrue([
       for a in flatten([for s in jsondecode(aws_iam_policy.boundary.policy).Statement : s.Action]) :
-      can(regex("^(s3:(Get|List)[A-Za-z]+|cognito-idp:(AdminSetUserPassword|(Describe|Get|List)[A-Za-z]*)|iam:(Get|List)[A-Za-z]*|(sagemaker|ecr):(Describe|Get|List)[A-Za-z]*)$", a))
+      can(regex("^(s3:(Get|List)[A-Za-z]+|s3:(PutObject|DeleteObject)|cognito-idp:(AdminSetUserPassword|(Describe|Get|List)[A-Za-z]*)|iam:(Get|List)[A-Za-z]*|sagemaker:InvokeEndpoint|(sagemaker|ecr):(Describe|Get|List)[A-Za-z]*)$", a))
     ])
-    error_message = "El límite solo admite lectura y cognito-idp:AdminSetUserPassword."
+    error_message = "El límite solo admite lectura, cognito-idp:AdminSetUserPassword y, sobre los estudios, PutObject y DeleteObject, y sagemaker:InvokeEndpoint sobre el punto de inferencia."
   }
 
   assert {
@@ -288,10 +290,11 @@ run "politica_limite_solo_lectura_y_fijar_contrasena" {
       alltrue([
         for r in s.Resource :
         startswith(r, "arn:aws:s3:::medicia-tfstate-dev-896618135592") || startswith(r, "arn:aws:s3:::medicia-models-dev-896618135592")
+        || startswith(r, "arn:aws:s3:::medicia-studies-dev-896618135592")
       ])
       if anytrue([for a in s.Action : startswith(a, "s3:")])
     ])
-    error_message = "Las acciones de S3 del límite deben limitarse al bucket del estado y al de artefactos."
+    error_message = "Las acciones de S3 del límite deben limitarse al bucket del estado, al de artefactos y al de estudios."
   }
 
   # El techo crece solo con las lecturas del bucket de artefactos y del rol de ejecución (R4), sin objetos ni escrituras.
@@ -508,9 +511,9 @@ run "operador_y_bucket_de_artefactos" {
         "s3:PutBucketPolicy",
         "s3:PutBucketPublicAccessBlock",
       ])
-      && toset(s.Resource) == toset(["arn:aws:s3:::medicia-models-dev-896618135592"])
+      && toset(s.Resource) == toset(["arn:aws:s3:::medicia-models-dev-896618135592", "arn:aws:s3:::medicia-studies-dev-896618135592"])
     ])
-    error_message = "Crear, borrar y fijar política, bloqueo y propiedad debe aplicar solo al bucket de artefactos."
+    error_message = "Crear, borrar y fijar política, bloqueo y propiedad debe aplicar solo a los buckets de artefactos y de estudios."
   }
 
   # Subir y leer artefactos, sin borrarlos.
@@ -559,11 +562,11 @@ run "rol_de_plan_lee_bucket_de_artefactos_y_rol_de_ejecucion" {
     condition = anytrue([
       for s in jsondecode(aws_iam_role_policy.plan_read.policy).Statement :
       s.Effect == "Allow"
-      && toset(s.Resource) == toset(["arn:aws:s3:::medicia-models-dev-896618135592"])
+      && toset(s.Resource) == toset(["arn:aws:s3:::medicia-models-dev-896618135592", "arn:aws:s3:::medicia-studies-dev-896618135592"])
       && contains(s.Action, "s3:ListBucket")
       && contains(s.Action, "s3:GetBucketPolicy")
     ])
-    error_message = "El rol de plan debe poder listar y leer la configuración del bucket de artefactos."
+    error_message = "El rol de plan debe poder listar y leer la configuración de los buckets de artefactos y de estudios."
   }
 
   assert {
@@ -669,5 +672,155 @@ run "rol_de_plan_lee_sagemaker_y_ecr" {
   assert {
     condition     = length(aws_iam_policy.boundary.policy) < 6144
     error_message = "El límite compartido supera el tope de 6.144 caracteres de IAM."
+  }
+}
+
+# Bucket de estudios de ECG (006, contracts/storage-and-permissions.md). La aplicación guarda y lee los estudios; el
+# operador crea y configura el bucket pero no puede leer ni borrar su contenido, ni siquiera dándose permiso en la
+# política del bucket (un Deny gana a cualquier Allow). El plan de CI lee su configuración, nunca los objetos.
+run "operador_crea_el_bucket_de_estudios_sin_leerlo" {
+  command = plan
+
+  assert {
+    condition = anytrue([
+      for s in jsondecode(aws_iam_policy.operator.policy).Statement :
+      contains(s.Resource, "arn:aws:s3:::medicia-studies-dev-896618135592")
+      && contains(s.Action, "s3:PutBucketVersioning")
+    ])
+    error_message = "El operador debe poder configurar el bucket de estudios."
+  }
+
+  assert {
+    condition = anytrue([
+      for s in jsondecode(aws_iam_policy.operator.policy).Statement :
+      s.Effect == "Deny"
+      && toset(s.Action) == toset(["s3:GetObject", "s3:GetObjectVersion", "s3:DeleteObject", "s3:DeleteObjectVersion"])
+      && toset(s.Resource) == toset(["arn:aws:s3:::medicia-studies-dev-896618135592/*"])
+    ])
+    error_message = "El operador debe tener un Deny de lectura y borrado de objetos del bucket de estudios."
+  }
+
+  # Ningún Allow del operador toca los objetos de estudios.
+  assert {
+    condition = alltrue([
+      for s in jsondecode(aws_iam_policy.operator.policy).Statement :
+      !anytrue([for r in s.Resource : r == "arn:aws:s3:::medicia-studies-dev-896618135592/*"])
+      if s.Effect == "Allow"
+    ])
+    error_message = "El operador no puede tener ningún Allow sobre los objetos del bucket de estudios."
+  }
+
+  assert {
+    condition     = length(aws_iam_policy.operator.policy) < 6144
+    error_message = "La política del operador supera el tope de 6.144 caracteres de IAM. Mover declaraciones a operator-policy-ml.tf."
+  }
+}
+
+run "rol_de_plan_no_lee_los_estudios" {
+  command = plan
+
+  assert {
+    condition = alltrue([
+      for s in jsondecode(aws_iam_role_policy.plan_read.policy).Statement :
+      !contains(s.Action, "s3:GetObject")
+      if anytrue([for r in s.Resource : startswith(r, "arn:aws:s3:::medicia-studies-dev-896618135592")])
+    ])
+    error_message = "El rol de plan no puede leer objetos del bucket de estudios, solo su configuración."
+  }
+}
+
+run "limite_de_la_aplicacion_con_el_bucket_de_estudios" {
+  command = plan
+
+  assert {
+    condition = anytrue([
+      for s in jsondecode(aws_iam_policy.boundary.policy).Statement :
+      s.Effect == "Allow"
+      && toset(s.Action) == toset(["s3:GetObject", "s3:PutObject", "s3:DeleteObject"])
+      && toset(s.Resource) == toset(["arn:aws:s3:::medicia-studies-dev-896618135592/studies/*"])
+    ])
+    error_message = "El límite debe permitir GetObject, PutObject y DeleteObject sobre el prefijo studies/ del bucket de estudios."
+  }
+
+  assert {
+    condition = anytrue([
+      for s in jsondecode(aws_iam_policy.boundary.policy).Statement :
+      s.Effect == "Allow"
+      && toset(s.Action) == toset(["s3:ListBucket"])
+      && toset(s.Resource) == toset(["arn:aws:s3:::medicia-studies-dev-896618135592"])
+      && toset(s.Condition.StringLike["s3:prefix"]) == toset(["studies/*"])
+    ])
+    error_message = "El límite debe permitir listar el bucket de estudios solo para el prefijo studies/."
+  }
+
+  # Escribir o borrar objetos solo se admite en el prefijo de estudios; el resto del límite sigue siendo lectura.
+  assert {
+    condition = alltrue([
+      for s in jsondecode(aws_iam_policy.boundary.policy).Statement :
+      toset(s.Resource) == toset(["arn:aws:s3:::medicia-studies-dev-896618135592/studies/*"])
+      if anytrue([for a in s.Action : a == "s3:PutObject" || a == "s3:DeleteObject"])
+    ])
+    error_message = "PutObject y DeleteObject solo pueden aplicar a los objetos del prefijo studies/ del bucket de estudios."
+  }
+
+  # El límite no toca el bucket de artefactos de modelos con escrituras.
+  assert {
+    condition = alltrue([
+      for s in jsondecode(aws_iam_policy.boundary.policy).Statement :
+      !anytrue([for a in s.Action : a == "s3:PutObject" || a == "s3:DeleteObject"])
+      if anytrue([for r in s.Resource : startswith(r, "arn:aws:s3:::medicia-models-dev-896618135592")])
+    ])
+    error_message = "El límite no puede permitir escribir ni borrar en el bucket de artefactos."
+  }
+
+  # Lo que concede el módulo identity a la aplicación cabe dentro del límite.
+  assert {
+    condition = alltrue([
+      for a in ["s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:ListBucket"] :
+      contains(flatten([for s in jsondecode(aws_iam_policy.boundary.policy).Statement : s.Action]), a)
+    ])
+    error_message = "El límite debe incluir todas las acciones de S3 que concede el módulo identity."
+  }
+}
+
+run "limite_de_la_aplicacion_con_el_punto_de_inferencia" {
+  command = plan
+
+  # La sentencia InvocarModelo existe, con una sola acción y un solo recurso.
+  assert {
+    condition = anytrue([
+      for s in jsondecode(aws_iam_policy.boundary.policy).Statement :
+      s.Sid == "InvocarModelo"
+      && s.Effect == "Allow"
+      && toset(s.Action) == toset(["sagemaker:InvokeEndpoint"])
+      && toset(s.Resource) == toset(["arn:aws:sagemaker:sa-east-1:896618135592:endpoint/medicia-dev-echonext-mini"])
+    ])
+    error_message = "El límite debe permitir sagemaker:InvokeEndpoint solo sobre el punto de inferencia de EchoNext-Mini."
+  }
+
+  # Fuera de la lectura que ya tenía el límite, la única acción de SageMaker es InvokeEndpoint: nada de crear,
+  # cambiar ni borrar, y sin comodines.
+  assert {
+    condition = alltrue([
+      for a in flatten([for s in jsondecode(aws_iam_policy.boundary.policy).Statement : s.Action]) :
+      a == "sagemaker:InvokeEndpoint" || can(regex("^sagemaker:(Describe|List)[A-Za-z]+$", a))
+      if startswith(a, "sagemaker:")
+    ])
+    error_message = "El límite de la aplicación no puede incluir ninguna otra acción de SageMaker."
+  }
+
+  # Lo que concede el módulo identity cabe dentro del límite.
+  assert {
+    condition     = contains(flatten([for s in jsondecode(aws_iam_policy.boundary.policy).Statement : s.Action]), "sagemaker:InvokeEndpoint")
+    error_message = "El límite debe incluir la acción que concede el módulo identity."
+  }
+
+  # La política del operador no cambia: no recibe la acción de invocar.
+  assert {
+    condition = !contains(
+      flatten([for s in jsondecode(aws_iam_policy.operator.policy).Statement : s.Action]),
+      "sagemaker:InvokeEndpoint",
+    )
+    error_message = "El operador no debe poder invocar el punto de inferencia."
   }
 }

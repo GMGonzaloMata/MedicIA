@@ -52,6 +52,8 @@ model Tenant {
   memberships StaffMembership[]
   patients    Patient[]
   assignments DoctorPatientAssignment[]
+  studies     Study[]
+  analyses    Analysis[]
 
   @@map("tenants")
 }
@@ -72,6 +74,8 @@ model User {
   assignmentsCreated DoctorPatientAssignment[] @relation("AssignmentCreatedBy")
   assignmentsEnded   DoctorPatientAssignment[] @relation("AssignmentEndedBy")
   sessions           Session[]
+  studiesUploaded    Study[]
+  analysesRequested  Analysis[]
 
   @@map("users")
 }
@@ -117,10 +121,12 @@ model Patient {
   createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  tenant      Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
-  user        User?                     @relation(fields: [userId], references: [id], onDelete: Restrict)
-  assignments DoctorPatientAssignment[]
-  sessions    Session[]
+  tenant       Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  user         User?                     @relation(fields: [userId], references: [id], onDelete: Restrict)
+  assignments  DoctorPatientAssignment[]
+  sessions     Session[]
+  studies      Study[]
+  studyCounter StudyCounter?
 
   @@unique([tenantId, documentType, documentNumber])
   @@unique([tenantId, userId])
@@ -173,4 +179,117 @@ model Session {
 
   @@index([userId])
   @@map("sessions")
+}
+
+// Tipo de estudio. Hoy solo existe el electrocardiograma; el usuario lo elige de forma explícita.
+enum StudyType {
+  ECG
+
+  @@map("study_type")
+}
+
+// Estado del estudio como archivo. El estado del proceso de análisis vive en cada análisis (008), no acá.
+enum StudyStatus {
+  UPLOADED
+
+  @@map("study_status")
+}
+
+// Estudio de un paciente de una clínica (specs/006-carga-estudios-ecg/data-model.md). No guarda el nombre
+// del archivo subido ni ninguna variable del estudio: eso vive solo en el archivo guardado en S3.
+// Los CHECK (number > 0) se agregan a mano en el SQL de la migración.
+model Study {
+  id               String      @id @default(uuid(7)) @db.Uuid
+  tenantId         String      @map("tenant_id") @db.Uuid
+  patientId        String      @map("patient_id") @db.Uuid
+  // La cuenta que lo cargó: el propio paciente o su médico. Se toma siempre de la sesión.
+  uploadedByUserId String      @map("uploaded_by_user_id") @db.Uuid
+  // Correlativo dentro del paciente. Se asigna al guardar, no cambia y nunca se reutiliza.
+  number           Int
+  type             StudyType   @default(ECG)
+  status           StudyStatus @default(UPLOADED)
+  // Clave del objeto en el bucket de estudios. La arma el servidor, nunca el cliente.
+  storageKey       String      @map("storage_key")
+  uploadedAt       DateTime    @default(now()) @map("uploaded_at") @db.Timestamptz(3)
+
+  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  // Clave compuesta: un estudio no puede quedar en una clínica distinta de la de su paciente.
+  patient    Patient    @relation(fields: [tenantId, patientId], references: [tenantId, id], onDelete: Restrict)
+  uploadedBy User       @relation(fields: [uploadedByUserId], references: [id], onDelete: Restrict)
+  analyses   Analysis[]
+
+  @@unique([tenantId, patientId, number])
+  // Destino de la clave foránea compuesta de los análisis (008).
+  @@unique([tenantId, id])
+  @@unique([storageKey])
+  @@index([uploadedByUserId])
+  @@map("studies")
+}
+
+// Último número de estudio entregado a cada paciente. Permite asignar el número de forma atómica y que
+// uno eliminado no se reutilice. Los CHECK (last_number > 0) se agregan a mano en el SQL de la migración.
+model StudyCounter {
+  patientId  String @id @map("patient_id") @db.Uuid
+  tenantId   String @map("tenant_id") @db.Uuid
+  lastNumber Int    @map("last_number")
+
+  patient Patient @relation(fields: [tenantId, patientId], references: [tenantId, id], onDelete: Restrict)
+
+  // Prisma exige una unicidad sobre los campos de la relación uno a uno; la clave primaria ya garantiza
+  // que haya una fila por paciente.
+  @@unique([tenantId, patientId])
+  @@map("study_counters")
+}
+
+// Estado de un análisis (constitución, principio IV). Vive en el análisis, no en el estudio.
+enum AnalysisStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+
+  @@map("analysis_status")
+}
+
+// Por qué falló un análisis, en términos genéricos: nunca guarda el cuerpo del error del modelo.
+enum AnalysisFailureCode {
+  MODEL_UNAVAILABLE
+  INPUT_REJECTED
+  TIMEOUT
+  STUDY_FILE_UNAVAILABLE
+  INTERNAL
+
+  @@map("analysis_failure_code")
+}
+
+// Una ejecución del modelo sobre un estudio (specs/008-analisis-estudio-ecg/data-model.md). Un estudio puede tener
+// muchos análisis; eliminar el estudio elimina los suyos. Se agregan a mano en el SQL de la migración: el índice
+// único parcial `analyses_one_in_progress` (un solo análisis en curso por estudio) y los CHECK de coherencia
+// entre el estado y los demás campos.
+model Analysis {
+  id                String               @id @default(uuid(7)) @db.Uuid
+  tenantId          String               @map("tenant_id") @db.Uuid
+  studyId           String               @map("study_id") @db.Uuid
+  // La cuenta que lo pidió. Se toma siempre de la sesión.
+  requestedByUserId String               @map("requested_by_user_id") @db.Uuid
+  status            AnalysisStatus       @default(PENDING)
+  failureCode       AnalysisFailureCode? @map("failure_code")
+  // El modelo y la versión que informó el contenedor en su respuesta, no los que se esperaban.
+  modelName         String?              @map("model_name")
+  modelVersion      String?              @map("model_version")
+  // Las 12 probabilidades del contrato, validadas con zod al escribir y al leer.
+  probabilities     Json?                @db.JsonB
+  requestedAt       DateTime             @default(now()) @map("requested_at") @db.Timestamptz(3)
+  startedAt         DateTime?            @map("started_at") @db.Timestamptz(3)
+  finishedAt        DateTime?            @map("finished_at") @db.Timestamptz(3)
+
+  tenant      Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  // Clave compuesta: un análisis no puede quedar en una clínica distinta de la de su estudio.
+  study       Study  @relation(fields: [tenantId, studyId], references: [tenantId, id], onDelete: Cascade)
+  requestedBy User   @relation(fields: [requestedByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, studyId, requestedAt(sort: Desc)])
+  @@index([requestedByUserId])
+  @@map("analyses")
 }

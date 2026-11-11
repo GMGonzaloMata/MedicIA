@@ -1,6 +1,6 @@
 # Contrato: API de inferencia de EchoNext-Mini
 
-Es el contrato que consumirá el adaptador de la funcionalidad 006. Se invoca con `InvokeEndpoint` de SageMaker (o, en la prueba local, por HTTP directo al contenedor).
+Es el contrato que consumirá el adaptador de la funcionalidad 008 (análisis con el modelo). Se invoca con `InvokeEndpoint` de SageMaker (o, en la prueba local, por HTTP directo al contenedor).
 
 ## Rutas del contenedor
 

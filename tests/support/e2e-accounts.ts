@@ -34,3 +34,35 @@ export async function signIn(page: Page, email: string, password = E2E_PASSWORD)
   await page.getByLabel("Contraseña").fill(password);
   await page.getByRole("button", { name: "Ingresar" }).click();
 }
+
+export type E2eRole = "patient" | "doctor" | "clinic-admin";
+
+// Deja a una persona nueva dentro de la clínica con el rol indicado: crea la cuenta, la vincula y ingresa.
+// Con un único vínculo, el ingreso lleva directo al inicio (ver clinic-selection.spec.ts, caso b).
+export async function enterClinicAs(
+  page: Page,
+  database: E2eDatabase,
+  { role, tenantId, fullName }: { role: E2eRole; tenantId: string; fullName?: string },
+) {
+  const { user, email } = await createVerifiedAccount(page, database);
+  let relationshipId: string;
+
+  if (role === "patient") {
+    const patient = await database.seedPatient({
+      userId: user.id,
+      tenantId,
+      fullName: fullName ?? uniqueName("Paciente"),
+      documentNumber: String(Date.now()).slice(-8),
+    });
+    relationshipId = patient.id;
+  } else if (role === "doctor") {
+    relationshipId = (await database.linkAsDoctor({ userId: user.id, tenantId })).id;
+  } else {
+    relationshipId = (await database.linkAsClinicAdmin({ userId: user.id, tenantId })).id;
+  }
+
+  await signIn(page, email);
+  await expect(page).toHaveURL(/\/$/);
+
+  return { user, email, relationshipId };
+}
