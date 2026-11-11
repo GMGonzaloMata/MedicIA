@@ -78,3 +78,39 @@ describe("correo de invitaciones por SMTP", () => {
     expect(toMailDeliveryErrorCode({ responseCode: 600 })).toBe("UNAVAILABLE");
   });
 });
+
+describe("aviso de alta por SMTP", () => {
+  const notice = {
+    to: "persona@example.com",
+    clinicName: "Clínica del Sol",
+    kind: "DOCTOR" as const,
+    setPasswordUrl: "https://medicia.example/verify-email",
+  };
+
+  it("envía el aviso desde el remitente configurado", async () => {
+    const transport: MailTransport = { sendMail: vi.fn().mockResolvedValue({}) };
+
+    await createSmtpInvitationMailer({ transport, from: FROM }).sendAccessNotice(notice);
+
+    expect(transport.sendMail).toHaveBeenCalledWith({
+      from: FROM,
+      to: "persona@example.com",
+      subject: "Te sumaron a Clínica del Sol en MedicIA",
+      text: expect.stringContaining("https://medicia.example/verify-email"),
+      html: expect.stringContaining("https://medicia.example/verify-email"),
+    });
+  });
+
+  it("traduce las fallas a un código genérico sin propagar el mensaje original", async () => {
+    const mailer = createSmtpInvitationMailer({
+      transport: transportFailingWith({ code: "EAUTH", message: `rechazado para ${SECRET_PASSWORD}` }),
+      from: FROM,
+    });
+
+    const error = await mailer.sendAccessNotice(notice).catch((caught: unknown) => caught);
+
+    expect(error).toBeInstanceOf(MailDeliveryError);
+    expect(error).toMatchObject({ code: "NOT_CONFIGURED" });
+    expect(String((error as Error).message)).not.toContain(SECRET_PASSWORD);
+  });
+});

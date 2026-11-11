@@ -30,6 +30,11 @@ function buildUsersModule() {
   let invitationMailer: InvitationMailer | undefined;
   let appBaseUrl: string | undefined;
   const resolveCurrentSession = createResolveCurrentSession({ sessions: prismaSessionRepository, now });
+  const mailer = () => (invitationMailer ??= createInvitationMailer(process.env));
+  const lazyMailer: InvitationMailer = {
+    send: (email) => mailer().send(email),
+    sendAccessNotice: (notice) => mailer().sendAccessNotice(notice),
+  };
 
   return {
     getAccessContext: createGetAccessContext({ resolveCurrentSession }),
@@ -56,7 +61,7 @@ function buildUsersModule() {
     // variables, solo falla invitar y no el ingreso ni el resto de la aplicación.
     createInvitation: createCreateInvitation({
       invitations: prismaInvitationRepository,
-      mailer: { send: (email) => (invitationMailer ??= createInvitationMailer(process.env)).send(email) },
+      mailer: lazyMailer,
       appBaseUrl: () => (appBaseUrl ??= loadAppBaseUrl(process.env)),
       now,
     }),

@@ -57,3 +57,36 @@ describe("correo simulado de invitaciones", () => {
     await expect(readFile(outboxFile, "utf8")).rejects.toThrow();
   });
 });
+
+describe("aviso de alta del correo simulado", () => {
+  const notice = {
+    to: "persona@example.com",
+    clinicName: "Clínica del Sol",
+    kind: "PATIENT" as const,
+    setPasswordUrl: "http://localhost:3000/verify-email",
+  };
+
+  it("agrega una línea JSON de tipo access-notice con la dirección para elegir la contraseña", async () => {
+    const mailer = createFakeInvitationMailer({ outboxFile, now: () => NOW });
+
+    await mailer.sendAccessNotice(notice);
+
+    const line = JSON.parse((await readFile(outboxFile, "utf8")).trim());
+
+    expect(line).toMatchObject({
+      type: "access-notice",
+      to: "persona@example.com",
+      kind: "PATIENT",
+      setPasswordUrl: "http://localhost:3000/verify-email",
+      sentAt: NOW.toISOString(),
+    });
+  });
+
+  it("falla con un código genérico para el destinatario que siempre falla", async () => {
+    const mailer = createFakeInvitationMailer({ outboxFile });
+
+    await expect(mailer.sendAccessNotice({ ...notice, to: FAKE_FAILING_RECIPIENT })).rejects.toBeInstanceOf(
+      MailDeliveryError,
+    );
+  });
+});

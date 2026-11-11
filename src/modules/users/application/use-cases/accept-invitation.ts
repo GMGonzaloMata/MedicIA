@@ -1,9 +1,9 @@
 import type { DocumentType, InvitationKind, InvitationRecord } from "../../domain/invitation";
-import { InvitationConflictError, type InvitationConflictReason } from "../../domain/invitation-errors";
+import type { InvitationConflictError, InvitationConflictReason } from "../../domain/invitation-errors";
 import { normalizeProof, proofMatches } from "../../domain/invitation-proof";
-import { checkRelationshipCompatibility } from "../../domain/relationship-compatibility";
-import type { AcceptanceTransaction, InvitationRepository } from "../ports/out/invitation-repository";
+import type { InvitationRepository } from "../ports/out/invitation-repository";
 import { acceptInvitationSchema } from "../validation/invitation-form-schemas";
+import { applyDoctorRelationship, applyPatientRelationship, type RelationshipResult } from "./apply-relationship";
 import { findUsableInvitation } from "./preview-invitation";
 
 export interface AcceptInvitationInput {
@@ -89,127 +89,23 @@ function verify(invitation: InvitationRecord, proofInput: AcceptInvitationInput[
   };
 }
 
-async function applyDoctor(
-  transaction: AcceptanceTransaction,
-  { tenantName, account, invitation }: Applied,
-  specialty: string,
-): Promise<AcceptInvitationResult> {
-  const licenseNumber = normalizeProof(invitation.licenseNumber ?? "");
-  const facts = await transaction.findRelationshipFacts({
-    tenantId: invitation.tenantId,
-    userId: account.id,
-    documentType: null,
-    documentNumber: null,
-    licenseNumber,
-  });
-  const compatibility = checkRelationshipCompatibility({ kind: "DOCTOR", staff: facts.staff, patient: facts.patient });
-
-  if (compatibility.result === "CONFLICT") {
-    throw new InvitationConflictError(compatibility.reason);
-  }
-
-  if (compatibility.result === "ALREADY_MEMBER") {
-    return { status: "ALREADY_MEMBER", tenantName };
-  }
-
-  if (facts.licenseOwnerUserId && facts.licenseOwnerUserId !== account.id) {
-    throw new InvitationConflictError("LICENSE_IN_USE");
-  }
-
-  const { membershipId } = await transaction.createDoctorMembership({
-    tenantId: invitation.tenantId,
-    userId: account.id,
-    // La matrícula que se guarda es la que cargó quien invitó, normalizada, no la que escribió la persona.
-    licenseNumber,
-    specialty,
-  });
-
-  return {
-    status: "ACCEPTED",
-    kind: "DOCTOR",
-    tenantName,
-    relationshipKind: "STAFF",
-    relationshipId: membershipId,
-    assignedToDoctor: false,
-  };
-}
-
-async function applyPatient(
-  transaction: AcceptanceTransaction,
-  { tenantName, account, invitation, now }: Applied,
-  documentType: DocumentType,
-  documentNumber: string,
-): Promise<AcceptInvitationResult> {
-  const facts = await transaction.findRelationshipFacts({
-    tenantId: invitation.tenantId,
-    userId: account.id,
-    documentType,
-    documentNumber,
-    licenseNumber: null,
-  });
-  const compatibility = checkRelationshipCompatibility({ kind: "PATIENT", staff: facts.staff, patient: facts.patient });
-
-  if (compatibility.result === "CONFLICT") {
-    throw new InvitationConflictError(compatibility.reason);
-  }
-
-  // Una cuenta con un registro de paciente con otro documento no puede vincular este.
-  if (
-    facts.patient &&
-    (facts.patient.documentType !== documentType || normalizeProof(facts.patient.documentNumber) !== documentNumber)
-  ) {
-    throw new InvitationConflictError("DOCUMENT_IN_USE");
-  }
-
-  // El documento ya es de otra cuenta.
-  if (facts.patientByDocument?.userId && facts.patientByDocument.userId !== account.id) {
-    throw new InvitationConflictError("DOCUMENT_IN_USE");
-  }
-
-  let patientId: string;
-  let outcome: "ACCEPTED" | "ALREADY_MEMBER";
-
-  if (compatibility.result === "ALREADY_MEMBER" && facts.patient) {
-    patientId = facts.patient.patientId;
-    outcome = "ALREADY_MEMBER";
-  } else {
-    // Se reutiliza el registro propio revocado, o el pendiente con ese documento: conserva su historial y su número.
-    const reusePatientId = facts.patient?.patientId ?? facts.patientByDocument?.patientId ?? null;
-
-    ({ patientId } = await transaction.linkPatient({
-      tenantId: invitation.tenantId,
-      userId: account.id,
-      fullName: account.fullName,
-      documentType,
-      documentNumber,
-      reusePatientId,
-      now,
-    }));
-    outcome = "ACCEPTED";
-  }
-
-  // Un link de un médico asigna al paciente a ese médico, también si el paciente ya pertenecía a la clínica.
-  if (invitation.assignToCreator) {
-    await transaction.assignDoctorIfAbsent({
-      tenantId: invitation.tenantId,
-      membershipId: invitation.createdByMembershipId,
-      patientId,
-      createdByUserId: invitation.createdByUserId,
-      now,
-    });
-  }
-
-  if (outcome === "ALREADY_MEMBER") {
+// Traduce el resultado compartido del vínculo al de aceptar un link.
+function toAcceptResult(
+  result: RelationshipResult,
+  { tenantName, invitation }: Pick<Applied, "tenantName" | "invitation">,
+): AcceptInvitationResult {
+  if (result.status === "ALREADY_MEMBER") {
     return { status: "ALREADY_MEMBER", tenantName };
   }
 
   return {
     status: "ACCEPTED",
-    kind: "PATIENT",
+    kind: result.kind,
     tenantName,
-    relationshipKind: "PATIENT",
-    relationshipId: patientId,
-    assignedToDoctor: invitation.assignToCreator,
+    relationshipKind: result.kind === "DOCTOR" ? "STAFF" : "PATIENT",
+    relationshipId: result.relationshipId,
+    // Un link de un médico asigna al paciente a ese médico.
+    assignedToDoctor: result.kind === "PATIENT" && invitation.assignToCreator,
   };
 }
 
@@ -274,9 +170,27 @@ export function createAcceptInvitation({ invitations, now }: Dependencies) {
 
         const applied: Applied = { tenantName, account, invitation, now: moment };
 
-        return verification.kind === "DOCTOR"
-          ? applyDoctor(transaction, applied, verification.specialty)
-          : applyPatient(transaction, applied, verification.documentType, verification.documentNumber);
+        const relationship =
+          verification.kind === "DOCTOR"
+            ? await applyDoctorRelationship(transaction, {
+                tenantId: invitation.tenantId,
+                account,
+                licenseNumber: invitation.licenseNumber ?? "",
+                specialty: verification.specialty,
+              })
+            : await applyPatientRelationship(transaction, {
+                tenantId: invitation.tenantId,
+                account,
+                documentType: verification.documentType,
+                documentNumber: verification.documentNumber,
+                // Un link de un médico asigna al paciente a ese médico, también si el paciente ya pertenecía a la clínica.
+                assignTo: invitation.assignToCreator
+                  ? { membershipId: invitation.createdByMembershipId, createdByUserId: invitation.createdByUserId }
+                  : null,
+                now: moment,
+              });
+
+        return toAcceptResult(relationship, applied);
       });
     } catch (error) {
       const conflict = asConflict(error);

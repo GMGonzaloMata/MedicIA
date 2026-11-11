@@ -11,6 +11,7 @@ function stubIdentity() {
     signUp: vi.fn(async () => {}),
     confirmSignUp: vi.fn(async () => {}),
     resendConfirmationCode: vi.fn(async () => {}),
+    provisionAccount: vi.fn(async () => ({ subject: "sub", fullName: "Persona" })),
     signIn: vi.fn(),
     requestPasswordReset: vi.fn(async () => {}),
     confirmPasswordReset: vi.fn(async () => {}),

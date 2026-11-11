@@ -1,6 +1,7 @@
 import "server-only";
 
 import {
+  AdminGetUserCommand,
   AdminSetUserPasswordCommand,
   CognitoIdentityProviderClient,
   ConfirmForgotPasswordCommand,
@@ -80,6 +81,12 @@ const idTokenClaimsSchema = z.object({
 function temporaryPassword(): string {
   return `A${randomBytes(32).toString("base64url")}`;
 }
+
+// Solo se usan el `sub` y el nombre de la cuenta que ya existía.
+const provisionedUserSchema = z.object({
+  Username: z.string().optional(),
+  UserAttributes: z.array(z.object({ Name: z.string(), Value: z.string().optional() })).optional(),
+});
 
 function errorName(error: unknown): string {
   return error instanceof Error ? error.name : "UnknownError";
@@ -166,6 +173,61 @@ export function buildCognitoIdentityProvider(
         }
 
         throw unavailable("signUp", error);
+      }
+    },
+
+    async provisionAccount({ email, fullName }) {
+      try {
+        const response = await client.send(
+          new SignUpCommand({
+            ClientId: config.clientId,
+            Username: email,
+            // Contraseña provisional que nadie conoce: la definitiva la elige la persona al verificar el correo.
+            Password: temporaryPassword(),
+            SecretHash: secretHashFor(email),
+            UserAttributes: [
+              { Name: "email", Value: email },
+              { Name: "name", Value: fullName },
+            ],
+          }),
+        );
+        const subject = z.string().min(1).safeParse(response.UserSub);
+
+        if (!subject.success) {
+          throw unavailable("provisionAccount", new Error("SinUserSub"));
+        }
+
+        return { subject: subject.data, fullName };
+      } catch (error) {
+        if (error instanceof IdentityError) {
+          throw error;
+        }
+
+        if (errorName(error) !== "UsernameExistsException") {
+          throw unavailable("provisionAccount", error);
+        }
+      }
+
+      // La cuenta ya existía: se reenvía el código si estaba sin verificar (el error se absorbe si ya lo estaba) y se
+      // leen su `sub` y su nombre, sin tocar su contraseña.
+      try {
+        await resendCode(email);
+      } catch (resendError) {
+        if (!ABSORBED_ERRORS.has(errorName(resendError))) {
+          throw unavailable("provisionAccount", resendError);
+        }
+      }
+
+      try {
+        const user = provisionedUserSchema.parse(
+          await client.send(new AdminGetUserCommand({ UserPoolId: config.userPoolId, Username: email })),
+        );
+        const attribute = (name: string) => user.UserAttributes?.find((item) => item.Name === name)?.Value;
+        const subject = z.string().min(1).parse(attribute("sub") ?? user.Username);
+
+        return { subject, fullName: attribute("name") ?? fullName };
+      } catch (error) {
+        throw unavailable("provisionAccount", error);
       }
     },
 

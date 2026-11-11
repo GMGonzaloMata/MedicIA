@@ -406,6 +406,8 @@ export class InMemoryInvitationRepository implements InvitationRepository {
         if (!active) {
           this.assignments.push({ tenantId, membershipId, patientId, createdByUserId, endedAt: null });
         }
+
+        return { created: !active };
       },
 
       isMembershipActiveDoctor: async ({ tenantId, membershipId }) =>

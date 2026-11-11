@@ -111,8 +111,9 @@ resource "aws_cognito_user_pool_client" "app" {
   }
 }
 
-# Identidad con la que el servidor local fija la contraseña al verificar el correo (R18 de la 002).
-# Su único permiso es esa operación sobre este grupo. En producción se reemplaza por un rol del servidor.
+# Identidad con la que el servidor local fija la contraseña al verificar el correo (R18 de la 002) y, en el alta directa
+# de la 010 (R1), lee un usuario del grupo para obtener su `sub` cuando la cuenta ya existía pero nunca ingresó.
+# Sus únicos permisos son esas dos operaciones sobre este grupo. En producción se reemplaza por un rol del servidor.
 resource "aws_iam_user" "app" {
   name = "medicia-${var.environment}-app"
 
@@ -129,7 +130,7 @@ resource "aws_iam_user_policy" "app" {
     Statement = [
       {
         Effect   = "Allow"
-        Action   = "cognito-idp:AdminSetUserPassword"
+        Action   = ["cognito-idp:AdminGetUser", "cognito-idp:AdminSetUserPassword"]
         Resource = aws_cognito_user_pool.this.arn
       },
     ]

@@ -63,6 +63,10 @@ export const prismaUserRepository: UserRepository = {
     }
   },
 
+  findByEmail(email) {
+    return prismaClient.user.findUnique({ where: { email: email.toLowerCase() }, select: ACCESS_USER_SELECT });
+  },
+
   async invalidateSessionsByEmail({ email, now }) {
     await prismaClient.user.updateMany({
       // Nunca se retrocede la fecha: solo se adelanta.

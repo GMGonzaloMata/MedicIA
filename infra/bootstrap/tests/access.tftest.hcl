@@ -271,17 +271,17 @@ run "politica_limite_solo_lectura_y_fijar_contrasena" {
   assert {
     condition = alltrue([
       for a in flatten([for s in jsondecode(aws_iam_policy.boundary.policy).Statement : s.Action]) :
-      can(regex("^(s3:(Get|List)[A-Za-z]+|s3:(PutObject|DeleteObject)|cognito-idp:(AdminSetUserPassword|(Describe|Get|List)[A-Za-z]*)|iam:(Get|List)[A-Za-z]*|sagemaker:InvokeEndpoint|(sagemaker|ecr):(Describe|Get|List)[A-Za-z]*)$", a))
+      can(regex("^(s3:(Get|List)[A-Za-z]+|s3:(PutObject|DeleteObject)|cognito-idp:(AdminGetUser|AdminSetUserPassword|(Describe|Get|List)[A-Za-z]*)|iam:(Get|List)[A-Za-z]*|sagemaker:InvokeEndpoint|(sagemaker|ecr):(Describe|Get|List)[A-Za-z]*)$", a))
     ])
-    error_message = "El límite solo admite lectura, cognito-idp:AdminSetUserPassword y, sobre los estudios, PutObject y DeleteObject, y sagemaker:InvokeEndpoint sobre el punto de inferencia."
+    error_message = "El límite solo admite lectura, cognito-idp:AdminSetUserPassword y AdminGetUser y, sobre los estudios, PutObject y DeleteObject, y sagemaker:InvokeEndpoint sobre el punto de inferencia."
   }
 
   assert {
     condition = anytrue([
       for s in jsondecode(aws_iam_policy.boundary.policy).Statement :
-      contains(s.Action, "cognito-idp:AdminSetUserPassword")
+      contains(s.Action, "cognito-idp:AdminSetUserPassword") && contains(s.Action, "cognito-idp:AdminGetUser")
     ])
-    error_message = "El límite debe permitir fijar contraseñas, que es lo que hace la aplicación."
+    error_message = "El límite debe permitir fijar contraseñas y leer un usuario, que es lo que hace la aplicación."
   }
 
   assert {

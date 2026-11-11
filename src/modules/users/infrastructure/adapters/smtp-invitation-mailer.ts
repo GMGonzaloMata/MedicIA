@@ -1,6 +1,11 @@
 import "server-only";
 
-import type { InvitationEmail, InvitationMailer } from "../../application/ports/out/invitation-mailer";
+import type {
+  AccessNoticeEmail,
+  InvitationEmail,
+  InvitationMailer,
+} from "../../application/ports/out/invitation-mailer";
+import { renderAccessNotice } from "../../application/use-cases/render-access-notice";
 import { renderInvitationEmail } from "../../application/use-cases/render-invitation-email";
 import { MailDeliveryError, type MailDeliveryErrorCode } from "../../domain/invitation-errors";
 
@@ -54,6 +59,16 @@ export function createSmtpInvitationMailer({ transport, from }: SmtpInvitationMa
 
       try {
         await transport.sendMail({ from, to: email.to, subject, text, html });
+      } catch (error) {
+        throw new MailDeliveryError(toMailDeliveryErrorCode(error));
+      }
+    },
+
+    async sendAccessNotice(notice: AccessNoticeEmail): Promise<void> {
+      const { subject, text, html } = renderAccessNotice(notice);
+
+      try {
+        await transport.sendMail({ from, to: notice.to, subject, text, html });
       } catch (error) {
         throw new MailDeliveryError(toMailDeliveryErrorCode(error));
       }

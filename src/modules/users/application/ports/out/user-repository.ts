@@ -11,6 +11,9 @@ export interface UserRepository {
     now: Date;
   }): Promise<AccessUser>;
 
+  // La cuenta propia con ese correo, o `null` si no existe. El correo ya llega normalizado.
+  findByEmail(email: string): Promise<AccessUser | null>;
+
   // Invalida todas las sesiones anteriores a `now`. No hace nada si el correo no tiene cuenta propia.
   invalidateSessionsByEmail(input: { email: string; now: Date }): Promise<void>;
 }

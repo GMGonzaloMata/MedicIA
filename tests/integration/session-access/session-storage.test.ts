@@ -140,3 +140,12 @@ describe("Cuenta propia del primer ingreso", () => {
     expect(await prismaClient.user.count()).toBe(1);
   });
 });
+
+describe("buscar una cuenta por correo", () => {
+  it("devuelve la cuenta con ese correo, sin distinguir mayúsculas, y null si no existe", async () => {
+    const user = await createUser({ email: "persona@example.com" });
+
+    expect(await prismaUserRepository.findByEmail("Persona@Example.com")).toMatchObject({ id: user.id });
+    expect(await prismaUserRepository.findByEmail("nadie@example.com")).toBeNull();
+  });
+});

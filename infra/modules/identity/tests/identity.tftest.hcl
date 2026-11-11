@@ -220,8 +220,8 @@ run "usuario_de_la_aplicacion_con_un_solo_permiso" {
   }
 
   assert {
-    condition     = jsondecode(aws_iam_user_policy.app.policy).Statement[0].Action == "cognito-idp:AdminSetUserPassword"
-    error_message = "La única acción permitida debe ser cognito-idp:AdminSetUserPassword."
+    condition     = toset(jsondecode(aws_iam_user_policy.app.policy).Statement[0].Action) == toset(["cognito-idp:AdminGetUser", "cognito-idp:AdminSetUserPassword"])
+    error_message = "Las únicas acciones permitidas deben ser cognito-idp:AdminSetUserPassword y cognito-idp:AdminGetUser."
   }
 
   assert {

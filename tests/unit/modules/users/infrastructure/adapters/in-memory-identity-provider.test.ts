@@ -189,3 +189,38 @@ describe("fakeSubjectForEmail", () => {
     );
   });
 });
+
+describe("provisionAccount", () => {
+  it("crea la cuenta sin verificar, devuelve su subject y la persona define su contraseña con el código", async () => {
+    const provider = newProvider();
+
+    const result = await provider.provisionAccount({ email: EMAIL, fullName: "Persona Uno" });
+
+    expect(result).toEqual({ subject: fakeSubjectForEmail(EMAIL), fullName: "Persona Uno" });
+    expect(await codeOf(provider.signIn({ email: EMAIL, password: "cualquiera" }))).toBe("INVALID_CREDENTIALS");
+
+    await provider.confirmSignUp({ email: EMAIL, code: FAKE_VERIFICATION_CODE, password: PASSWORD });
+
+    expect((await provider.signIn({ email: EMAIL, password: PASSWORD })).fullName).toBe("Persona Uno");
+  });
+
+  it("con una cuenta existente conserva su nombre y su contraseña", async () => {
+    const provider = newProvider();
+    await provider.signUp({ email: EMAIL, fullName: "Nombre Original" });
+    await provider.confirmSignUp({ email: EMAIL, code: FAKE_VERIFICATION_CODE, password: PASSWORD });
+
+    const result = await provider.provisionAccount({ email: EMAIL, fullName: "Otro Nombre" });
+
+    expect(result).toEqual({ subject: fakeSubjectForEmail(EMAIL), fullName: "Nombre Original" });
+    expect((await provider.signIn({ email: EMAIL, password: PASSWORD })).fullName).toBe("Nombre Original");
+  });
+
+  it("devuelve el mismo subject en dos llamadas", async () => {
+    const provider = newProvider();
+
+    const first = await provider.provisionAccount({ email: EMAIL, fullName: "Persona" });
+    const second = await provider.provisionAccount({ email: EMAIL, fullName: "Persona" });
+
+    expect(second.subject).toBe(first.subject);
+  });
+});

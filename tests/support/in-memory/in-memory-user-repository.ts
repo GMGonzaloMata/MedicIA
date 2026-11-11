@@ -40,6 +40,10 @@ export class InMemoryUserRepository implements UserRepository {
     return user;
   }
 
+  async findByEmail(email: string): Promise<AccessUser | null> {
+    return this.users.find((stored) => stored.user.email === email.toLowerCase())?.user ?? null;
+  }
+
   async invalidateSessionsByEmail(input: { email: string; now: Date }): Promise<void> {
     for (const stored of this.users) {
       if (stored.user.email === input.email.toLowerCase() && stored.sessionsValidFrom < input.now) {

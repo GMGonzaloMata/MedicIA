@@ -15,6 +15,7 @@ Especificación y decisiones: [specs/003-infra-base-cognito/](../specs/003-infra
 
 - `bootstrap/`: el bucket del estado, el acceso de CI (rol `medicia-dev-plan` y proveedor de GitHub), las dos políticas del operador (`operator-policy.tf` y `operator-policy-ml.tf`, esta última con SageMaker, `iam:PassRole` y ECR) y las dos políticas límite de permisos: `medicia-dev-boundary` (plan y usuario de la aplicación) y `medicia-dev-sagemaker-boundary`, en `sagemaker-boundary.tf` (rol de ejecución de SageMaker). Es la única raíz que arranca con estado local y la aplica un administrador.
 - `modules/identity/`: el grupo de usuarios de Cognito, su cliente de aplicación y el usuario de IAM que usa el servidor. Incluye sus pruebas.
+  El usuario de la aplicación solo puede `cognito-idp:AdminSetUserPassword` (fijar la contraseña al verificar el correo) y `cognito-idp:AdminGetUser` (leer un solo usuario del grupo: lo usa el alta directa de la 010 para obtener el `sub` de una cuenta que ya existía en Cognito pero nunca ingresó a MedicIA). Ninguna permite crear, borrar ni cambiar cuentas. `medicia-dev-boundary` debe incluir las mismas dos acciones.
 - `modules/model-artifacts/`: el bucket privado donde viven los artefactos de los modelos.
 - `modules/sagemaker-execution-role/`: el rol que SageMaker asume para leer esos artefactos y escribir registros, con su límite de permisos.
 - `modules/model-endpoints/`: el catálogo de modelos y sus puntos de inferencia, apagados por defecto.

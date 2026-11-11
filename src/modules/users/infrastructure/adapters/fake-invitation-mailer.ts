@@ -3,7 +3,12 @@ import "server-only";
 import { appendFile, mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 
-import type { InvitationEmail, InvitationMailer } from "../../application/ports/out/invitation-mailer";
+import type {
+  AccessNoticeEmail,
+  InvitationEmail,
+  InvitationMailer,
+} from "../../application/ports/out/invitation-mailer";
+import { renderAccessNotice } from "../../application/use-cases/render-access-notice";
 import { renderInvitationEmail } from "../../application/use-cases/render-invitation-email";
 import { MailDeliveryError } from "../../domain/invitation-errors";
 
@@ -29,6 +34,28 @@ export function createFakeInvitationMailer({
 
       const { subject, text, html } = renderInvitationEmail(email);
       const line = JSON.stringify({ to: email.to, subject, text, html, link: email.link, sentAt: now().toISOString() });
+
+      await mkdir(dirname(outboxFile), { recursive: true });
+      await appendFile(outboxFile, `${line}\n`, "utf8");
+    },
+
+    async sendAccessNotice(notice: AccessNoticeEmail): Promise<void> {
+      if (notice.to === FAKE_FAILING_RECIPIENT) {
+        throw new MailDeliveryError("UNAVAILABLE");
+      }
+
+      const { subject, text, html } = renderAccessNotice(notice);
+      const line = JSON.stringify({
+        type: "access-notice",
+        to: notice.to,
+        clinicName: notice.clinicName,
+        kind: notice.kind,
+        setPasswordUrl: notice.setPasswordUrl,
+        subject,
+        text,
+        html,
+        sentAt: now().toISOString(),
+      });
 
       await mkdir(dirname(outboxFile), { recursive: true });
       await appendFile(outboxFile, `${line}\n`, "utf8");

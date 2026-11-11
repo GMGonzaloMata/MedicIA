@@ -68,6 +68,19 @@ export function createInMemoryIdentityProvider(
       }
     },
 
+    async provisionAccount({ email, fullName }) {
+      // Igual que `signUp`, pero devuelve los datos de la cuenta: la existente conserva su nombre y su contraseña.
+      const existing = accounts.get(email);
+
+      if (existing) {
+        return { subject: fakeSubjectForEmail(email), fullName: existing.fullName };
+      }
+
+      accounts.set(email, { password: randomUUID(), fullName, isConfirmed: false });
+
+      return { subject: fakeSubjectForEmail(email), fullName };
+    },
+
     async confirmSignUp({ email, code, password }) {
       const account = accounts.get(email);
 

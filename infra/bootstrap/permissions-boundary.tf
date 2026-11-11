@@ -18,10 +18,11 @@ resource "aws_iam_policy" "boundary" {
       local.plan_read_statements,
       [
         {
-          # Lo único que escribe la aplicación: fijar la contraseña elegida al verificar el correo.
+          # Lo único que escribe la aplicación: fijar la contraseña elegida al verificar el correo. Además lee un solo
+          # usuario (AdminGetUser) para el alta directa de la 010: obtiene su `sub` si la cuenta ya existía.
           Sid      = "FijarContrasenaEnElGrupo"
           Effect   = "Allow"
-          Action   = ["cognito-idp:AdminSetUserPassword"]
+          Action   = ["cognito-idp:AdminGetUser", "cognito-idp:AdminSetUserPassword"]
           Resource = ["arn:aws:cognito-idp:${var.region}:${var.account_id}:userpool/*"]
         },
         {

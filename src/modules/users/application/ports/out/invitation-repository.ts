@@ -46,13 +46,9 @@ export interface AcceptanceFacts {
   licenseOwnerUserId: string | null;
 }
 
-// Operaciones que el caso de uso de aceptar necesita dentro de la transacción. Todas filtran por la clínica de la
-// invitación y se ejecutan con la fila de la cuenta bloqueada, así dos aceptaciones de la misma cuenta se ordenan.
-export interface AcceptanceTransaction {
-  // Actualización condicional: pasa a `ACCEPTED` solo si sigue pendiente, no venció y le quedan intentos.
-  // Devuelve si lo logró; si no, el link no es válido y no se escribe nada más.
-  claim(input: { tenantId: string; invitationId: string; accountId: string; now: Date }): Promise<boolean>;
-
+// Operaciones para aplicar un vínculo dentro de una transacción con la fila de la cuenta bloqueada. Las usan aceptar un
+// link (009) y el alta directa (010). Todas filtran por la clínica indicada.
+export interface RelationshipTransaction {
   findRelationshipFacts(input: {
     tenantId: string;
     userId: string;
@@ -81,14 +77,22 @@ export interface AcceptanceTransaction {
     now: Date;
   }): Promise<{ patientId: string }>;
 
-  // Crea la asignación vigente de la pareja, salvo que ya haya una activa. No toca las de otros médicos.
+  // Crea la asignación vigente de la pareja, salvo que ya haya una activa. No toca las de otros médicos. Devuelve
+  // si creó una asignación nueva.
   assignDoctorIfAbsent(input: {
     tenantId: string;
     membershipId: string;
     patientId: string;
     createdByUserId: string;
     now: Date;
-  }): Promise<void>;
+  }): Promise<{ created: boolean }>;
+}
+
+// Lo que aceptar un link necesita además: reclamarlo y comprobar que quien lo generó siga siendo médico activo.
+export interface AcceptanceTransaction extends RelationshipTransaction {
+  // Actualización condicional: pasa a `ACCEPTED` solo si sigue pendiente, no venció y le quedan intentos.
+  // Devuelve si lo logró; si no, el link no es válido y no se escribe nada más.
+  claim(input: { tenantId: string; invitationId: string; accountId: string; now: Date }): Promise<boolean>;
 
   isMembershipActiveDoctor(input: { tenantId: string; membershipId: string }): Promise<boolean>;
 }

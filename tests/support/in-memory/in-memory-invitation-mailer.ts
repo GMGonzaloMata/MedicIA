@@ -1,9 +1,14 @@
-import type { InvitationEmail, InvitationMailer } from "@/modules/users/application/ports/out/invitation-mailer";
+import type {
+  AccessNoticeEmail,
+  InvitationEmail,
+  InvitationMailer,
+} from "@/modules/users/application/ports/out/invitation-mailer";
 import { MailDeliveryError } from "@/modules/users/domain/invitation-errors";
 
 // Cumple el puerto en memoria: guarda los mensajes enviados y puede forzar una falla de entrega.
 export class InMemoryInvitationMailer implements InvitationMailer {
   readonly sent: InvitationEmail[] = [];
+  readonly notices: AccessNoticeEmail[] = [];
   failWith: MailDeliveryError | null = null;
 
   async send(email: InvitationEmail): Promise<void> {
@@ -12,5 +17,13 @@ export class InMemoryInvitationMailer implements InvitationMailer {
     }
 
     this.sent.push(email);
+  }
+
+  async sendAccessNotice(notice: AccessNoticeEmail): Promise<void> {
+    if (this.failWith) {
+      throw this.failWith;
+    }
+
+    this.notices.push(notice);
   }
 }

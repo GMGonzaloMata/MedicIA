@@ -1,4 +1,5 @@
 import {
+  AdminGetUserCommand,
   AdminSetUserPasswordCommand,
   ConfirmForgotPasswordCommand,
   ConfirmSignUpCommand,
@@ -402,5 +403,80 @@ describe("registros de actividad (FR-028)", () => {
     await codeOf(provider.signIn({ email: EMAIL, password: PASSWORD }));
 
     expect(consoleError.mock.calls.flat().join("\n")).toContain("UnknownError");
+  });
+});
+
+describe("alta directa de una cuenta (provisionAccount)", () => {
+  it("crea la cuenta con una contraseña provisional y devuelve el sub de la respuesta", async () => {
+    const { provider, send } = setup();
+    send.mockResolvedValue({ UserSub: "sub-nuevo" });
+
+    const result = await provider.provisionAccount({ email: EMAIL, fullName: "Persona Uno" });
+
+    expect(result).toEqual({ subject: "sub-nuevo", fullName: "Persona Uno" });
+    const command = send.mock.calls[0][0];
+    expect(command).toBeInstanceOf(SignUpCommand);
+    expect(command.input).toMatchObject({ Username: EMAIL, SecretHash: EXPECTED_HASH });
+    expect(command.input.Password).toHaveLength(44);
+  });
+
+  it("si la cuenta ya existía reenvía el código y lee su sub y su nombre sin cambiar nada", async () => {
+    const { provider, send } = setup();
+    send
+      .mockRejectedValueOnce(awsError("UsernameExistsException"))
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce({
+        Username: "sub-existente",
+        UserAttributes: [
+          { Name: "sub", Value: "sub-existente" },
+          { Name: "name", Value: "Nombre Original" },
+        ],
+      });
+
+    const result = await provider.provisionAccount({ email: EMAIL, fullName: "Otro Nombre" });
+
+    expect(result).toEqual({ subject: "sub-existente", fullName: "Nombre Original" });
+    expect(send.mock.calls[1][0]).toBeInstanceOf(ResendConfirmationCodeCommand);
+    expect(send.mock.calls[2][0]).toBeInstanceOf(AdminGetUserCommand);
+    expect(send.mock.calls[2][0].input).toMatchObject({ UserPoolId: CONFIG.userPoolId, Username: EMAIL });
+    expect(send.mock.calls.some(([command]) => command instanceof AdminSetUserPasswordCommand)).toBe(false);
+  });
+
+  it("absorbe el error del reenvío cuando la cuenta ya estaba verificada", async () => {
+    const { provider, send } = setup();
+    send
+      .mockRejectedValueOnce(awsError("UsernameExistsException"))
+      .mockRejectedValueOnce(awsError("InvalidParameterException"))
+      .mockResolvedValueOnce({ Username: "sub-1", UserAttributes: [{ Name: "sub", Value: "sub-1" }] });
+
+    await expect(provider.provisionAccount({ email: EMAIL, fullName: "Persona" })).resolves.toEqual({
+      subject: "sub-1",
+      fullName: "Persona",
+    });
+  });
+
+  it("falla como no disponible si no puede leer la cuenta existente (por ejemplo, sin permiso)", async () => {
+    const { provider, send } = setup();
+    send
+      .mockRejectedValueOnce(awsError("UsernameExistsException"))
+      .mockResolvedValueOnce({})
+      .mockRejectedValueOnce(awsError("AccessDeniedException"));
+
+    expect(await codeOf(provider.provisionAccount({ email: EMAIL, fullName: "P" }))).toBe("UNAVAILABLE");
+  });
+
+  it("falla como no disponible si la respuesta no trae el sub", async () => {
+    const { provider, send } = setup();
+    send.mockResolvedValue({});
+
+    expect(await codeOf(provider.provisionAccount({ email: EMAIL, fullName: "P" }))).toBe("UNAVAILABLE");
+  });
+
+  it("falla como no disponible ante cualquier otro error y registra solo su nombre", async () => {
+    const { provider, send } = setup();
+    send.mockRejectedValue(awsError("InternalErrorException"));
+
+    expect(await codeOf(provider.provisionAccount({ email: EMAIL, fullName: "P" }))).toBe("UNAVAILABLE");
+    expect(JSON.stringify(consoleError.mock.calls)).not.toContain(EMAIL);
   });
 });

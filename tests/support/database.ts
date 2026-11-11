@@ -14,13 +14,14 @@ function nextSequence(): number {
   return sequence;
 }
 
-// Vacía las nueve tablas en una sola sentencia, porque PostgreSQL no vacía una tabla referenciada por otra
+// Vacía todas las tablas en una sola sentencia, porque PostgreSQL no vacía una tabla referenciada por otra
 // que quede afuera. Se niega a correr si la base no es local.
 export async function resetDatabase(): Promise<void> {
   assertLocalDatabaseUrl(process.env.DATABASE_URL);
 
   await prismaClient.$executeRaw`
     TRUNCATE TABLE
+      "clinic_user_events",
       "invitations",
       "analyses",
       "studies",
