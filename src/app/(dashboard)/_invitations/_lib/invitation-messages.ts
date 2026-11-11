@@ -14,6 +14,11 @@ export const INVITATION_MESSAGES = {
   unexpectedInvite: "No pudimos crear la invitación. Probá de nuevo.",
   forbidden: "No tenés permiso para invitar.",
   contactClinic: "Comunicate con la clínica.",
+  revokeNotFound: "No encontramos la invitación. Puede que ya no esté pendiente.",
+  unexpectedRevoke: "No pudimos revocar la invitación. Probá de nuevo.",
+  noPending: "No hay invitaciones pendientes.",
+  statusSent: "Enviada",
+  statusSendFailed: "Envío fallido",
 } as const;
 
 export function attemptsLeftMessage(attemptsLeft: number): string {

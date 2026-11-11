@@ -3,7 +3,16 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { INVITATION_LIST_LIMIT } from "@/modules/users/domain/invitation";
 import { prismaInvitationRepository } from "@/modules/users/infrastructure/repositories/prisma-invitation-repository";
 
-import { createStaffMembership, createUser, prismaClient, resetDatabase } from "../../support/database";
+import { createListInvitations } from "@/modules/users/application/use-cases/list-invitations";
+import { createRevokeInvitation } from "@/modules/users/application/use-cases/revoke-invitation";
+
+import {
+  createDoctorMembership,
+  createStaffMembership,
+  createUser,
+  prismaClient,
+  resetDatabase,
+} from "../../support/database";
 import { adminActorOf, createInvitationUseCases } from "../../support/invitation-integration";
 import { createInvitationWorld } from "../../support/invitation-world";
 
@@ -143,5 +152,60 @@ describe("el link deja de servir cuando cambia el contexto", () => {
 
     expect(await useCases.previewInvitation({ token, account })).toEqual({ status: "INVALID" });
     expect(await useCases.acceptInvitation({ token, account, proof })).toEqual({ status: "INVALID" });
+  });
+});
+
+describe("listar y revocar desde otra clínica o sin permiso", () => {
+  it("quien administra otra clínica no ve ni revoca las invitaciones ajenas", async () => {
+    const { world } = await invitedDoctor();
+    const adminOfB = await createUser({ fullName: "Admin de B" });
+    const membershipB = await createStaffMembership({ tenantId: world.tenantB.id, userId: adminOfB.id });
+    const actorB = {
+      tenantId: world.tenantB.id,
+      userId: adminOfB.id,
+      membershipId: membershipB.id,
+      isClinicAdmin: true,
+      isDoctor: false,
+    };
+    const now = () => new Date();
+    const invitationId = (await prismaClient.invitation.findFirstOrThrow()).id;
+
+    expect(await createListInvitations({ invitations: prismaInvitationRepository, now })({ actor: actorB })).toEqual([]);
+    await expect(
+      createRevokeInvitation({ invitations: prismaInvitationRepository, now })({ actor: actorB, invitationId }),
+    ).rejects.toMatchObject({ name: "InvitationNotFoundError" });
+    expect(await prismaClient.invitation.findFirstOrThrow()).toMatchObject({ status: "PENDING" });
+  });
+
+  it("un médico no revoca las de otro médico, pero el administrador sí", async () => {
+    const world = await createInvitationWorld();
+    const useCases = createInvitationUseCases();
+    const otherDoctorUser = await createUser();
+    const otherDoctor = await createDoctorMembership({ tenantId: world.tenantA.id, userId: otherDoctorUser.id });
+    const actorOf = (membership: { id: string }, user: { id: string }) => ({
+      tenantId: world.tenantA.id,
+      userId: user.id,
+      membershipId: membership.id,
+      isClinicAdmin: false,
+      isDoctor: true,
+    });
+    await useCases.createInvitation({
+      actor: actorOf(world.doctor, world.doctorUser),
+      kind: "PATIENT",
+      email: "p@example.com",
+      documentType: "DNI",
+      documentNumber: "30111222",
+    });
+    const invitationId = (await prismaClient.invitation.findFirstOrThrow()).id;
+    const now = () => new Date();
+    const revoke = createRevokeInvitation({ invitations: prismaInvitationRepository, now });
+
+    await expect(
+      revoke({ actor: actorOf(otherDoctor, otherDoctorUser), invitationId }),
+    ).rejects.toMatchObject({ name: "InvitationNotFoundError" });
+    expect(await prismaClient.invitation.findFirstOrThrow()).toMatchObject({ status: "PENDING" });
+
+    await revoke({ actor: adminActorOf(world), invitationId });
+    expect(await prismaClient.invitation.findFirstOrThrow()).toMatchObject({ status: "REVOKED", endReason: "BY_SENDER" });
   });
 });

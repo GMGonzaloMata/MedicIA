@@ -11,6 +11,7 @@ import { createAcceptInvitation } from "./application/use-cases/accept-invitatio
 import { createConfirmAccount } from "./application/use-cases/confirm-account";
 import { createCreateInvitation } from "./application/use-cases/create-invitation";
 import { createGetAccessContext } from "./application/use-cases/get-access-context";
+import { createListInvitations } from "./application/use-cases/list-invitations";
 import { createListAvailableClinics } from "./application/use-cases/list-available-clinics";
 import { createPreviewInvitation } from "./application/use-cases/preview-invitation";
 import { createRegisterAccount } from "./application/use-cases/register-account";
@@ -18,6 +19,7 @@ import { createResendConfirmationCode } from "./application/use-cases/resend-con
 import { createResolveCurrentSession } from "./application/use-cases/resolve-current-session";
 import { createRequestPasswordReset } from "./application/use-cases/request-password-reset";
 import { createResetPassword } from "./application/use-cases/reset-password";
+import { createRevokeInvitation } from "./application/use-cases/revoke-invitation";
 import { createSelectActiveClinic } from "./application/use-cases/select-active-clinic";
 import { createSignIn } from "./application/use-cases/sign-in";
 import { createSignOut } from "./application/use-cases/sign-out";
@@ -60,6 +62,8 @@ function buildUsersModule() {
     }),
     previewInvitation: createPreviewInvitation({ invitations: prismaInvitationRepository, now }),
     acceptInvitation: createAcceptInvitation({ invitations: prismaInvitationRepository, now }),
+    listInvitations: createListInvitations({ invitations: prismaInvitationRepository, now }),
+    revokeInvitation: createRevokeInvitation({ invitations: prismaInvitationRepository, now }),
   };
 }
 
