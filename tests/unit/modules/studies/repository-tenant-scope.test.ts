@@ -6,10 +6,11 @@ import { describe, expect, it } from "vitest";
 const REPOSITORIES = [
   "src/modules/studies/infrastructure/repositories/prisma-study-repository.ts",
   "src/modules/studies/infrastructure/repositories/prisma-patient-directory.ts",
+  "src/modules/analyses/infrastructure/repositories/prisma-analysis-repository.ts",
 ];
 
 // Cada consulta empieza en `prismaClient.<modelo>.` o `transaction.<modelo>.` / `$queryRaw`.
-const QUERY_START = /(?:prismaClient|transaction)\.(?:(study|patient|studyCounter)\.\w+|\$queryRaw)/g;
+const QUERY_START = /(?:prismaClient|transaction)\.(?:(study|patient|studyCounter|analysis)\.\w+|\$queryRaw)/g;
 
 // Excepción documentada en el puerto: la conciliación de archivos huérfanos busca por clave de almacenamiento
 // (única en todo el sistema) y no expone datos de ningún estudio.
@@ -21,7 +22,7 @@ function queryBlocks(source: string): string[] {
   return starts.map((start, index) => source.slice(start, starts[index + 1] ?? source.length));
 }
 
-describe("las consultas de estudios y pacientes siempre incluyen la clínica", () => {
+describe("las consultas de estudios, pacientes y análisis siempre incluyen la clínica", () => {
   it.each(REPOSITORIES)("%s", (path) => {
     const source = readFileSync(join(process.cwd(), path), "utf8");
     const blocks = queryBlocks(source);

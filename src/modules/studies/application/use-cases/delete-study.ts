@@ -4,8 +4,8 @@ import type { PatientDirectory } from "../ports/out/patient-directory";
 import type { StudyFileStorage } from "../ports/out/study-file-storage";
 import type { StudyRepository } from "../ports/out/study-repository";
 
-// Punto de extensión para la 008: con un análisis en curso el estudio no se puede eliminar. Es una función
-// inyectada, no un puerto: por defecto siempre permite.
+// Con un análisis en curso (008) el estudio no se puede eliminar. Es una función inyectada, no un puerto:
+// por defecto siempre permite.
 export type CanDeleteStudy = (input: { tenantId: string; studyId: string }) => Promise<boolean>;
 
 interface DeleteStudyDependencies {
