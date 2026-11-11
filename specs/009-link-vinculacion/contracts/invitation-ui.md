@@ -31,7 +31,7 @@ Sin sesión, el `proxy` la redirige a `/sign-in?next=/invitation`. Con sesión:
 
 1. Lee la cookie. Sin cookie o con una forma inválida: mensaje genérico ("Esta invitación no es válida o venció") con el botón "Ir al inicio".
 2. Llama a `previewInvitation` con la cuenta de la sesión.
-3. `INVALID`: el mismo mensaje genérico, más una nota "Si te invitaron a otro correo, cerrá sesión e ingresá con ese correo" y el botón "Cerrar sesión". No se revela la clínica ni el tipo (FR-024). Se borra la cookie solo cuando se cierra sesión o se acepta otra invitación.
+3. `INVALID`: el mismo mensaje genérico, más una nota "Si te invitaron a otro correo, cerrá sesión e ingresá con ese correo" y el botón "Cerrar sesión". No se revela la clínica ni el tipo (FR-024). La cookie no se borra al cerrar sesión: quien ve el aviso cierra sesión justamente para ingresar con el otro correo y retomar la invitación. Vence sola a las 2 horas.
 4. `VALID` y `kind = PATIENT`: muestra "<Clínica> te invitó como paciente" y un formulario con tipo de documento (DNI, pasaporte u otro) y número.
 5. `VALID` y `kind = DOCTOR`: muestra "<Clínica> te invitó como médico" y un formulario con matrícula y especialidad.
 6. El texto explica por qué se pide el dato: "Lo pedimos para confirmar que la invitación es para vos."

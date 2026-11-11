@@ -281,6 +281,10 @@ export class InMemoryInvitationRepository implements InvitationRepository {
     return member && email ? { email } : null;
   }
 
+  async findTenantName({ tenantId }: { tenantId: string }) {
+    return this.tenants.get(tenantId)?.name ?? null;
+  }
+
   private createTransaction(): AcceptanceTransaction {
     return {
       claim: async ({ invitationId, accountId: claimingAccountId, now }) => {

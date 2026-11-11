@@ -135,4 +135,7 @@ export interface InvitationRepository {
   }): Promise<{ email: string | null } | null>;
 
   findLicenseOwner(input: { tenantId: string; licenseNumber: string }): Promise<{ email: string } | null>;
+
+  // Nombre de la clínica, para el correo de la invitación. `null` si la clínica no existe.
+  findTenantName(input: { tenantId: string }): Promise<string | null>;
 }

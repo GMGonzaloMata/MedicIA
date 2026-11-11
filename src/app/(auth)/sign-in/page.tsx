@@ -7,6 +7,7 @@ import { getSafeRedirectPath } from "@/shared/utils/safe-redirect";
 
 import { getAccessContext } from "../../_lib/access";
 import { SIGN_IN_NOTICES, isSignInNoticeKey } from "../../_lib/auth-messages";
+import { InvitationNotice } from "../_components/invitation-notice";
 import { SignInForm } from "../_components/sign-in-form";
 
 export const metadata: Metadata = { title: "Ingresar" };
@@ -15,6 +16,9 @@ export default function SignInPage({ searchParams }: PageProps<"/sign-in">) {
   return (
     <>
       <h1 className="text-[28px] font-semibold leading-tight sm:text-4xl">Ingresar</h1>
+      <Suspense fallback={null}>
+        <InvitationNotice />
+      </Suspense>
       {/* Leer los parámetros de la URL ocurre en cada solicitud, así que va dentro de Suspense. */}
       <Suspense fallback={null}>
         <SignInContent searchParams={searchParams} />

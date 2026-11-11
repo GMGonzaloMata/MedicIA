@@ -6,6 +6,7 @@ import { getUsersModule } from "@/modules/users/composition";
 import { signInSchema } from "@/modules/users/application/validation/account-form-schemas";
 import { getSafeRedirectPath } from "@/shared/utils/safe-redirect";
 
+import { readInvitationToken } from "../../_lib/invitation-cookie";
 import { setSessionCookie } from "../../_lib/session-cookie";
 import { failureState, invalidFormState, readText, type AuthFormState } from "./form-state";
 
@@ -31,6 +32,12 @@ export async function signIn(
   }
 
   await setSessionCookie(session.token, session.expiresAt);
+
+  // Con una invitación pendiente se la retoma antes que cualquier otro destino, aunque la persona no tenga
+  // clínica o deba elegir entre varias: aceptarla puede ser justamente lo que le da acceso.
+  if (await readInvitationToken()) {
+    redirect("/invitation");
+  }
 
   if (session.nextStep === "NO_ACCESS") {
     redirect("/no-access");

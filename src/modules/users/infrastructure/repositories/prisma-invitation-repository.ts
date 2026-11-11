@@ -321,4 +321,10 @@ export const prismaInvitationRepository: InvitationRepository = {
 
     return membership ? { email: membership.user.email } : null;
   },
+
+  async findTenantName({ tenantId }) {
+    const tenant = await prismaClient.tenant.findUnique({ where: { id: tenantId }, select: { name: true } });
+
+    return tenant?.name ?? null;
+  },
 };

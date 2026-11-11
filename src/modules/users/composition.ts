@@ -1,12 +1,18 @@
 import "server-only";
 
 import { createIdentityProvider } from "./infrastructure/adapters/create-identity-provider";
+import { createInvitationMailer, loadAppBaseUrl } from "./infrastructure/adapters/create-invitation-mailer";
+import { prismaInvitationRepository } from "./infrastructure/repositories/prisma-invitation-repository";
 import { prismaClinicAccessRepository } from "./infrastructure/repositories/prisma-clinic-access-repository";
 import { prismaSessionRepository } from "./infrastructure/repositories/prisma-session-repository";
 import { prismaUserRepository } from "./infrastructure/repositories/prisma-user-repository";
+import type { InvitationMailer } from "./application/ports/out/invitation-mailer";
+import { createAcceptInvitation } from "./application/use-cases/accept-invitation";
 import { createConfirmAccount } from "./application/use-cases/confirm-account";
+import { createCreateInvitation } from "./application/use-cases/create-invitation";
 import { createGetAccessContext } from "./application/use-cases/get-access-context";
 import { createListAvailableClinics } from "./application/use-cases/list-available-clinics";
+import { createPreviewInvitation } from "./application/use-cases/preview-invitation";
 import { createRegisterAccount } from "./application/use-cases/register-account";
 import { createResendConfirmationCode } from "./application/use-cases/resend-confirmation-code";
 import { createResolveCurrentSession } from "./application/use-cases/resolve-current-session";
@@ -19,6 +25,8 @@ import { createSignOut } from "./application/use-cases/sign-out";
 function buildUsersModule() {
   const identity = createIdentityProvider(process.env);
   const now = () => new Date();
+  let invitationMailer: InvitationMailer | undefined;
+  let appBaseUrl: string | undefined;
   const resolveCurrentSession = createResolveCurrentSession({ sessions: prismaSessionRepository, now });
 
   return {
@@ -42,6 +50,16 @@ function buildUsersModule() {
       clinicAccess: prismaClinicAccessRepository,
       sessions: prismaSessionRepository,
     }),
+    // El correo y la dirección pública se arman al invitar por primera vez, no al armar el módulo: si faltan sus
+    // variables, solo falla invitar y no el ingreso ni el resto de la aplicación.
+    createInvitation: createCreateInvitation({
+      invitations: prismaInvitationRepository,
+      mailer: { send: (email) => (invitationMailer ??= createInvitationMailer(process.env)).send(email) },
+      appBaseUrl: () => (appBaseUrl ??= loadAppBaseUrl(process.env)),
+      now,
+    }),
+    previewInvitation: createPreviewInvitation({ invitations: prismaInvitationRepository, now }),
+    acceptInvitation: createAcceptInvitation({ invitations: prismaInvitationRepository, now }),
   };
 }
 

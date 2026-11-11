@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
+import { primaryButtonClassName } from "@/components/form/button-styles";
 import { getUsersModule } from "@/modules/users/composition";
 
 import { getAccessContext } from "../../_lib/access";
+import { readInvitationToken } from "../../_lib/invitation-cookie";
 
 export const metadata: Metadata = { title: "Sin acceso" };
 
@@ -38,12 +41,21 @@ async function NoAccessContent() {
     redirect("/select-clinic");
   }
 
+  const hasPendingInvitation = (await readInvitationToken()) !== null;
+
   return (
     <div className="flex flex-col gap-3 text-base">
       <p>Para usar MedicIA necesitás una invitación de una clínica. Pedísela a quien administra tu clínica.</p>
       <p className="text-muted">
         Si ya tenías acceso y ahora no lo ves, puede que ya no esté vigente. Consultalo con tu clínica.
       </p>
+      {hasPendingInvitation ? (
+        <p>
+          <Link href="/invitation" className={primaryButtonClassName}>
+            Continuar con la invitación
+          </Link>
+        </p>
+      ) : null}
     </div>
   );
 }

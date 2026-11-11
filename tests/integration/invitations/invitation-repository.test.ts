@@ -730,3 +730,12 @@ describe("repositorio de invitaciones: lo que ya tiene una cuenta en la clínica
     });
   });
 });
+
+describe("repositorio de invitaciones: nombre de la clínica", () => {
+  it("devuelve el nombre de la clínica y null si no existe", async () => {
+    const world = await createInvitationWorld();
+
+    expect(await repository.findTenantName({ tenantId: world.tenantA.id })).toBe(world.tenantA.name);
+    expect(await repository.findTenantName({ tenantId: "0198d6c4-2f3a-7c11-8d2e-5a1b2c3d4e5f" })).toBeNull();
+  });
+});

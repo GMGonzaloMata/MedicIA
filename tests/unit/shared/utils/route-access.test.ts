@@ -11,12 +11,17 @@ describe("isProtectedPath", () => {
     },
   );
 
-  it.each(["/", "/select-clinic", "/no-access", "/studies", "/studies/123/results"])(
+  it.each(["/", "/select-clinic", "/no-access", "/studies", "/studies/123/results", "/invitation", "/invitations"])(
     "la ruta %s es protegida",
     (pathname) => {
       expect(isProtectedPath(pathname)).toBe(true);
     },
   );
+
+  it("el link de una invitación es público, pero no las pantallas de invitaciones", () => {
+    expect(isProtectedPath("/invite/abc")).toBe(false);
+    expect(isProtectedPath("/invite-evil")).toBe(true);
+  });
 
   it("no confunde una ruta que solo empieza igual con una pública", () => {
     expect(isProtectedPath("/sign-in-evil")).toBe(true);

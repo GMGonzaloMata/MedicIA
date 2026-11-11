@@ -37,6 +37,15 @@ describe("proxy", () => {
     },
   );
 
+  it("deja pasar el link de una invitación sin cookie y lleva a ingresar desde la pantalla de aceptar", () => {
+    const link = proxy(requestTo("/invite/abc"));
+    const accept = proxy(requestTo("/invitation"));
+
+    expect(link.headers.get("location")).toBeNull();
+    expect(link.headers.get("x-middleware-next")).toBe("1");
+    expect(accept.headers.get("location")).toBe(`${ORIGIN}/sign-in?next=%2Finvitation`);
+  });
+
   it("no deja pasar con un ingreso externo como destino", () => {
     const response = proxy(requestTo("//example.com/ruta"));
 

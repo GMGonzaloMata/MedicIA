@@ -38,8 +38,8 @@ createInvitation(input: {
 ```
 
 Resultado:
-- `{ status: "SENT"; invitation: InvitationSummary }`: guardada y enviada.
-- `{ status: "SEND_FAILED"; invitation: InvitationSummary }`: guardada, el servicio de correo no la aceptó. `sentAt` vacío. La pantalla ofrece reintentar (FR-036).
+- `{ status: "SENT"; invitation: CreatedInvitation }`: guardada y enviada. `CreatedInvitation` es el resumen sin `createdByName` (quien está mirando es quien la generó).
+- `{ status: "SEND_FAILED"; invitation: CreatedInvitation }`: guardada, el servicio de correo no la aceptó. `sentAt` vacío. La pantalla ofrece reintentar (FR-036).
 - `{ status: "CONFLICT"; reason }` con `reason` entre:
   - `ALREADY_STAFF`: el correo ya pertenece al personal de esta clínica y se pidió un vínculo de paciente.
   - `ALREADY_PATIENT`: el correo ya es paciente de esta clínica y se pidió un vínculo de médico.
@@ -161,6 +161,7 @@ interface InvitationRepository {
   registerFailedAttempt(input: { id: string; now: Date }): Promise<{ attemptsLeft: number }>;
   runAcceptance<T>(userId: string, work: (tx: AcceptanceTransaction) => Promise<T>): Promise<T>;
   findClinicFacts(input: { tenantId: string; email: string }): Promise<ClinicRelationshipFacts>;
+  findTenantName(input: { tenantId: string }): Promise<string | null>;   // nombre de la clínica para el correo
 }
 
 // Lo único que ve el caso de uso dentro de la transacción de aceptación (ya con la cuenta bloqueada).

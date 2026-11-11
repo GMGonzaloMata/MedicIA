@@ -2,8 +2,9 @@ import { getSafeRedirectPath } from "./safe-redirect";
 
 const SIGN_IN_PATH = "/sign-in";
 
-// Pantallas del grupo (auth): se pueden abrir sin sesión. Todo lo demás es protegido.
-const PUBLIC_PATHS = [SIGN_IN_PATH, "/sign-up", "/verify-email", "/forgot-password", "/reset-password"];
+// Pantallas del grupo (auth) y el link de las invitaciones (`/invite/<token>`, que solo guarda una cookie y
+// redirige): se pueden abrir sin sesión. Todo lo demás es protegido, incluidas `/invitation` e `/invitations`.
+const PUBLIC_PATHS = [SIGN_IN_PATH, "/sign-up", "/verify-email", "/forgot-password", "/reset-password", "/invite"];
 
 function isSameOrNested(pathname: string, publicPath: string): boolean {
   return pathname === publicPath || pathname.startsWith(`${publicPath}/`);
