@@ -3,6 +3,7 @@ import "server-only";
 import { createIdentityProvider } from "./infrastructure/adapters/create-identity-provider";
 import { createInvitationMailer, loadAppBaseUrl } from "./infrastructure/adapters/create-invitation-mailer";
 import { prismaInvitationRepository } from "./infrastructure/repositories/prisma-invitation-repository";
+import { prismaClinicMemberRepository } from "./infrastructure/repositories/prisma-clinic-member-repository";
 import { prismaClinicAccessRepository } from "./infrastructure/repositories/prisma-clinic-access-repository";
 import { prismaSessionRepository } from "./infrastructure/repositories/prisma-session-repository";
 import { prismaUserRepository } from "./infrastructure/repositories/prisma-user-repository";
@@ -12,6 +13,8 @@ import { createConfirmAccount } from "./application/use-cases/confirm-account";
 import { createCreateInvitation } from "./application/use-cases/create-invitation";
 import { createGetAccessContext } from "./application/use-cases/get-access-context";
 import { createListInvitations } from "./application/use-cases/list-invitations";
+import { createListClinicStaff } from "./application/use-cases/list-clinic-staff";
+import { createListClinicPatients } from "./application/use-cases/list-clinic-patients";
 import { createListAvailableClinics } from "./application/use-cases/list-available-clinics";
 import { createPreviewInvitation } from "./application/use-cases/preview-invitation";
 import { createRegisterAccount } from "./application/use-cases/register-account";
@@ -68,6 +71,8 @@ function buildUsersModule() {
     previewInvitation: createPreviewInvitation({ invitations: prismaInvitationRepository, now }),
     acceptInvitation: createAcceptInvitation({ invitations: prismaInvitationRepository, now }),
     listInvitations: createListInvitations({ invitations: prismaInvitationRepository, now }),
+    listClinicStaff: createListClinicStaff({ members: prismaClinicMemberRepository }),
+    listClinicPatients: createListClinicPatients({ members: prismaClinicMemberRepository }),
     revokeInvitation: createRevokeInvitation({ invitations: prismaInvitationRepository, now }),
   };
 }

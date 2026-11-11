@@ -46,6 +46,13 @@ async function ActiveClinicSummary() {
           </Link>
         </p>
       ) : null}
+      {clinic.relationship.kind === "STAFF" && clinic.relationship.isClinicAdmin ? (
+        <p className="text-base">
+          <Link href="/users" className={linkClassName}>
+            Usuarios
+          </Link>
+        </p>
+      ) : null}
       {clinic.relationship.kind === "STAFF" && (clinic.relationship.isClinicAdmin || clinic.relationship.isDoctor) ? (
         <p className="text-base">
           <Link href="/invitations" className={linkClassName}>

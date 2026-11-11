@@ -5,6 +5,12 @@ import type { InvitationActor } from "./invitation-access";
 // El alta directa reutiliza `canInvite` y `assignsCreator` de la 009, porque sus reglas son las mismas.
 
 export const CLINIC_USERS_PAGE_SIZE = 25;
+// Acota el desplazamiento de la consulta y evita pedir páginas desproporcionadas.
+export const CLINIC_USERS_MAX_PAGE = 10_000;
+
+export function normalizeClinicUsersPage(page: number): number {
+  return Number.isSafeInteger(page) && page > 0 && page <= CLINIC_USERS_MAX_PAGE ? page : 1;
+}
 
 // Ver las listas, asignar médicos, dar de baja y reactivar: solo el administrador de la clínica.
 export function canManageClinicUsers(actor: InvitationActor): boolean {
