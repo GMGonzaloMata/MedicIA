@@ -63,9 +63,25 @@ export function createInvitationScenario() {
     isDoctor: false,
   };
 
+  // Un médico de la clínica, con su cuenta y su actor para invitar pacientes.
+  function addDoctor(id = "doctor-actor-1", email = "medico@clinica.example") {
+    const account = addAccount(id, email, "Dr. Médico");
+    const membershipId = addStaff(account.id, { isDoctor: true, licenseNumber: `MN-${id}` });
+    const actor: InvitationActor = {
+      tenantId: TENANT_ID,
+      userId: account.id,
+      membershipId,
+      isClinicAdmin: false,
+      isDoctor: true,
+    };
+
+    return { account, membershipId, actor };
+  }
+
   return {
     repo,
     mailer,
+    addDoctor,
     admin,
     adminMembershipId,
     adminActor,

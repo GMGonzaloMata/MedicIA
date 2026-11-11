@@ -9,7 +9,7 @@ import { InvitationForbiddenError, InvitationInputError } from "../../domain/inv
 import { normalizeProof } from "../../domain/invitation-proof";
 import { generateInvitationToken, hashInvitationToken } from "../../domain/invitation-token";
 import type { InvitationMailer } from "../ports/out/invitation-mailer";
-import type { InvitationRepository } from "../ports/out/invitation-repository";
+import type { InvitationRepository, NewInvitation } from "../ports/out/invitation-repository";
 import { createInvitationSchema } from "../validation/invitation-form-schemas";
 
 export interface CreateInvitationInput {
@@ -40,6 +40,11 @@ interface Dependencies {
   now: () => Date;
 }
 
+// Los datos del tipo de vínculo, ya validados y normalizados.
+type Target =
+  | { kind: "DOCTOR"; email: string; licenseNumber: string }
+  | { kind: "PATIENT"; email: string; documentType: DocumentType; documentNumber: string };
+
 function describeFailure(error: unknown): string {
   const name = error instanceof Error ? error.name : "UnknownError";
   const code = error instanceof Error && "code" in error && typeof error.code === "string" ? ` código=${error.code}` : "";
@@ -51,21 +56,58 @@ export function createCreateInvitation({ invitations, mailer, appBaseUrl, now }:
   // Datos de la clínica del actor que impiden invitar a ese correo. Nunca consulta si la persona tiene cuenta en otra
   // clínica: eso no se revela (specs/009-link-vinculacion/research.md, R6).
   async function findConflict(
-    actor: InvitationActor,
-    email: string,
-    licenseNumber: string,
+    tenantId: string,
+    target: Target,
   ): Promise<CreateInvitationConflictReason | null> {
-    const facts = await invitations.findClinicFacts({ tenantId: actor.tenantId, email });
+    const { email } = target;
+    const facts = await invitations.findClinicFacts({ tenantId, email });
 
-    // Un médico no puede ser a la vez paciente de la clínica (vínculo único por clínica).
-    if (facts.patient) {
-      return "ALREADY_PATIENT";
+    if (target.kind === "DOCTOR") {
+      // Un médico no puede ser a la vez paciente de la clínica (vínculo único por clínica).
+      if (facts.patient) {
+        return "ALREADY_PATIENT";
+      }
+
+      const owner = await invitations.findLicenseOwner({ tenantId, licenseNumber: target.licenseNumber });
+
+      // La matrícula es de otro integrante; si es de la propia persona invitada no hay conflicto.
+      return owner && owner.email !== email ? "LICENSE_IN_USE" : null;
     }
 
-    const owner = await invitations.findLicenseOwner({ tenantId: actor.tenantId, licenseNumber });
+    // Un paciente no puede ser a la vez personal de la clínica.
+    if (facts.staff) {
+      return "ALREADY_STAFF";
+    }
 
-    // La matrícula es de otro integrante; si es de la propia persona invitada no hay conflicto.
-    return owner && owner.email !== email ? "LICENSE_IN_USE" : null;
+    const owner = await invitations.findDocumentOwner({
+      tenantId,
+      documentType: target.documentType,
+      documentNumber: target.documentNumber,
+    });
+
+    // El documento es de otra cuenta. Un registro sin cuenta (pendiente) o de la propia persona no es conflicto.
+    return owner?.email && owner.email !== email ? "DOCUMENT_IN_USE" : null;
+  }
+
+  function toNewInvitation(
+    actor: InvitationActor,
+    target: Target,
+    tokenHash: string,
+    expiresAt: Date,
+  ): NewInvitation {
+    return {
+      tenantId: actor.tenantId,
+      kind: target.kind,
+      email: target.email,
+      tokenHash,
+      documentType: target.kind === "PATIENT" ? target.documentType : null,
+      documentNumber: target.kind === "PATIENT" ? target.documentNumber : null,
+      licenseNumber: target.kind === "DOCTOR" ? target.licenseNumber : null,
+      createdByMembershipId: actor.membershipId,
+      createdByUserId: actor.userId,
+      assignToCreator: assignsCreator(actor, target.kind),
+      expiresAt,
+    };
   }
 
   return async function createInvitation(input: CreateInvitationInput): Promise<CreateInvitationResult> {
@@ -87,14 +129,20 @@ export function createCreateInvitation({ invitations, mailer, appBaseUrl, now }:
     );
     const parsed = createInvitationSchema.safeParse(candidate);
 
-    // En esta etapa solo se invita a médicos; la rama de pacientes se agrega con la historia de pacientes.
-    if (!parsed.success || parsed.data.kind !== "DOCTOR") {
+    if (!parsed.success) {
       throw new InvitationInputError();
     }
 
-    const { email } = parsed.data;
-    const licenseNumber = normalizeProof(parsed.data.licenseNumber);
-    const conflict = await findConflict(actor, email, licenseNumber);
+    const target: Target =
+      parsed.data.kind === "DOCTOR"
+        ? { kind: "DOCTOR", email: parsed.data.email, licenseNumber: normalizeProof(parsed.data.licenseNumber) }
+        : {
+            kind: "PATIENT",
+            email: parsed.data.email,
+            documentType: parsed.data.documentType,
+            documentNumber: normalizeProof(parsed.data.documentNumber),
+          };
+    const conflict = await findConflict(actor.tenantId, target);
 
     if (conflict) {
       return { status: "CONFLICT", reason: conflict };
@@ -109,19 +157,7 @@ export function createCreateInvitation({ invitations, mailer, appBaseUrl, now }:
     const moment = now();
     const token = generateInvitationToken();
     const record = await invitations.createReplacing(
-      {
-        tenantId: actor.tenantId,
-        kind,
-        email,
-        tokenHash: hashInvitationToken(token),
-        documentType: null,
-        documentNumber: null,
-        licenseNumber,
-        createdByMembershipId: actor.membershipId,
-        createdByUserId: actor.userId,
-        assignToCreator: assignsCreator(actor, kind),
-        expiresAt: new Date(moment.getTime() + INVITATION_TTL_MS),
-      },
+      toNewInvitation(actor, target, hashInvitationToken(token), new Date(moment.getTime() + INVITATION_TTL_MS)),
       moment,
     );
     const summary: CreatedInvitation = {
@@ -135,7 +171,7 @@ export function createCreateInvitation({ invitations, mailer, appBaseUrl, now }:
 
     try {
       await mailer.send({
-        to: email,
+        to: target.email,
         clinicName: tenantName,
         kind,
         link: `${appBaseUrl()}/invite/${token}`,

@@ -149,18 +149,6 @@ describe("permisos y datos de entrada", () => {
     expect(scenario.repo.invitations).toHaveLength(0);
   });
 
-  it("todavía no atiende las invitaciones de pacientes", async () => {
-    await expect(
-      scenario.createInvitation({
-        actor: scenario.adminActor,
-        kind: "PATIENT",
-        email: "a@example.com",
-        documentType: "DNI",
-        documentNumber: "30111222",
-      }),
-    ).rejects.toMatchObject({ name: "InvitationInputError" });
-  });
-
   it("falla si la clínica del actor no existe", async () => {
     await expect(
       scenario.createInvitation({ actor: { ...scenario.adminActor, tenantId: "no-existe" }, ...DOCTOR }),

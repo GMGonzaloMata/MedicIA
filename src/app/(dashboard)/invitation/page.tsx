@@ -68,7 +68,7 @@ async function InvitationContent() {
   return (
     <div className="flex flex-col gap-6">
       <h2 className="text-xl font-semibold">{invitedAsMessage(preview.tenantName, preview.kind)}</h2>
-      <AcceptInvitationForm />
+      <AcceptInvitationForm kind={preview.kind} />
     </div>
   );
 }

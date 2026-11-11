@@ -17,7 +17,7 @@ export interface InviteFormState {
   status: "error" | "success" | "send-failed";
   message?: string;
   fieldErrors?: Partial<Record<string, string[]>>;
-  values?: { kind?: string; email?: string; licenseNumber?: string };
+  values?: { kind?: string; email?: string; licenseNumber?: string; documentType?: string; documentNumber?: string };
 }
 
 function readText(formData: FormData, name: string): string {
@@ -47,6 +47,8 @@ export async function createInvitation(
     kind: readText(formData, "kind"),
     email: readText(formData, "email"),
     licenseNumber: readText(formData, "licenseNumber"),
+    documentType: readText(formData, "documentType"),
+    documentNumber: readText(formData, "documentNumber"),
   };
 
   if (!actor) {
@@ -57,7 +59,7 @@ export async function createInvitation(
   const parsed = createInvitationSchema.safeParse(
     values.kind === "DOCTOR"
       ? { kind: values.kind, email: values.email, licenseNumber: values.licenseNumber }
-      : { kind: values.kind, email: values.email },
+      : { kind: values.kind, email: values.email, documentType: values.documentType, documentNumber: values.documentNumber },
   );
 
   if (!parsed.success) {
@@ -69,7 +71,9 @@ export async function createInvitation(
       actor,
       kind: parsed.data.kind,
       email: parsed.data.email,
-      ...(parsed.data.kind === "DOCTOR" ? { licenseNumber: parsed.data.licenseNumber } : {}),
+      ...(parsed.data.kind === "DOCTOR"
+        ? { licenseNumber: parsed.data.licenseNumber }
+        : { documentType: parsed.data.documentType, documentNumber: parsed.data.documentNumber }),
     });
 
     revalidatePath("/invitations");
