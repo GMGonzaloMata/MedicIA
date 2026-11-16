@@ -1,0 +1,33 @@
+[Unit]
+Description=MedicIA demo web (loopback only; not public readiness)
+Wants=network-online.target medicia-runtime.service
+After=network-online.target medicia-runtime.service
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=medicia
+Group=medicia
+UMask=0077
+WorkingDirectory=/run/medicia/current/release
+EnvironmentFile=/run/medicia/current/runtime.env
+Environment=NODE_ENV=production HOSTNAME=127.0.0.1 PORT=3000
+ExecStart=/usr/bin/node node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port 3000
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+CapabilityBoundingSet=
+# Únicamente runtime de app; respuestas clínicas/payloads no van al journal.
+StandardOutput=null
+StandardError=null
+
+[Install]
+WantedBy=multi-user.target

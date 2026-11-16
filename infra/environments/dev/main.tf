@@ -1,3 +1,53 @@
+# Recursos aditivos; deshabilitados por defecto. No usar el toggle para cerrar una DB
+# existente: las protecciones del módulo requieren una decisión humana específica.
+module "demo_network" {
+  count  = var.demo.enabled ? 1 : 0
+  source = "../../modules/demo-network"
+
+  environment = var.demo.environment
+}
+
+module "demo_database" {
+  count  = var.demo.enabled ? 1 : 0
+  source = "../../modules/demo-database"
+
+  environment                = var.demo.environment
+  database_security_group_id = module.demo_network[0].database_security_group_id
+  database_subnet_ids        = module.demo_network[0].database_subnet_ids
+  engine_version             = var.demo.engine_version
+  final_snapshot_identifier  = var.demo.final_snapshot_identifier
+}
+
+module "demo_host" {
+  count  = var.demo.enabled ? 1 : 0
+  source = "../../modules/demo-host"
+
+  environment              = var.demo.environment
+  account_id               = "896618135592"
+  region                   = "sa-east-1"
+  ami_id                   = var.demo.ami_id
+  ami_evidence             = var.demo.ami_evidence
+  public_subnet_id         = module.demo_network[0].public_subnet_id
+  app_security_group_id    = module.demo_network[0].app_security_group_id
+  database_address         = module.demo_database[0].database_address
+  permissions_boundary_arn = "arn:aws:iam::896618135592:policy/medicia-dev-demo-boundary"
+  public_hostname          = var.demo.public_hostname
+  release_key              = var.demo.release_key
+  release_sha256           = var.demo.release_sha256
+  accept_acme_terms        = var.demo.accept_acme_terms
+  acme_contact_email       = var.demo_acme_contact_email
+
+  # Referencias de los servicios existentes, no valores secretos ni permisos nuevos.
+  # No depende de enabled_endpoint_names: conservar modelo apagado no invalida su ARN.
+  runtime_references = {
+    user_pool_arn            = module.identity.user_pool_arn
+    cognito_client_id        = module.identity.user_pool_client_id
+    studies_bucket_name      = module.study_storage.bucket_name
+    echonext_endpoint_arn    = "arn:aws:sagemaker:sa-east-1:896618135592:endpoint/medicia-dev-echonext-mini"
+    additional_endpoint_arns = []
+  }
+}
+
 module "identity" {
   source = "../../modules/identity"
 

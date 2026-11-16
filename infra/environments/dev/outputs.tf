@@ -1,3 +1,21 @@
+output "demo" {
+  description = "Metadata demo o null apagada. URL candidata: NO acredita DNS/TLS/host/modelos listos. Sin secretos ni ARN master RDS."
+  value = var.demo.enabled ? {
+    public_hostname      = var.demo.public_hostname
+    public_url           = "https://${var.demo.public_hostname}"
+    instance_id          = module.demo_host[0].instance_id
+    elastic_ip           = module.demo_host[0].elastic_ip
+    releases_bucket_name = module.demo_host[0].releases_bucket_name
+    release_key          = module.demo_host[0].release_key
+    app_secret_arn       = module.demo_host[0].app_secret_arn
+    duckdns_secret_arn   = module.demo_host[0].duckdns_secret_arn
+    database_address     = module.demo_database[0].database_address
+    database_name        = module.demo_database[0].database_name
+    database_port        = module.demo_database[0].database_port
+    database_identifier  = module.demo_database[0].database_identifier
+  } : null
+}
+
 # Datos de conexión de la aplicación. Los sensibles se consultan de a uno y de forma explícita:
 #   terraform -chdir=infra/environments/dev output -raw user_pool_client_secret
 # Correspondencia con las variables de la aplicación: specs/003-infra-base-cognito/contracts/identity-service.md.

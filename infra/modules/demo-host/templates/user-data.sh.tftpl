@@ -1,0 +1,70 @@
+#!/bin/bash
+set -Eeuo pipefail
+umask 077
+exec 3>&2 2>/dev/null
+trap 'printf "medicia bootstrap: prerequisites/services failed\n" >&3; exit 1' ERR
+[[ "$(uname -sm)" == 'Linux x86_64' ]]
+${prerequisite_script_raw}
+[[ "$(node --version)" =~ ^v24[.] ]]
+command -v aws >/dev/null
+[[ -x /usr/sbin/nginx ]]
+getent passwd nginx >/dev/null
+getent group nginx >/dev/null
+if systemctl is-active --quiet nginx.service || systemctl is-enabled --quiet nginx.service; then false; fi
+[[ -s /etc/pki/rds/global-bundle.pem ]]
+systemctl cat amazon-ssm-agent.service >/dev/null
+getent group medicia >/dev/null || groupadd --system medicia
+id medicia >/dev/null 2>&1 || useradd --system --gid medicia --home-dir /nonexistent --shell /sbin/nologin medicia
+install -d -m 0755 /opt/medicia/releases /usr/local/libexec
+install -d -m 0755 /etc/medicia /var/lib/medicia /var/lib/medicia/acme/.well-known/acme-challenge
+install -d -o root -g root -m 0700 /etc/medicia/nginx
+install -d -o nginx -g nginx -m 0700 /var/lib/medicia/nginx
+node --input-type=commonjs <<'MEDICIA_FILES_V2_EOF'
+const fs = require("node:fs");
+const files = ${bootstrap_files_json};
+for (const [path, file] of Object.entries(files)) {
+  fs.writeFileSync(path, file.content, { mode: file.mode });
+  fs.chmodSync(path, file.mode);
+  fs.chownSync(path, 0, 0);
+}
+MEDICIA_FILES_V2_EOF
+chmod 0700 /usr/local/libexec/medicia-runtime
+chmod 0644 /etc/systemd/system/medicia.service /etc/systemd/system/medicia-runtime.service
+chmod 0700 /usr/local/libexec/medicia-dns
+chown root:root /usr/local/libexec/medicia-dns
+chmod 0644 /etc/systemd/system/medicia-dns.service /etc/systemd/system/medicia-dns.timer
+chown root:root /etc/systemd/system/medicia-dns.service /etc/systemd/system/medicia-dns.timer
+install -o root -g root -m 0644 /dev/stdin /etc/systemd/system/medicia-acme.timer <<'MEDICIA_ACME_TIMER_V1_EOF'
+${acme_timer}
+MEDICIA_ACME_TIMER_V1_EOF
+chmod 0700 /usr/local/libexec/medicia-proxy
+chown root:root /usr/local/libexec/medicia-proxy
+chmod 0600 /etc/medicia/nginx/challenge.conf /etc/medicia/nginx/tls.conf
+chown root:root /etc/medicia/nginx/challenge.conf /etc/medicia/nginx/tls.conf
+chmod 0644 /etc/systemd/system/medicia-nginx.service
+chown root:root /etc/systemd/system/medicia-nginx.service
+cat <<'MEDICIA_ACME_SCRIPT_V1_EOF' > /usr/local/libexec/medicia-acme
+${acme_script}
+MEDICIA_ACME_SCRIPT_V1_EOF
+chmod 0700 /usr/local/libexec/medicia-acme
+chown root:root /usr/local/libexec/medicia-acme
+cat <<'MEDICIA_ACME_SERVICE_V1_EOF' > /etc/systemd/system/medicia-acme.service
+${acme_service}
+MEDICIA_ACME_SERVICE_V1_EOF
+chmod 0644 /etc/systemd/system/medicia-acme.service
+chown root:root /etc/systemd/system/medicia-acme.service
+systemctl daemon-reload
+if [[ '${accept_acme_terms}' == true ]]; then
+  [[ -x /opt/certbot/bin/certbot ]]
+  install -d -o root -g root -m 0700 /var/log/medicia
+  systemctl enable medicia-acme.service
+fi
+systemctl enable --now medicia-nginx.service
+systemctl enable --now medicia-dns.timer
+systemctl enable amazon-ssm-agent.service medicia.service
+systemctl start amazon-ssm-agent.service medicia.service
+if [[ '${accept_acme_terms}' == true ]]; then
+  systemctl start medicia-acme.service
+  systemctl enable --now medicia-acme.timer
+fi
+# No external TLS/session readiness is implied.
