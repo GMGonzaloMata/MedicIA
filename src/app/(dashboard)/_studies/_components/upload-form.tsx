@@ -32,7 +32,7 @@ export function UploadForm({ patientId, maxBytes }: UploadFormProps) {
   const [tooLarge, setTooLarge] = useState(false);
 
   return (
-    <form action={action} className="flex flex-col gap-4 rounded-control border border-border bg-card p-4">
+    <form action={action} className="dashboard-context">
       <input type="hidden" name="type" value="ECG" />
       {patientId ? <input type="hidden" name="patientId" value={patientId} /> : null}
 

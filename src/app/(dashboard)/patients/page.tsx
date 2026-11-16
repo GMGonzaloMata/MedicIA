@@ -15,7 +15,7 @@ export const metadata: Metadata = { title: "Mis pacientes" };
 export default function PatientsPage({ searchParams }: PageProps<"/patients">) {
   return (
     <>
-      <h1 className="text-[28px] font-semibold leading-tight sm:text-4xl">Mis pacientes</h1>
+      <h1 className="text-[28px] font-semibold leading-tight tracking-tight sm:text-4xl">Mis pacientes</h1>
       {/* Leer la sesión ocurre en cada solicitud, así que va dentro de Suspense. */}
       <Suspense fallback={<p className="text-muted">Cargando…</p>}>
         <PatientsContent searchParams={searchParams} />

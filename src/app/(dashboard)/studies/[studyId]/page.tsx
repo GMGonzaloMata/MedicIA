@@ -99,8 +99,8 @@ async function StudyContent({
 
   return (
     <>
-      <h1 className="text-[28px] font-semibold leading-tight sm:text-4xl">Estudio {study.number}</h1>
-      <dl className="grid grid-cols-1 gap-x-6 gap-y-1 text-base sm:grid-cols-[auto_1fr]">
+      <h1 className="text-[28px] font-semibold leading-tight tracking-tight sm:text-4xl">Estudio {study.number}</h1>
+      <dl className="dashboard-metadata grid grid-cols-1 gap-x-6 gap-y-1 text-base sm:grid-cols-[auto_1fr]">
         {actor.kind === "DOCTOR" ? (
           <>
             <dt className="font-medium">Paciente</dt>

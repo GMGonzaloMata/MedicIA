@@ -20,7 +20,7 @@ interface AnalysisHistoryProps {
 // Historial del más reciente al más antiguo. Solo los completados tienen resultado para abrir.
 export function AnalysisHistory({ studyId, items, selectedId }: AnalysisHistoryProps) {
   return (
-    <section aria-labelledby="analysis-history-title" className="flex flex-col gap-3">
+    <section aria-labelledby="analysis-history-title" className="flex flex-col gap-3 border-t border-border pt-4">
       <h3 id="analysis-history-title" className="text-xl font-semibold">
         {ANALYSIS_MESSAGES.historyTitle}
       </h3>

@@ -31,7 +31,7 @@ export default function PatientStudiesPage({ params, searchParams }: DetailProps
 function NoAccess() {
   return (
     <>
-      <h1 className="text-[28px] font-semibold leading-tight sm:text-4xl">Sin acceso</h1>
+      <h1 className="text-[28px] font-semibold leading-tight tracking-tight sm:text-4xl">Sin acceso</h1>
       <p className="text-base">{STUDY_MESSAGES.patientNoAccess}</p>
       <p>
         <Link href="/patients" className={linkClassName}>
@@ -89,7 +89,7 @@ async function PatientStudiesContent({
 
   return (
     <>
-      <h1 className="text-[28px] font-semibold leading-tight sm:text-4xl">
+      <h1 className="text-[28px] font-semibold leading-tight tracking-tight sm:text-4xl">
         Estudios de {patient.fullName ?? STUDY_MESSAGES.patientWithoutName}
       </h1>
       <p className="text-base text-muted">Documento {patient.documentNumber}</p>

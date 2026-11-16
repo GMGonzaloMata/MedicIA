@@ -19,12 +19,12 @@ function studyCountLabel(count: number): string {
 // su pantalla de estudios.
 export function PatientsList({ patients }: { patients: PatientSummary[] }) {
   if (patients.length === 0) {
-    return <p className="text-base text-muted">{STUDY_MESSAGES.noPatients}</p>;
+    return <p className="dashboard-context text-base text-muted">{STUDY_MESSAGES.noPatients}</p>;
   }
 
   return (
     <>
-      <div className="hidden overflow-x-auto md:block">
+      <div className="dashboard-table hidden overflow-x-auto md:block">
         <table className="w-full border-collapse text-left text-base">
           <caption className="sr-only">Pacientes asignados, por nombre</caption>
           <thead>
@@ -54,7 +54,7 @@ export function PatientsList({ patients }: { patients: PatientSummary[] }) {
 
       <ul className="flex flex-col gap-3 md:hidden">
         {patients.map((patient) => (
-          <li key={patient.id} className="flex flex-col gap-1 rounded-control border border-border bg-card p-4">
+          <li key={patient.id} className="dashboard-record flex flex-col gap-1 p-4">
             <Link href={`/patients/${patient.id}`} className={`${linkClassName} inline-flex min-h-11 items-center text-lg`}>
               {patientName(patient)}
             </Link>
