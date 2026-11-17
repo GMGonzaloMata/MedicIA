@@ -18,6 +18,8 @@
 - Q: ¿Hace falta aprobar gasto para preparar Terraform? → A: Se prepara la propuesta facturable solicitada; costo, duración y cierre se aprueban antes de ejecutar, no nuevamente para planificar. [S1, S2, S6]
 - Q: ¿El responsable debe construir una imagen personalizada con herramientas preinstaladas? → A: No. El usuario aceptó con «si» que la ejecución humana también prepare automáticamente la máquina desde una imagen estándar. La preparación ocurre solo en la futura EC2; no requiere acceso AWS del usuario ni instala herramientas en su equipo. Los artefactos reales de aplicación/modelos, secretos y comandos reservados siguen siendo externos. [Delta S1–S3]
 
+- Delta de activación, `odd/tasks/ec2-rds-activation.md` S1–S2/L2: el humano aceptó separar creación de EC2/RDS privada de activación explícita de aplicación, con pruebas, sin AWS ni cambios IAM. No se crea otra feature. El comportamiento previo se conserva si el llamador no elige infraestructura sola; se documentan los reemplazos de host, sin prometer activación en sitio.
+
 Aclaraciones integradas desde hechos aceptados de la conversación, sin preguntas nuevas. Cobertura: alcance, datos, interacción, seguridad, fallas, terminología y aceptación claros; capacidad, operación y contrato externo se tratan en el plan como decisiones técnicas o dependencias, sin inventar compromisos de disponibilidad.
 
 ## User Scenarios & Testing *(mandatory)*
@@ -38,6 +40,10 @@ El responsable recibe una definición reproducible del entorno de prueba y las i
 4. **Given** la entrega documental autorizada, **When** termina la planificación, **Then** existen especificación, checklist, aclaraciones, plan, tareas y análisis en ese orden, sin implementación hasta que el orquestador lea los resultados.
 5. **Given** una imagen estándar compatible y los insumos externos declarados, **When** el compañero ejecuta la infraestructura autorizada, **Then** la máquina prepara automáticamente sus herramientas sin exigir una imagen personalizada ni instalaciones manuales previas dentro del host.
 6. **Given** una imagen incompatible o una falla de preparación, **When** arranca la máquina, **Then** se informa la falla sin declarar lista la aplicación ni ejecutar generación de clientes, migraciones o construcción de aplicación/modelos para ocultar la dependencia.
+7. **Given** infraestructura sola elegida explícitamente y los insumos reales de infraestructura, **When** se prepara el host, **Then** no necesita hostname/release/checksum ni valores secretos, mantiene SSM y no intenta arrancar app, proxy, DNS o ACME ni sus timers.
+8. **Given** activación seleccionada o selección omitida por un llamador anterior, **When** se valida y prepara, **Then** conserva requisitos de hostname/release/checksum, consentimiento/contacto ACME y flujo de arranque anteriores; no acepta entradas ficticias para eludirlos.
+9. **Given** infraestructura sola y consentimiento ACME true, **When** se valida, **Then** rechaza la combinación contradictoria antes de preparar servicios.
+10. **Given** un host ya creado, **When** cambian activación o configuración de arranque, **Then** se identifica el posible reemplazo, interrupción y pérdida de estado local antes de ejecución humana; RDS/servicios existentes conservan sus protecciones.
 
 ---
 
@@ -120,6 +126,8 @@ Una persona autorizada selecciona explícitamente el análisis apropiado para su
 - **FR-012**: El trabajo DEBE respetar especificación, aclaración, plan, tareas, análisis e implementación de Spec Kit en ese orden. Esta entrega se limita a artefactos de planificación; no impide la implementación autorizada posterior tras revisión del orquestador. Los commits y comandos reservados de Prisma y Terraform siguen siendo exclusivos del responsable; no habrá push ni acciones de AWS por el agente. [S1, S6]
 
 - **FR-015**: La entrega DEBE preparar automáticamente en la futura EC2 las herramientas del host desde una imagen estándar compatible, sin exigir una imagen personalizada previa. DEBE identificar la imagen compatible y los insumos externos que conserva a cargo del responsable. Una falla de preparación NO DEBE presentarse como arranque exitoso ni autoriza instalar herramientas localmente, construir aplicación/modelos en EC2 o ejecutar comandos reservados. [Delta S1–S3]
+- **FR-016**: El responsable DEBE poder elegir infraestructura sola sin hostname/release/checksum ni valores secretos. Esa elección prepara herramientas y SSM pero NO arranca ni habilita app/runtime, proxy, DNS/ACME o sus timers, ni consulta secretos/releases/endpoints. Rechaza consentimiento ACME true en ese modo. No publica una URL candidata vacía como disponible. La activación conserva íntegramente las validaciones previas; los valores opcionales no vacíos siguen sujetos a sus reglas de formato. [Activación S1–S2]
+- **FR-017**: Omitir la nueva elección DEBE conservar el comportamiento anterior. El delta NO DEBE cambiar IAM/trust, SG/red, seguridad/capacidad EC2, RDS o modelos ni la semántica de reemplazo del host; DEBE advertir que cambiar su configuración puede reemplazar EC2, interrumpir acceso y perder estado local. No promete conmutación en sitio, apagado reversible ni migraciones automáticas. [Activación S1–S2]
 
 ### Key Entities
 
@@ -141,6 +149,9 @@ Una persona autorizada selecciona explícitamente el análisis apropiado para su
 
 - **SC-007**: El responsable puede preparar el host desde una imagen estándar compatible con cero pasos manuales de instalación de herramientas dentro de la máquina y sin fabricar una imagen personalizada; los insumos externos y las comprobaciones reales pendientes permanecen identificados. La evidencia local de preparación y rechazo de fallas no se presenta como despliegue observado.
 
+- **SC-008**: En la comprobación aislada de infraestructura sola hay cero arranques/habilitaciones de servicios de aplicación/publicación y cero lecturas de secretos/releases; SSM se habilita/inicia tras preparación exitosa. La entrega identifica insumos ausentes sin fabricar valores.
+- **SC-009**: Los casos previos de activación y rechazo conservan su resultado; las protecciones y límites anteriores permanecen intactos. Toda transición que cambie el host se comunica como potencial reemplazo, nunca como actualización en sitio comprobada.
+
 ## Assumptions
 
 ### Decisiones aceptadas y límites
@@ -156,7 +167,7 @@ Una persona autorizada selecciona explícitamente el análisis apropiado para su
 - El mapa de repositorio aportado identifica seis módulos existentes en el entorno de desarrollo y un backend remoto S3; todavía no hay módulos de red, EC2 o RDS. Se toma `sa-east-1` como contexto del código existente, no como comprobación de la cuenta real.
 - El plan posterior deberá evaluar topología de red, capacidad, disponibilidad, administración, permisos, suministro de secretos, compatibilidad de versiones y costos. Esta especificación NO aprueba una topología, tamaño, estrategia operativa ni mecanismo de despliegue propuestos.
 - La disponibilidad de identidad, archivos e inferencia existentes y los permisos para integrarlos dependen del responsable. No se presume que todos estén desplegados o habilitados.
-- La validación en nube depende de hostname registrado, credenciales suministradas de forma segura, aprobación económica, preparación humana de la base y autorización de ejecución. La entrega de código no satisface por sí sola SC-002, SC-003 ni SC-005.
+- La aceptación de app en nube depende de hostname registrado, credenciales suministradas de forma segura, aprobación económica, preparación humana de la base y autorización de ejecución. Infraestructura sola no exige los insumos de app/publicación, pero conserva AMI/motor/snapshot reales, guards y autorización de gasto. La entrega de código no satisface por sí sola SC-002, SC-003 ni SC-005.
 - Presupuesto, duración de la prueba y conservación o eliminación de datos sintéticos no se fijan arbitrariamente; se deberán registrar en la preparación operativa. Cualquier uso futuro de datos reales exige resolver antes los requisitos institucionales y legales de conservación y seguridad.
 
 ### Fuera de alcance

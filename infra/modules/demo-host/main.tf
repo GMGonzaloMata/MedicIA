@@ -86,6 +86,7 @@ locals {
     "/etc/systemd/system/medicia-nginx.service"   = { mode = 420, content = file("${path.module}/templates/medicia-nginx.service.tftpl") }
   }
   user_data = templatefile("${path.module}/templates/user-data.sh.tftpl", {
+    app_enabled             = var.app_enabled
     accept_acme_terms       = var.accept_acme_terms
     acme_script             = chomp(local.acme_script)
     acme_service            = chomp(file("${path.module}/templates/medicia-acme.service.tftpl"))

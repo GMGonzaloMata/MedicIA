@@ -22,6 +22,7 @@ module "demo_host" {
   count  = var.demo.enabled ? 1 : 0
   source = "../../modules/demo-host"
 
+  app_enabled              = var.demo.app_enabled
   environment              = var.demo.environment
   account_id               = "896618135592"
   region                   = "sa-east-1"

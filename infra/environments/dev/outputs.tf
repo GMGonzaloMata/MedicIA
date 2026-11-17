@@ -1,12 +1,12 @@
 output "demo" {
   description = "Metadata demo o null apagada. URL candidata: NO acredita DNS/TLS/host/modelos listos. Sin secretos ni ARN master RDS."
   value = var.demo.enabled ? {
-    public_hostname      = var.demo.public_hostname
-    public_url           = "https://${var.demo.public_hostname}"
+    public_hostname      = var.demo.app_enabled ? var.demo.public_hostname : null
+    public_url           = var.demo.app_enabled ? "https://${var.demo.public_hostname}" : null
     instance_id          = module.demo_host[0].instance_id
     elastic_ip           = module.demo_host[0].elastic_ip
     releases_bucket_name = module.demo_host[0].releases_bucket_name
-    release_key          = module.demo_host[0].release_key
+    release_key          = var.demo.app_enabled ? module.demo_host[0].release_key : null
     app_secret_arn       = module.demo_host[0].app_secret_arn
     duckdns_secret_arn   = module.demo_host[0].duckdns_secret_arn
     database_address     = module.demo_database[0].database_address

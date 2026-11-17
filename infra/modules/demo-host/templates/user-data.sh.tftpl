@@ -5,6 +5,11 @@ exec 3>&2 2>/dev/null
 trap 'printf "medicia bootstrap: prerequisites/services failed\n" >&3; exit 1' ERR
 [[ "$(uname -sm)" == 'Linux x86_64' ]]
 ${prerequisite_script_raw}
+if [[ '${app_enabled}' == false ]]; then
+  systemctl enable amazon-ssm-agent.service
+  systemctl start amazon-ssm-agent.service
+  exit 0
+fi
 [[ "$(node --version)" =~ ^v24[.] ]]
 command -v aws >/dev/null
 [[ -x /usr/sbin/nginx ]]

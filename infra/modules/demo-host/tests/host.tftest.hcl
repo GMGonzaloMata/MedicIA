@@ -1,3 +1,81 @@
+run "infrastructure_only_bootstrap" {
+  command   = plan
+  state_key = "infrastructure_only"
+  variables {
+    app_enabled     = false
+    public_hostname = ""
+    release_key     = ""
+    release_sha256  = ""
+  }
+  assert {
+    condition = (strcontains(local.user_data, "if [[ 'false' == false ]]; then\n  systemctl enable amazon-ssm-agent.service\n  systemctl start amazon-ssm-agent.service\n  exit 0\nfi") &&
+      strcontains(local.user_data, file("${path.module}/templates/prerequisites.sh")) &&
+      aws_instance.web.user_data_replace_on_change && aws_instance.web.metadata_options[0].http_tokens == "required" &&
+      aws_instance.web.root_block_device[0].encrypted && aws_instance.web.instance_type == "t3.small" &&
+      aws_instance.web.associate_public_ip_address == false && aws_instance.web.iam_instance_profile == aws_iam_instance_profile.web.name &&
+    length(base64gzip(local.user_data)) < 21844)
+    error_message = "Infraestructura sola conserva prerrequisitos/SSM/seguridad/reemplazo/capacidad sin insumos app ficticios."
+  }
+}
+run "explicit_active_keeps_bootstrap" {
+  command   = plan
+  state_key = "explicit_active"
+  variables { app_enabled = true }
+  assert {
+    condition     = strcontains(local.user_data, "if [[ 'true' == false ]]; then") && strcontains(local.user_data, "systemctl start amazon-ssm-agent.service medicia.service")
+    error_message = "True conserva arranque previo y no toma salida temprana."
+  }
+}
+run "infrastructure_acme_rejected" {
+  command   = plan
+  state_key = "infrastructure_acme"
+  variables {
+    app_enabled        = false
+    accept_acme_terms  = true
+    acme_contact_email = "ops@example.invalid"
+  }
+  expect_failures = [var.accept_acme_terms]
+}
+run "infrastructure_bad_hostname" {
+  command   = plan
+  state_key = "infrastructure_bad_hostname"
+  variables {
+    app_enabled     = false
+    public_hostname = "bad.example.org"
+  }
+  expect_failures = [var.public_hostname]
+}
+run "infrastructure_bad_release" {
+  command   = plan
+  state_key = "infrastructure_bad_release"
+  variables {
+    app_enabled = false
+    release_key = "releases/latest.tar.gz"
+  }
+  expect_failures = [var.release_key]
+}
+run "infrastructure_bad_checksum" {
+  command   = plan
+  state_key = "infrastructure_bad_checksum"
+  variables {
+    app_enabled    = false
+    release_sha256 = "invalid"
+  }
+  expect_failures = [var.release_sha256]
+}
+run "active_empty_release" {
+  command   = plan
+  state_key = "active_empty_release"
+  variables { release_key = "" }
+  expect_failures = [var.release_key]
+}
+run "active_empty_checksum" {
+  command   = plan
+  state_key = "active_empty_checksum"
+  variables { release_sha256 = "" }
+  expect_failures = [var.release_sha256]
+}
+
 run "standard_image_preparation_and_transport" {
   command   = plan
   state_key = "standard_image"

@@ -4,7 +4,27 @@
 
 Se mantienen backend.tf, nombres/direcciones de módulos existentes, usuario IAM local, claves y outputs existentes. Nuevo módulo demo se habilita explícitamente; apagado por defecto no elimina recursos previos. No se usa toggle para borrar una DB ya creada: protección de datos bloquea eliminación accidental. Nuevos outputs solo hostname/URL, instance_id, endpoint/puerto/nombre DB sin credenciales, ARN de secretos y bucket/release IDs. No DATABASE_URL, clave privada, token ni valores de secretos.
 
-Entradas propuestas: enabled=false, hostname, CIDR/subredes/AZ, AMI aprobada amd64, instance_type=t3.small, DB engine menor verificada/class=db.t4g.micro, release_key, release_sha256 y referencias de secretos. Validaciones de data-model.md antes de crear recursos; si enabled=true no se aceptan hostname, release o ARN vacíos. No se inventa AMI ni se toma latest sin fijar evidencia. Cuenta/región restringidas por provider existente.
+Entradas: enabled=false, app_enabled=true por defecto, CIDR/subredes/AZ, AMI aprobada amd64, instance_type=t3.small, DB engine menor verificada/class=db.t4g.micro y referencias conocidas. Con enabled=true siempre se requieren AMI/evidencia/motor/snapshot; hostname/release/checksum solo pueden omitirse con app_enabled=false conforme data-model.md. ARN runtime no se relaja ni inventa. No se inventa AMI ni se toma latest sin fijar evidencia. Cuenta/región restringidas por provider existente.
+
+## Separación de provisión y activación — delta FR-016/017 (por implementar)
+
+La semántica siguiente extiende 009; no afirma que el código actual ya la cumpla. El quickstart y handoff previos describen el modo activo acoplado hasta que T032–T036 se implementen/verifiquen y se actualice la operación.
+
+| enabled | app_enabled | Resultado esperado |
+| --- | --- | --- |
+| false | omitido/true/false | Sin módulos demo, output demo null; comportamiento apagado previo. |
+| true | omitido/true | Modo activo previo: hostname/release/checksum obligatorios y guards ACME/contacto intactos. |
+| true | false | Infraestructura sola: hostname/release/checksum vacíos admitidos, sin secretos de app/DNS ni endpoint encendido; no publicación ni readiness. |
+
+Infraestructura sola mantiene preparación estándar FR-015 completa y sus rechazos (incluidos ownership/config global/paquetes/CA). No instala paquetes reales durante tests. Tras prerrequisitos exitosos habilita/inicia **solo `amazon-ssm-agent.service`** y termina exit0/stdout vacío/stderr vacío antes de instalar/habilitar/arrancar servicios propios. No crea usuario/config/unidades app, proxy, DNS/ACME/timers ni ejecuta runtime/fetches. Fallo conserva exit1/stdout vacío/stderr `medicia bootstrap: prerequisites/services failed\n`; no sigue a app ni informa salud cloud.
+
+`app_enabled=false` junto a `accept_acme_terms=true` se rechaza, aunque exista contacto: `Infraestructura sola requiere accept_acme_terms=false.` Con strings de app no vacíos se comprueba el formato existente; no aceptar latest o hostname malformado en modo inerte. AMI, evidencia, engine/snapshot y permisos/seguridad no se vuelven opcionales. SSM requiere EIP/rutas/paquetes/permisos reales y humano iniciador autorizado; no se promete conectividad por un mock.
+
+Se conservan recursos/direcciones, metadatos secretos y bucket. IAM/trust/perfil/políticas y SG quedan **byte-idénticos en fuente**; no condicionarlos, reescribirlos ni añadir permisos SSM. La expresión existente `ReleaseExacto` usa release_key: con clave vacía deriva ARN bucket/ sin objeto publicado, nunca wildcard ni release inventado. Esto no acredita aceptación IAM real en AWS; revisar efecto de entradas por vía humana sin ampliar permisos. Las referencias runtime y la fase administrativa existente conservan su autoridad.
+
+**Activación posterior:** suministrar hostname/release/checksum reales, valores secretos fuera de Terraform, DB limitada/migraciones humanas y referencias/permisos previamente aprobados; cambiar app_enabled a true y revisar plan privado completo. `user_data_replace_on_change=true` se conserva: la transición false→true, true→false o cambios de release/hostname pueden **reemplazar EC2**, no ejecutar una activación en sitio. Introducir el nuevo gate puede cambiar también user-data de llamadores activos existentes y proponer reemplazo al adoptar el delta. Prever interrupción SSM/web, nuevo arranque, recreación de estado local/certificados y reasociación EIP; RDS/backup/protecciones permanecen. No aceptar plan automáticamente, copiar certificados/secretos ni manipular estado para evitarlo. Runtime rollback no revierte DB y desactivar no es estrategia de rollback sin interrupción.
+
+En infraestructura sola public_hostname/public_url/release_key de output demo son null, otros metadatos siguen disponibles; no imprimir secretos. La secuencia humana A1 y emisión/renovación descritas debajo solo aplican al modo activo después de su plan aprobado. Ningún comando AWS/Terraform real se ejecuta en este delta local.
 
 ## Runtime
 

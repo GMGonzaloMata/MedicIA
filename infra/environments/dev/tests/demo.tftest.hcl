@@ -171,3 +171,101 @@ run "optin_requires_contact" {
   variables { demo = merge(var.demo, { enabled = true, accept_acme_terms = true }) }
   expect_failures = [var.demo_acme_contact_email]
 }
+
+run "infrastructure_only_omits_app_inputs" {
+  command   = plan
+  state_key = "infrastructure_omitted"
+  variables {
+    demo = merge({ for k, v in var.demo : k => v if !contains(["public_hostname", "release_key", "release_sha256"], k) }, { enabled = true, app_enabled = false })
+  }
+  assert {
+    condition     = length(module.demo_host) == 1 && length(module.demo_database) == 1 && length(module.demo_network) == 1 && output.demo.public_hostname == null && output.demo.public_url == null && output.demo.release_key == null && output.demo.instance_id == "i-0123456789abcdef0" && output.demo.database_port == 5432
+    error_message = "Infraestructura sola admite omitir app y conserva metadata privada sin URL/release ficticios."
+  }
+}
+run "infrastructure_only_hides_inert_app_metadata" {
+  command   = plan
+  state_key = "infrastructure_metadata"
+  variables { demo = merge(var.demo, { enabled = true, app_enabled = false }) }
+  assert {
+    condition     = output.demo.public_hostname == null && output.demo.public_url == null && output.demo.release_key == null && length(output.enabled_endpoint_names) == 0
+    error_message = "App inerte no anuncia hostname/URL/release ni activa modelos."
+  }
+}
+run "infrastructure_only_rejects_acme" {
+  command   = plan
+  state_key = "infrastructure_acme"
+  variables {
+    demo                    = merge(var.demo, { enabled = true, app_enabled = false, accept_acme_terms = true })
+    demo_acme_contact_email = "ops@example.invalid"
+  }
+  expect_failures = [var.demo]
+}
+run "explicit_active_preserves_metadata" {
+  command   = plan
+  state_key = "explicit_active"
+  variables { demo = merge(var.demo, { enabled = true, app_enabled = true }) }
+  assert {
+    condition     = output.demo.public_url == "https://synthetic-demo.duckdns.org" && output.demo.release_key == "releases/synthetic-1.tar.gz" && length(output.enabled_endpoint_names) == 0
+    error_message = "Activación explícita conserva los valores previos."
+  }
+}
+run "disabled_inert_needs_no_app_inputs" {
+  command   = plan
+  state_key = "disabled_inert"
+  variables { demo = { app_enabled = false } }
+  assert {
+    condition     = output.demo == null && length(module.demo_host) == 0
+    error_message = "Demo apagada sigue sin recursos."
+  }
+}
+run "inert_invalid_hostname" {
+  command = plan
+  variables { demo = merge(var.demo, { enabled = true, app_enabled = false, public_hostname = "bad.example.org" }) }
+  expect_failures = [var.demo]
+}
+run "inert_invalid_release" {
+  command = plan
+  variables { demo = merge(var.demo, { enabled = true, app_enabled = false, release_key = "releases/latest.tar.gz" }) }
+  expect_failures = [var.demo]
+}
+run "inert_invalid_checksum" {
+  command = plan
+  variables { demo = merge(var.demo, { enabled = true, app_enabled = false, release_sha256 = "invalid" }) }
+  expect_failures = [var.demo]
+}
+run "inert_invalid_ami" {
+  command = plan
+  variables { demo = merge(var.demo, { enabled = true, app_enabled = false, ami_id = "latest" }) }
+  expect_failures = [var.demo]
+}
+run "inert_missing_evidence" {
+  command = plan
+  variables { demo = merge(var.demo, { enabled = true, app_enabled = false, ami_evidence = "" }) }
+  expect_failures = [var.demo]
+}
+run "inert_invalid_engine" {
+  command = plan
+  variables { demo = merge(var.demo, { enabled = true, app_enabled = false, engine_version = "17" }) }
+  expect_failures = [var.demo]
+}
+run "inert_invalid_snapshot" {
+  command = plan
+  variables { demo = merge(var.demo, { enabled = true, app_enabled = false, final_snapshot_identifier = "" }) }
+  expect_failures = [var.demo]
+}
+run "active_empty_hostname" {
+  command = plan
+  variables { demo = merge(var.demo, { enabled = true, app_enabled = true, public_hostname = "" }) }
+  expect_failures = [var.demo]
+}
+run "active_empty_release" {
+  command = plan
+  variables { demo = merge(var.demo, { enabled = true, app_enabled = true, release_key = "" }) }
+  expect_failures = [var.demo]
+}
+run "active_empty_checksum" {
+  command = plan
+  variables { demo = merge(var.demo, { enabled = true, app_enabled = true, release_sha256 = "" }) }
+  expect_failures = [var.demo]
+}

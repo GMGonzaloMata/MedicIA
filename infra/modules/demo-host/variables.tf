@@ -1,8 +1,19 @@
+variable "app_enabled" {
+  description = "Activa arranque app/publicación; false prepara solo herramientas y SSM. Cambiar user-data puede reemplazar EC2, no activar en sitio."
+  type        = bool
+  default     = true
+  nullable    = false
+}
+
 variable "accept_acme_terms" {
   description = "Aceptación humana explícita de términos ACME; false no ejecuta Certbot ni crea estado CA."
   type        = bool
   default     = false
   nullable    = false
+  validation {
+    condition     = var.app_enabled || !var.accept_acme_terms
+    error_message = "Infraestructura sola requiere accept_acme_terms=false."
+  }
 }
 
 variable "acme_contact_email" {
@@ -85,10 +96,11 @@ variable "permissions_boundary_arn" {
 }
 
 variable "public_hostname" {
-  description = "Hostname público DuckDNS de un solo label, registrado por humano; no es HOSTNAME de Node."
+  description = "Hostname público DuckDNS registrado por humano; vacío solo sin activación, no es HOSTNAME de Node."
   type        = string
+  default     = ""
   validation {
-    condition     = can(regex("^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?[.]duckdns[.]org$", var.public_hostname))
+    condition     = (!var.app_enabled && var.public_hostname == "") || can(regex("^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?[.]duckdns[.]org$", var.public_hostname))
     error_message = "public_hostname requiere un único label DNS minúsculo de 1–63 caracteres bajo duckdns.org, sin guiones extremos ni query."
   }
   nullable = false
@@ -114,10 +126,12 @@ variable "region" {
 }
 
 variable "release_key" {
-  description = "Objeto releases/<versión>.tar.gz inmutable por convención; no latest ni traversal."
+  description = "Objeto releases/<versión>.tar.gz sin latest/traversal; vacío solo sin activación."
   type        = string
+  default     = ""
+  nullable    = false
   validation {
-    condition = (can(regex("^releases/[A-Za-z0-9][A-Za-z0-9/_.-]+[.]tar[.]gz$", var.release_key)) &&
+    condition = (!var.app_enabled && var.release_key == "") || (can(regex("^releases/[A-Za-z0-9][A-Za-z0-9/_.-]+[.]tar[.]gz$", var.release_key)) &&
       !strcontains(var.release_key, "..") && !strcontains(var.release_key, "//") &&
     !can(regex("(?i)(^|[/_.-])latest([/_.-]|$)", var.release_key)))
     error_message = "release_key requiere objeto versionado releases/*.tar.gz, sin latest/traversal/comodines."
@@ -125,10 +139,12 @@ variable "release_key" {
 }
 
 variable "release_sha256" {
-  description = "SHA-256 de 64 hex sobre paquete Linux amd64 Node24 preconstruido."
+  description = "SHA-256 de 64 hex sobre paquete Linux amd64 Node24; vacío solo sin activación."
   type        = string
+  default     = ""
+  nullable    = false
   validation {
-    condition     = can(regex("^[0-9a-fA-F]{64}$", var.release_sha256))
+    condition     = (!var.app_enabled && var.release_sha256 == "") || can(regex("^[0-9a-fA-F]{64}$", var.release_sha256))
     error_message = "release_sha256 debe contener exactamente 64 caracteres hexadecimales."
   }
 }
