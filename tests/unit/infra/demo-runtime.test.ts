@@ -206,6 +206,23 @@ describe("runtime público renderizado, sin AWS ni escrituras globales", () => {
     expect(f.reason()).toBe(options.expectedReason); expect(f.calls()).toHaveLength(3);
   });
   it.each([
+    "sslmode=verify-full&sslrootcert=/etc/pki/rds/global-bundle.pem&sslmode=no-verify",
+    "sslmode=no-verify&sslrootcert=/etc/pki/rds/global-bundle.pem&sslmode=verify-full",
+    "sslmode=verify-full&sslrootcert=/etc/pki/rds/global-bundle.pem&sslrootcert=/tmp/other-ca.pem",
+    "sslmode=verify-full&sslrootcert=/etc/pki/rds/global-bundle.pem&sslmode=verify-full",
+    "sslmode=verify-full&sslrootcert=/etc/pki/rds/global-bundle.pem&%73slmode=no-verify",
+  ])("rechaza parámetros TLS duplicados sin activar ni filtrar valores %#", (query) => {
+    const f = fixture({ app: {
+      DATABASE_URL: "postgresql://medicia_app:synthetic-password@" + DB + ":5432/medicia?" + query,
+      COGNITO_CLIENT_SECRET: APP_SECRET,
+    } });
+    const before = f.snapshot(); const result = f.run();
+    expect(result.status).toBe(1); expect(result.stdout).toBe("");
+    expect(result.stderr).toBe("medicia runtime: rejected\n");
+    expect(f.snapshot()).toEqual(before); expect(f.reason()).toBe("connection");
+    expect(f.calls()).toHaveLength(3);
+  });
+  it.each([
     { entries: { ...files, "release.json": JSON.stringify({ platform: "win32", arch: "x64", node: 24 }) }, expectedReason: "platform" },
     { entries: { ...files, "release.json": JSON.stringify({ platform: "linux", arch: "arm64", node: 24 }) }, expectedReason: "platform" },
     { entries: { ...files, "release.json": JSON.stringify({ platform: "linux", arch: "x64", node: 26 }) }, expectedReason: "platform" },
