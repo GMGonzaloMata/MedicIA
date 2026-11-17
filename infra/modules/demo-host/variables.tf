@@ -49,6 +49,8 @@ variable "ami_id" {
   }
 }
 
+# Validation-only operator evidence; intentionally not used in runtime configuration.
+# tflint-ignore: terraform_unused_declarations
 variable "ami_evidence" {
   description = "Evidencia humana no sensible de AMI oficial AWS AL2023 x86_64 y repos 2023.12.20261021; herramientas preparadas automáticamente en EC2, no AMI personalizada."
   type        = string

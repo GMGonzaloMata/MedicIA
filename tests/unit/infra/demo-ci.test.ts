@@ -73,6 +73,15 @@ function expectedDirectories(name: string, directories: string[]): string[] {
     : directories;
 }
 
+// La huella autorizada CRLF a1c67bba… equivale a esta huella LF; no consulta Git.
+const expectedWorkflowHash = "108450fb5bb20c0d4d9a3cde3b0ae632e7f3311b90e90d1067ea439c6e09a743";
+
+function preservedWorkflowHash(workflowSource: string): string {
+  const previous = workflowSource.replace(/ infra\/modules\/demo-(?:network|database|host)| modules\/demo-(?:network|database|host)/g, "");
+  // Solo se canoniza CRLF: no trim, reserialización YAML ni otros cambios de bytes.
+  return createHash("sha256").update(previous.replaceAll("\r\n", "\n")).digest("hex");
+}
+
 describe("CI demo EC2/RDS (S13, T011)", () => {
   it.each(sections)("%s cubre los tres módulos demo una sola vez", (name) => {
     expect(loopDirectories(name)).toEqual([
@@ -150,10 +159,19 @@ describe("CI demo EC2/RDS (S13, T011)", () => {
       .toEqual([]);
   });
 
-  it("mantiene idénticos todos los bytes ajenos a las cuatro listas", () => {
-    // Huella del workflow autorizado al iniciar esta unidad; no consulta git.
-    const previous = source.replace(/ infra\/modules\/demo-(?:network|database|host)| modules\/demo-(?:network|database|host)/g, "");
-    expect(createHash("sha256").update(previous).digest("hex"))
-      .toBe("a1c67bba04a742f521dd98e06ed560344741b5a1242a62bb4504e343638d6ff1");
+  it("mantiene idénticos todos los bytes ajenos a las cuatro listas salvo LF/CRLF", () => {
+    expect(preservedWorkflowHash(source)).toBe(expectedWorkflowHash);
+  });
+
+  it.each([["LF", "\n"], ["CRLF", "\r\n"]])("acepta el workflow autorizado con %s", (name, eol) => {
+    const input = source.replace(/\r?\n/g, eol);
+    expect(preservedWorkflowHash(input), name).toBe(expectedWorkflowHash);
+  });
+
+  it.each([["LF", "\n"], ["CRLF", "\r\n"]])("rechaza cambios no EOL con %s", (name, eol) => {
+    const input = source.replace(/\r?\n/g, eol);
+    const mutated = input.replace("contents: read", "contents: write");
+    expect(mutated).not.toBe(input);
+    expect(preservedWorkflowHash(mutated), name).not.toBe(expectedWorkflowHash);
   });
 });
