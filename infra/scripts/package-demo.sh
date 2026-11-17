@@ -16,12 +16,22 @@ let temporary;
 const published = [];
 function reject() { throw Error('rejected'); }
 function exists(name) { try { fs.lstatSync(name); return true; } catch (error) { if (error.code === 'ENOENT') return false; throw error; } }
+function ustarPath(name) {
+  if (Buffer.byteLength(name) <= 100) return { name, prefix: '' };
+  // La separación debe coincidir con un slash, nunca truncar un segmento.
+  for (let split = name.lastIndexOf('/'); split > 0; split = name.lastIndexOf('/', split - 1)) {
+    const prefix = name.slice(0, split); const suffix = name.slice(split + 1);
+    if (Buffer.byteLength(prefix) <= 155 && Buffer.byteLength(suffix) <= 100) return { name: suffix, prefix };
+  }
+  reject();
+}
 function safeName(name) {
   const parts = name.split('/');
-  if (!name || /[^\x20-\x7e]|[\\:]/.test(name) || Buffer.byteLength(name) > 100 || parts.some(part =>
+  if (!name || /[^\x20-\x7e]|[\\:]/.test(name) || parts.some(part =>
     !part || part === '.' || part === '..' || part.startsWith('.env') ||
     ['.aws', '.git', 'credentials', 'tests', 'patients', 'studies', 'secrets', '.cache', 'cache'].includes(part) ||
     part.includes('.tfstate') || part.endsWith('.tfvars') || /\.(pem|key|p12|pfx|dcm|dicom|csv|sqlite|db)$/i.test(part))) reject();
+  ustarPath(name);
 }
 function checkManifest(body) {
   const manifest = JSON.parse(body.toString('utf8'));
@@ -34,7 +44,9 @@ function octal(header, offset, length, value) {
 }
 function headerFor(entry) {
   const header = Buffer.alloc(512);
-  header.write(entry.name, 0, 100, 'ascii');
+  const fields = ustarPath(entry.name);
+  header.write(fields.name, 0, 100, 'ascii');
+  header.write(fields.prefix, 345, 155, 'ascii');
   octal(header, 100, 8, entry.directory ? 0o755 : 0o644);
   octal(header, 108, 8, 0); octal(header, 116, 8, 0);
   octal(header, 124, 12, entry.size); octal(header, 136, 12, 0);
@@ -56,9 +68,10 @@ function validate(packed) {
     let sum = 0;
     for (let i = 0; i < 512; i++) sum += i >= 148 && i < 156 ? 32 : header[i];
     if (sum !== number(header.subarray(148, 156)) || text(header.subarray(257, 263)) !== 'ustar') reject();
-    const name = text(header.subarray(0, 100)); safeName(name);
+    const prefix = text(header.subarray(345, 500));
+    const name = (prefix ? prefix + '/' : '') + text(header.subarray(0, 100)); safeName(name);
     const type = header[156]; const size = number(header.subarray(124, 136));
-    if (![48, 53].includes(type) || text(header.subarray(345, 500)) || entries.has(name) || entries.size >= 100000 ||
+    if (![48, 53].includes(type) || entries.has(name) || entries.size >= 100000 ||
       offset + 512 + size > tar.length || (type === 53 && size !== 0)) reject();
     entries.set(name, { directory: type === 53, body: tar.subarray(offset + 512, offset + 512 + size) });
     offset += 512 + Math.ceil(size / 512) * 512;

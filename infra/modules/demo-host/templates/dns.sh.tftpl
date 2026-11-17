@@ -2,7 +2,7 @@
 # Privado, sin argumentos: consume únicamente el token ya publicado por runtime.
 set +x
 set -Eeuo pipefail
-if ! node - <<'NODE' 2>/dev/null
+if ! node - "$@" <<'NODE' 2>/dev/null
 const fs = require('node:fs');
 const { spawnSync } = require('node:child_process');
 try {

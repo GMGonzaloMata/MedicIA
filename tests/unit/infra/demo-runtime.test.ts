@@ -205,6 +205,23 @@ describe("runtime público renderizado, sin AWS ni escrituras globales", () => {
     expect(result.stderr).toBe("medicia runtime: rejected\n"); expect(f.snapshot()).toEqual(before);
     expect(f.reason()).toBe(options.expectedReason); expect(f.calls()).toHaveLength(3);
   });
+  it.each(["user", "password", "host", "port", "%75ser", "pass%77ord", "h%6fst", "%70ort"])("rechaza overrides PostgreSQL decodificados antes de publicar: %s", key => {
+    const f = fixture({ app: {
+      DATABASE_URL: "postgresql://medicia_app:synthetic-password@" + DB + ":5432/medicia?sslmode=verify-full&sslrootcert=/etc/pki/rds/global-bundle.pem&" + key + "=synthetic-override",
+      COGNITO_CLIENT_SECRET: APP_SECRET,
+    } });
+    const before = f.snapshot(); const result = f.run();
+    expect([result.status, result.stdout, result.stderr]).toEqual([1, "", "medicia runtime: rejected\n"]);
+    expect(f.snapshot()).toEqual(before); expect(f.reason()).toBe("connection");
+    const calls = f.calls();
+    expect(calls).toEqual([
+      "secretsmanager get-secret-value --region sa-east-1 --secret-id " + APP_ARN + " --query SecretString --output text",
+      "secretsmanager get-secret-value --region sa-east-1 --secret-id " + DUCK_ARN + " --query SecretString --output text",
+      "s3 cp s3://medicia-releases-dev-123456789012/releases/1.2.3/web-linux-amd64.tar.gz " + calls[2]?.split(" ")[3] + " --region sa-east-1 --only-show-errors",
+    ]);
+    expect(calls[2]?.split(" ")[3]).toMatch(/\/run\/medicia\/\.candidate\.[A-Za-z0-9]+\/release\.tar\.gz$/);
+    expect(existsSync(f.root + "/renames")).toBe(false);
+  });
   it.each([
     "sslmode=verify-full&sslrootcert=/etc/pki/rds/global-bundle.pem&sslmode=no-verify",
     "sslmode=no-verify&sslrootcert=/etc/pki/rds/global-bundle.pem&sslmode=verify-full",
@@ -255,6 +272,7 @@ describe("runtime público renderizado, sin AWS ni escrituras globales", () => {
     expect(result.status, existsSync(f.root + "/node-error") ? readFileSync(f.root + "/node-error", "utf8").match(/^Error: .*/m)?.[0] : "No se alcanzó el validador Node: " + f.trace()).toBe(0); expect(result.stdout).toBe("medicia runtime: activated\n"); expect(result.stderr).toBe("");
     const env = readFileSync(f.runtimeRoot + "/current/runtime.env", "utf8");
     expect(env).toContain('COGNITO_CLIENT_SECRET="' + APP_SECRET + '"');
+    expect(env).toContain('DATABASE_URL="postgresql://medicia_app:synthetic-password@' + DB + ':5432/medicia?sslmode=verify-full&sslrootcert=/etc/pki/rds/global-bundle.pem"');
     expect(env).toContain('HOSTNAME="127.0.0.1"'); expect(env).toContain('PORT="3000"');
     expect(readFileSync(f.runtimeRoot + "/current/duckdns", "utf8")).toBe(TOKEN + "\n");
     expect(readFileSync(f.runtimeRoot + "/current/release/.next/BUILD_ID", "utf8")).toBe("synthetic-build");
@@ -314,6 +332,11 @@ child.spawnSync = (command, args, options) => {
   // Windows no ejecuta el stub Bash con CreateProcess; mismo stdin/argv, sin red.
   return spawn(process.execPath, [process.env.FIXTURE + '/curl.cjs', ...args], options);
 };
+const open = fs.openSync;
+fs.openSync = (...args) => {
+  if (args[0] === ${JSON.stringify(tokenPath)}) fs.appendFileSync(process.env.FIXTURE + '/token-reads', 'open\\n');
+  return open(...args);
+};
 const stat = fs.fstatSync;
 fs.fstatSync = (...args) => {
   const value = stat(...args); value.mode = 0o100000 | ${options.mode ?? 0o600}; value.uid = ${options.uid ?? 0}; return value;
@@ -335,8 +358,8 @@ process.exitCode = ${options.curlExit ?? 0};
   const bashBin = (root + "/bin").replace(/^([A-Za-z]):/, drive => "/" + drive.charAt(0).toLowerCase());
   const env: NodeJS.ProcessEnv = { NODE_ENV: "test", PATH: process.env.PATH ?? "", FIXTURE: root, HOME: root, MSYS_NO_PATHCONV: "1" };
   env.SystemRoot = process.env.SystemRoot ?? "C:\\Windows";
-  function run() {
-    return spawnSync("bash", ["-c", 'export PATH="$1:$PATH"; source "$2"', "fixture", bashBin, root + "/dns.sh"], { env, encoding: "utf8", timeout: 10000 });
+  function run(args: string[] = []) {
+    return spawnSync("bash", ["-c", 'export PATH="$1:$PATH"; shift; exec bash "$@"', "fixture", bashBin, root + "/dns.sh", ...args], { env, encoding: "utf8", timeout: 10000 });
   }
   function calls() { return existsSync(root + "/calls") ? readFileSync(root + "/calls", "utf8").trim().split("\n") : []; }
   function snapshot() { return [existsSync(tokenPath) ? readFileSync(tokenPath, "utf8") : null, readFileSync(root + "/runtime.env", "utf8")]; }
@@ -344,10 +367,19 @@ process.exitCode = ${options.curlExit ?? 0};
 }
 
 describe("DNS updater aislado", () => {
+  it.each([["--dry-run"], ["unexpected"], [""], ["--help", "extra"]])("rechaza cualquier argumento antes de token/red: %j", (...args) => {
+    const f = dnsFixture(); const before = f.snapshot(); const result = f.run(args);
+    expect([result.status, result.stdout, result.stderr]).toEqual([1, "", "medicia dns: rejected\n"]);
+    expect(f.snapshot()).toEqual(before); expect(f.calls()).toEqual([]);
+    expect(readFileSync(f.root + "/stages", "utf8")).toBe("node\n");
+    expect(existsSync(f.root + "/token-reads")).toBe(false);
+    expect(existsSync(f.root + "/request")).toBe(false);
+  });
   it("control válido llega a curl, codifica token solo por stdin y conserva configuración", () => {
     const f = dnsFixture(); const before = f.snapshot(); const result = f.run();
     expect(result.status, result.stderr).toBe(0); expect(result.stdout).toBe("medicia dns: updated\n"); expect(result.stderr).toBe("");
     expect(f.calls()).toHaveLength(1); expect(f.calls()[0]).not.toContain(f.token);
+    expect(readFileSync(f.root + "/token-reads", "utf8")).toBe("open\n");
     const request = readFileSync(f.root + "/request", "utf8");
     expect(request).toContain("https://www.duckdns.org/update?domains=synthetic-demo&token=" + encodeURIComponent(f.token));
     expect(request).not.toContain("&ip="); expect(request).not.toContain(f.token);

@@ -67,7 +67,9 @@ function text(value) {
   return value;
 }
 const connection = new URL(text(app.DATABASE_URL));
-// The PostgreSQL driver uses the last duplicate; URLSearchParams.get uses the first.
+// El driver PostgreSQL permite sobrescribir autoridad con claves de consulta decodificadas.
+for (const key of ['user', 'password', 'host', 'port']) if (connection.searchParams.has(key)) throw Error('connection');
+// El driver usa el último duplicado; URLSearchParams.get usa el primero.
 if (connection.searchParams.getAll('sslmode').length !== 1 || connection.searchParams.getAll('sslrootcert').length !== 1) throw Error('connection');
 if (!['postgres:', 'postgresql:'].includes(connection.protocol) || connection.hostname !== config.database_address || (connection.port && connection.port !== '5432') || !connection.username || !connection.password || ['postgres', 'medicia_admin'].includes(decodeURIComponent(connection.username)) || connection.pathname !== '/medicia' || connection.searchParams.get('sslmode') !== 'verify-full' || connection.searchParams.get('sslrootcert') !== '/etc/pki/rds/global-bundle.pem') throw Error('connection');
 text(app.COGNITO_CLIENT_SECRET);

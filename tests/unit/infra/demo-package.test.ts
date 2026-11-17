@@ -40,8 +40,8 @@ function snapshot(path: string): string[] {
     return [name + ":" + [stat.size, stat.mode, stat.nlink, stat.ino, stat.mtimeMs, stat.ctimeMs].join(":") + ":" + (stat.size < 1024 * 1024 ? createHash("sha256").update(readFileSync(item)).digest("hex") : "sparse")];
   });
 }
-it("packages a valid tree, SHA and exact unchanged consumer validator", () => {
-  const f = fixture(); const before = snapshot(f.input); const result = f.run();
+function packaged(f: ReturnType<typeof fixture>) {
+  const before = snapshot(f.input); const result = f.run();
   expect([result.status, result.stdout, result.stderr]).toEqual([0, "medicia package: created\n", ""]);
   expect(snapshot(f.input)).toEqual(before);
   expect(readdirSync(f.root).sort()).toEqual(["bin", "input", "release.tar.gz", "release.tar.gz.sha256"]);
@@ -52,6 +52,46 @@ it("packages a valid tree, SHA and exact unchanged consumer validator", () => {
   expect(validator.length).toBeGreaterThan(2000);
   // Solo validador de archivo como datos; nunca bootstrap/servicio/import de aplicación.
   expect(() => runInNewContext(validator, { packed, config: Object.fromEntries<string>([["release_sha256", sha]]), createHash, gunzipSync })).not.toThrow();
+  return gunzipSync(packed);
+}
+it("packages a valid tree, SHA and exact unchanged consumer validator", () => {
+  packaged(fixture());
+});
+const nextRuntimePath = "node_modules/next/dist/compiled/react-server-dom-turbopack/cjs/react-server-dom-turbopack-server.node.production.js";
+for (const name of [
+  nextRuntimePath,
+  "a".repeat(75) + "/" + "b".repeat(79) + "/" + "c".repeat(100),
+  "a".repeat(100) + "/" + "b".repeat(55) + "/" + "c".repeat(44),
+]) it(`ustar accepts representable long path ${name}`, () => {
+  const f = fixture(); f.put(name, "synthetic-long-runtime");
+  if (name === nextRuntimePath) f.put("node_modules/next/dist/server/app-render/server.node.js", 'require("../../compiled/react-server-dom-turbopack/cjs/react-server-dom-turbopack-server.node.production.js")');
+  const tar = packaged(f);
+  const entries = new Map<string, { prefix: string; name: string; body: string }>();
+  for (let offset = 0; offset + 512 <= tar.length;) {
+    const header = tar.subarray(offset, offset + 512);
+    if (header.every(byte => byte === 0)) break;
+    const field = (start: number, end: number) => header.subarray(start, end).toString("ascii").split("\0")[0];
+    const short = field(0, 100); const prefix = field(345, 500);
+    const size = parseInt(field(124, 136), 8);
+    expect(["0", "5"]).toContain(field(156, 157));
+    entries.set((prefix ? prefix + "/" : "") + short, { prefix, name: short, body: tar.subarray(offset + 512, offset + 512 + size).toString() });
+    offset += 512 + Math.ceil(size / 512) * 512;
+  }
+  const entry = entries.get(name);
+  expect(entry?.body).toBe("synthetic-long-runtime");
+  expect(entry?.prefix.length).toBeGreaterThan(0); expect(entry?.prefix.length).toBeLessThanOrEqual(155);
+  expect(entry?.name.length).toBeLessThanOrEqual(100);
+  if (name.length === 256) { expect(entry?.prefix.length).toBe(155); expect(entry?.name.length).toBe(100); }
+  if (name === nextRuntimePath) expect(entries.get("node_modules/next/dist/server/app-render/server.node.js")?.body).toContain("react-server-dom-turbopack-server.node.production.js");
+});
+for (const name of [
+  "a".repeat(75) + "/" + "b".repeat(80) + "/" + "c".repeat(100),
+  "a".repeat(75) + "/" + "b".repeat(79) + "/" + "c".repeat(101),
+  "a/" + "b".repeat(101),
+  "a".repeat(100) + "/.env.production",
+  "a".repeat(100) + "/credentials",
+]) it(`ustar rejects unrepresentable or unsafe long path ${name}`, () => {
+  const f = fixture(); f.put(name); rejected(f);
 });
 it("documents help and rejects malformed CLI", () => {
   const f = fixture();
@@ -153,6 +193,14 @@ for (const rule of ["../escape", "/absolute", "a/../b", "a//b", "a/./b", "a\\\\b
     else { header.fill(0,0,100); header.write(rule,0); }
     if(rule!=="checksum") { const h=rule==="duplicate"?tar.subarray(512,1024):header;
       h.fill(32,148,156); h.write(h.reduce((sum,b)=>sum+b,0).toString(8).padStart(7,"0")+"\\0",148); }
+    return gzip(tar); };`);
+  rejected(f);
+});
+for (const prefix of ["../escape", "/absolute", "a/../b", "a//b", "a/./b", "a\\b", "a:b", "bad\nname", "bad\u0080name", "credentials", "tests", "longsafe/.env.production"]) it(`ustar rejects unsafe finalized prefix ${JSON.stringify(prefix)}`, () => {
+  const f = fixture(`const z=require("node:zlib"), gzip=z.gzipSync; z.gzipSync=function(...args){
+    const tar=z.gunzipSync(gzip(...args)), header=tar.subarray(0,512);
+    header.fill(0,345,500); header.write(${JSON.stringify(prefix)},345,"latin1");
+    header.fill(32,148,156); header.write(header.reduce((sum,b)=>sum+b,0).toString(8).padStart(7,"0")+"\\0",148);
     return gzip(tar); };`);
   rejected(f);
 });

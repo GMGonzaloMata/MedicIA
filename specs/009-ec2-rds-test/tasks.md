@@ -183,3 +183,14 @@ T001–T002 → T003–T004 → tests/implementación módulos. T005→T006, T00
 ## Implementation Strategy
 
 MVP técnico US1 + host necesario: entrega reproducible local, no demo completa. Unidades limitadas: IAM → red → DB → host/runtime → HTTPS/paquete → composición/CI/docs → verificación, cada una con tests y evidencia. Luego ML catalogado y refinamiento app tras contrato externo; no marcar historia 4 completa antes de sus tareas ampliadas y G-CLOUD. Cerrar con aprobación económica y ejecución humanas. Sin commits/push por agente. No minificar/suprimir pruebas para cumplir sugerencia de 400 líneas.
+
+## Correcciones del PR #10 autorizadas tras revisión completa
+
+Autorización humana: `odd/tasks/infra-linux-ci.md`, S4/L22; alcance de corrección de contratos existentes, no funcionalidad nueva. Baseline `1457e1e`. No reabre presupuestos históricos ni autoriza IAM, apply, cambios de DB o commits del agente.
+
+- [x] T037 Corregir el validador runtime para rechazar parámetros de consulta que sobrescriban identidad/destino PostgreSQL, incluidos nombres codificados, antes de publicar archivos o activar servicios. RED/GREEN y preservación del caso válido y guardas TLS. [FR-005/006/008; ODD T8]
+- [x] T038 Rechazar argumentos no admitidos del helper DNS antes de leer el token o ejecutar red; conservar invocación sin argumentos. RED/GREEN con `--dry-run` y argumentos arbitrarios, estado/llamadas/salidas exactas. [FR-006/008; ODD T9]
+- [x] T039 Soportar rutas representables por campos ustar `prefix`/`name` para dependencias Next; preservar rechazo de traversal, links, paths inseguros y límites de tamaño. RED/GREEN público con ruta realista larga, límites y preservación de paquetes cortos. Actualizar únicamente documentación de formato afectada. [FR-007/008; ODD T10]
+- [ ] T040 Revisar independientemente las tres correcciones y controles afectados; una sola ronda posterior de corrección como máximo. Registrar checks y pruebas no disponibles sin convertirlos en PASS. Los commits/publicación y despliegue conservan sus límites humanos. [FR-008/012; ODD T11]
+
+**Evidencia local T037–T039:** RED8/4/3 antes de cada corrección; GREEN201 aprobadas/2 omisiones Linux, lint0. Padre repite runtime/paquete:164 aprobadas/2 omitidas, exit0. Revisión independiente de fuente favorable, sin corrección posterior solicitada; ejecución dinámica independiente no disponible. Estas casillas acreditan implementación y pruebas locales, no ejecución Linux nueva ni aceptación AWS. T040 conserva pendientes de publicación/CI del candidato y disposición de prueba independiente; no se borran fallos anteriores ni se reabren presupuestos históricos. Registros: `odd/tasks/infra-linux-ci.md` L25–L26 y receipts ignorados `node_modules/.cache/medicia-pr10-three-fixes/`.

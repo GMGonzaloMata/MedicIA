@@ -105,7 +105,7 @@ Usar el backend, identidad y cuenta ya revisados por el responsable: no inventar
 
 **Límites y errores:** OS/release incompatible, fallo de paquetes/red/CA o paths/configuración ajenos detienen el bootstrap antes de habilitar servicios de la aplicación, con `medicia bootstrap: prerequisites/services failed` por stderr; no se adopta ni borra configuración ajena para pasar. La preparación usa intentos/timeouts finitos para la carrera inicial de EIP. No sustituye la recuperación runtime/web existente ni garantiza disponibilidad. El manifiesto/dependencias/scriptlets reales de `python3-certbot` en AL2023 siguen sin verificarse: si requiere el wrapper excluido o crea configuración global, se debe detener, no forzar la instalación ni eliminar archivos. La simulación no acredita firmas RPM, permisos Linux, parser Certbot, systemd ni CA real.
 
-**Qué sigue siendo externo:** para activar, construir/publicar release/checksum reales, cargar secretos app/DuckDNS por canal seguro y preparar usuario DB limitado/migraciones humanas; no usar master como usuario app, reseeding, limpieza de datos ni guards debilitados. `DATABASE_URL` conserva exactamente un `sslmode=verify-full` y un `sslrootcert=/etc/pki/rds/global-bundle.pem`, con hostname RDS real. RDS sigue privada/TLS, cifrada, backup7días/snapshot/protecciones: 5432 solo SG app, acceso EC2/SSM privado, nunca 22/3000/5432 públicos.
+**Qué sigue siendo externo:** para activar, construir/publicar release/checksum reales, cargar secretos app/DuckDNS por canal seguro y preparar usuario DB limitado/migraciones humanas; no usar master como usuario app, reseeding, limpieza de datos ni guards debilitados. `DATABASE_URL` conserva exactamente un `sslmode=verify-full` y un `sslrootcert=/etc/pki/rds/global-bundle.pem`, con hostname RDS real. No admite claves de consulta `user`, `password`, `host` ni `port` (tampoco percent-encoded): pueden sobrescribir identidad/destino en el driver. RDS sigue privada/TLS, cifrada, backup7días/snapshot/protecciones: 5432 solo SG app, acceso EC2/SSM privado, nunca 22/3000/5432 públicos.
 
 Solo **en modo activo tras su plan aprobado**, si el arranque falla por insumos/EIP ausentes, seguir la recuperación de [deployment.md](contracts/deployment.md); el timer DNS no reinicia app. No aplicar esa secuencia al host inerte, donde no se instalaron esas unidades. El contrato conserva texto de planificación del delta; la tabla y ejemplo actuales de esta guía reflejan T032–T034 implementados, sin atribuir aceptación independiente. Primer arranque/HTTPS/DB en AWS los valida el responsable después. Aportar/validar ambos modelos e integración G-APP sigue siendo externo para la demo completa, no prerrequisito de provisión.
 
@@ -132,9 +132,12 @@ finales. Éxito: exit0, stdout `medicia package: created`; rechazo: exit1, stder
 Padre del output debe existir y estar fuera del input; ambos outputs deben estar ausentes.
 No se reemplazan archivos de operador ni se modifica input. Solo se limpia staging propio.
 
-Formato deliberadamente limitado: ASCII imprimible, nombres de hasta 100 bytes,
-hasta 100000 entradas (límite existente del consumidor), archivos/directorios sin links (incluye hardlinks),
-sin PAX/longnames. Rechaza segmentos inseguros, `.env*`, credenciales/estado/tests,
+Formato deliberadamente limitado: rutas relativas ASCII imprimibles representables
+por ustar `name` de hasta 100 bytes y `prefix` de hasta 155 bytes, separados por un
+slash existente (hasta 256 bytes en total). El basename no puede superar 100 bytes;
+no toda ruta de menos de 256 bytes tiene una separación válida. Conserva dependencias
+Next de rutas largas, sin podarlas. Hasta 100000 entradas (límite existente del
+consumidor), archivos/directorios sin links (incluye hardlinks), sin PAX/longnames. Rechaza segmentos inseguros, `.env*`, credenciales/estado/tests,
 caches y rutas típicas de secretos/datos clínicos. No sanitiza ni excluye silenciosamente:
 los links `.bin` de una instalación npm ordinaria también se rechazan; humano debe
 preparar un staging compatible sin debilitar el consumidor. Límites inclusivos:
