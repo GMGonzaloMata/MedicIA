@@ -1,0 +1,18 @@
+[Unit]
+Description=Medicia DuckDNS update (DNS OK is not certificate proof)
+Wants=network-online.target
+After=network-online.target
+# No Requires/Wants runtime: cada tick lee lo publicado sin reactivarlo.
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+UMask=0077
+ExecStart=/usr/local/libexec/medicia-dns
+TimeoutStartSec=45
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/run/medicia

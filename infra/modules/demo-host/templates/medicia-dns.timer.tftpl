@@ -1,0 +1,11 @@
+[Unit]
+Description=Retry bounded Medicia DNS updates independently of runtime
+
+[Timer]
+OnBootSec=60s
+OnUnitActiveSec=5min
+AccuracySec=15s
+Unit=medicia-dns.service
+
+[Install]
+WantedBy=timers.target

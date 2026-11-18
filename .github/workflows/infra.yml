@@ -42,7 +42,7 @@ jobs:
 
       - name: Inicializar y validar cada raíz y módulo
         run: |
-          for dir in infra/bootstrap infra/environments/dev infra/modules/identity infra/modules/model-artifacts infra/modules/sagemaker-execution-role infra/modules/model-endpoints infra/modules/model-registry infra/modules/study-storage; do
+          for dir in infra/bootstrap infra/environments/dev infra/modules/identity infra/modules/model-artifacts infra/modules/sagemaker-execution-role infra/modules/model-endpoints infra/modules/model-registry infra/modules/study-storage infra/modules/demo-network infra/modules/demo-database infra/modules/demo-host; do
             echo "::group::$dir"
             terraform -chdir="$dir" init -backend=false -input=false
             terraform -chdir="$dir" validate
@@ -58,7 +58,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           tflint --init --config="$PWD/.tflint.hcl"
-          for dir in bootstrap environments/dev modules/identity modules/model-artifacts modules/sagemaker-execution-role modules/model-endpoints modules/model-registry modules/study-storage; do
+          for dir in bootstrap environments/dev modules/identity modules/model-artifacts modules/sagemaker-execution-role modules/model-endpoints modules/model-registry modules/study-storage modules/demo-network modules/demo-database modules/demo-host; do
             echo "::group::$dir"
             tflint --config="$PWD/.tflint.hcl" --chdir="$dir"
             echo "::endgroup::"
@@ -66,7 +66,7 @@ jobs:
 
       - name: Pruebas de Terraform
         run: |
-          for dir in infra/bootstrap infra/environments/dev infra/modules/identity infra/modules/model-artifacts infra/modules/sagemaker-execution-role infra/modules/model-endpoints infra/modules/model-registry infra/modules/study-storage; do
+          for dir in infra/bootstrap infra/environments/dev infra/modules/identity infra/modules/model-artifacts infra/modules/sagemaker-execution-role infra/modules/model-endpoints infra/modules/model-registry infra/modules/study-storage infra/modules/demo-network infra/modules/demo-database infra/modules/demo-host; do
             echo "::group::$dir"
             terraform -chdir="$dir" test
             echo "::endgroup::"
@@ -135,7 +135,7 @@ jobs:
       - name: Cada raíz tiene su archivo de bloqueo versionado
         run: |
           fallo=0
-          for dir in infra/bootstrap infra/environments/dev infra/modules/identity infra/modules/model-artifacts infra/modules/sagemaker-execution-role infra/modules/model-endpoints infra/modules/model-registry infra/modules/study-storage; do
+          for dir in infra/bootstrap infra/environments/dev infra/modules/identity infra/modules/model-artifacts infra/modules/sagemaker-execution-role infra/modules/model-endpoints infra/modules/model-registry infra/modules/study-storage infra/modules/demo-network infra/modules/demo-database infra/modules/demo-host; do
             if ! git ls-files --error-unmatch "$dir/.terraform.lock.hcl" >/dev/null 2>&1; then
               echo "::error::Falta versionar $dir/.terraform.lock.hcl"
               fallo=1

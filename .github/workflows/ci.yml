@@ -101,3 +101,22 @@ jobs:
           npx prisma migrate deploy
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+  infra-linux:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Contrato de CI aislada
+        run: npx --no-install vitest run --config vitest.infra-ci.config.mts tests/unit/infra/infra-ci.test.ts
+      - name: Activación explícita
+        run: npx --no-install vitest run --config vitest.infra-ci.config.mts tests/unit/infra/demo-activation.test.ts
+      - name: Dos casos Linux de empaquetado
+        run: |
+          npx --no-install vitest run --config vitest.infra-ci.config.mts tests/unit/infra/demo-package.test.ts -t '^rejects (colon paths|FIFO and backslash/control paths)' --reporter=json --outputFile="$RUNNER_TEMP/infra-package.json"
+          node -e 'const r=JSON.parse(require("node:fs").readFileSync(process.argv[1],"utf8")); if(r.numPassedTests!==2 || r.numFailedTests!==0) process.exit(1)' "$RUNNER_TEMP/infra-package.json"

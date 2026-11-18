@@ -98,7 +98,7 @@ run "rol_de_plan_solo_lectura" {
   assert {
     condition = alltrue([
       for a in flatten([for s in jsondecode(aws_iam_role_policy.plan_read.policy).Statement : s.Action]) :
-      can(regex("^(s3:(Get|List)[A-Za-z]+|(cognito-idp|iam|sagemaker|ecr):(Describe|Get|List)[A-Za-z]*)$", a))
+      can(regex("^(s3:(Get|List)[A-Za-z]+|(cognito-idp|iam|sagemaker|ecr|ec2|rds|secretsmanager):(Describe|Get|List)[A-Za-z]*)$", a))
     ])
     error_message = "El rol de plan solo puede tener acciones Describe, Get o List de Cognito, IAM, SageMaker y ECR y Get o List de S3, sin comodines."
   }
@@ -111,6 +111,7 @@ run "rol_de_plan_solo_lectura" {
         for r in s.Resource :
         startswith(r, "arn:aws:s3:::medicia-tfstate-dev-896618135592") || startswith(r, "arn:aws:s3:::medicia-models-dev-896618135592")
         || startswith(r, "arn:aws:s3:::medicia-studies-dev-896618135592")
+        || r == "arn:aws:s3:::medicia-releases-dev-896618135592"
       ])
       if anytrue([for a in s.Action : startswith(a, "s3:")])
     ])
@@ -271,7 +272,7 @@ run "politica_limite_solo_lectura_y_fijar_contrasena" {
   assert {
     condition = alltrue([
       for a in flatten([for s in jsondecode(aws_iam_policy.boundary.policy).Statement : s.Action]) :
-      can(regex("^(s3:(Get|List)[A-Za-z]+|s3:(PutObject|DeleteObject)|cognito-idp:(AdminSetUserPassword|(Describe|Get|List)[A-Za-z]*)|iam:(Get|List)[A-Za-z]*|sagemaker:InvokeEndpoint|(sagemaker|ecr):(Describe|Get|List)[A-Za-z]*)$", a))
+      can(regex("^(s3:(Get|List)[A-Za-z]+|s3:(PutObject|DeleteObject)|cognito-idp:(AdminSetUserPassword|(Describe|Get|List)[A-Za-z]*)|iam:(Get|List)[A-Za-z]*|sagemaker:InvokeEndpoint|(sagemaker|ecr|ec2|rds|secretsmanager):(Describe|Get|List)[A-Za-z]*)$", a))
     ])
     error_message = "El límite solo admite lectura, cognito-idp:AdminSetUserPassword y, sobre los estudios, PutObject y DeleteObject, y sagemaker:InvokeEndpoint sobre el punto de inferencia."
   }
@@ -291,6 +292,7 @@ run "politica_limite_solo_lectura_y_fijar_contrasena" {
         for r in s.Resource :
         startswith(r, "arn:aws:s3:::medicia-tfstate-dev-896618135592") || startswith(r, "arn:aws:s3:::medicia-models-dev-896618135592")
         || startswith(r, "arn:aws:s3:::medicia-studies-dev-896618135592")
+        || r == "arn:aws:s3:::medicia-releases-dev-896618135592"
       ])
       if anytrue([for a in s.Action : startswith(a, "s3:")])
     ])
@@ -399,13 +401,16 @@ run "operador_no_edita_sus_politicas_de_acceso" {
         "arn:aws:iam::896618135592:policy/medicia-dev-terraform-operator-ml",
         "arn:aws:iam::896618135592:policy/medicia-dev-boundary",
         "arn:aws:iam::896618135592:policy/medicia-dev-sagemaker-boundary",
+        "arn:aws:iam::896618135592:policy/medicia-dev-demo-boundary",
+        "arn:aws:iam::896618135592:policy/medicia-dev-terraform-operator-demo",
+        "arn:aws:iam::896618135592:policy/medicia-dev-terraform-operator-demo-network",
       ])
       && alltrue([
         for a in ["iam:CreatePolicy", "iam:CreatePolicyVersion", "iam:DeletePolicy", "iam:DeletePolicyVersion", "iam:SetDefaultPolicyVersion"] :
         contains(s.Action, a)
       ])
     ])
-    error_message = "Debe haber un Deny de crear, crear versiones, borrar y cambiar la versión de las dos políticas del operador y de los dos límites."
+    error_message = "Debe haber un Deny de crear, crear versiones, borrar y cambiar la versión de las políticas del operador y los límites, incluidos los dos nombres reservados de la demo."
   }
 
   # Borrar artefactos queda denegado aunque la política del bucket (que el operador puede escribir) lo permitiera.
@@ -562,7 +567,7 @@ run "rol_de_plan_lee_bucket_de_artefactos_y_rol_de_ejecucion" {
     condition = anytrue([
       for s in jsondecode(aws_iam_role_policy.plan_read.policy).Statement :
       s.Effect == "Allow"
-      && toset(s.Resource) == toset(["arn:aws:s3:::medicia-models-dev-896618135592", "arn:aws:s3:::medicia-studies-dev-896618135592"])
+      && toset(s.Resource) == toset(["arn:aws:s3:::medicia-models-dev-896618135592", "arn:aws:s3:::medicia-studies-dev-896618135592", "arn:aws:s3:::medicia-releases-dev-896618135592"])
       && contains(s.Action, "s3:ListBucket")
       && contains(s.Action, "s3:GetBucketPolicy")
     ])
@@ -651,9 +656,13 @@ run "rol_de_plan_lee_sagemaker_y_ecr" {
   assert {
     condition = alltrue([
       for s in jsondecode(aws_iam_role_policy.plan_read.policy).Statement :
-      !contains(s.Resource, "*")
+      !contains(s.Resource, "*") || (
+        s.Sid == "MetadataEc2"
+        && alltrue([for a in s.Action : startswith(a, "ec2:Describe") && !strcontains(a, "*")])
+        && try(s.Condition.StringEquals["ec2:Region"], "") == "sa-east-1"
+      )
     ])
-    error_message = "El rol de plan no puede tener recursos *."
+    error_message = "Resource * solo se admite en las lecturas metadata EC2 enumeradas, con región restringida."
   }
 
   # Las lecturas nuevas figuran igual en el límite compartido con la aplicación (se documenta en FR-019).
