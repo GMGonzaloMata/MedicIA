@@ -9,7 +9,7 @@ locals {
 
   # Lectura de solo lo que usa el plan. Una sola fuente: la usan el rol de plan y la política límite,
   # para que el límite nunca quede por debajo de lo que el rol necesita.
-  plan_read_statements = [
+  plan_read_statements = concat([
     {
       Sid      = "ListarElBucketDelEstado"
       Effect   = "Allow"
@@ -74,7 +74,7 @@ locals {
         "s3:GetReplicationConfiguration",
         "s3:ListBucket",
       ]
-      Resource = [local.models_bucket_arn, local.studies_bucket_arn]
+      Resource = [local.models_bucket_arn, local.studies_bucket_arn, local.demo_releases_arn]
     },
     {
       # Acciones que usa el refresco del rol de ejecución de SageMaker y su política en línea.
@@ -118,7 +118,7 @@ locals {
       ]
       Resource = [local.ecr_repository_arn_pattern]
     },
-  ]
+  ], local.demo_plan_read_statements)
 }
 
 resource "aws_iam_openid_connect_provider" "github" {

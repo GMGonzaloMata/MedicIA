@@ -1,0 +1,63 @@
+#!/bin/bash
+# Private root-only interface; no certificate issuance, secret fetch or runtime activation.
+set +x
+set -Eeuo pipefail
+umask 077
+exec 3>&2 2>/dev/null
+proxy_root='${proxy_root}'
+certificate_root='${certificate_root}'
+candidate=''
+backup=''
+locked=false
+preserve_backup=false
+reject() { printf 'medicia proxy: rejected\n' >&3; exit 1; }
+cleanup() {
+  if [[ -n "$candidate" ]]; then rm -f -- "$candidate" || :; fi
+  if [[ -n "$backup" && "$preserve_backup" == false ]]; then rm -f -- "$backup" || :; fi
+  if [[ "$locked" == true ]]; then rmdir "$proxy_root/.activation-lock" || :; fi
+}
+trap cleanup EXIT
+trap reject ERR
+[[ $# -eq 1 ]] || reject
+case "$1" in
+  --help) printf 'Usage: medicia-proxy init|activate\n'; exit 0 ;;
+  init|activate) ;;
+  *) reject ;;
+esac
+active="$proxy_root/active.conf"
+[[ ! -L "$active" ]] || reject
+mkdir "$proxy_root/.activation-lock"
+locked=true
+if [[ "$1" == init && -f "$active" ]]; then
+  # Reboot/reapplication must never replace an existing TLS configuration with HTTP.
+  nginx -t -c "$active" -e /dev/null >/dev/null
+  printf 'medicia proxy: configured\n'
+  exit 0
+fi
+source_config="$proxy_root/challenge.conf"
+if [[ "$1" == activate ]]; then
+  [[ -f "$active" && -s "$certificate_root/fullchain.pem" && -s "$certificate_root/privkey.pem" ]] || reject
+  source_config="$proxy_root/tls.conf"
+fi
+# Stage and replace within /etc/medicia/nginx, never across /run tmpfs and EBS.
+candidate=$(mktemp "$proxy_root/.candidate.XXXXXX")
+cp -- "$source_config" "$candidate"
+nginx -t -c "$candidate" -e /dev/null >/dev/null
+if [[ "$1" == init ]]; then
+  mv -f -- "$candidate" "$active"
+  printf 'medicia proxy: configured\n'
+  exit 0
+fi
+backup=$(mktemp "$proxy_root/.previous.XXXXXX")
+cp -- "$active" "$backup"
+mv -f -- "$candidate" "$active"
+if ! systemctl reload medicia-nginx.service >/dev/null; then
+  # One compensating reload, not an unbounded retry; preserve recovery evidence if restoration fails.
+  if ! mv -f -- "$backup" "$active" || ! systemctl reload medicia-nginx.service >/dev/null; then
+    preserve_backup=true
+    printf 'medicia proxy: rollback failed; inspect service\n' >&3
+    exit 2
+  fi
+  reject
+fi
+printf 'medicia proxy: activated\n'

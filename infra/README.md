@@ -4,6 +4,71 @@ Esta carpeta define con Terraform la infraestructura de AWS del entorno de desar
 
 Especificación y decisiones: [specs/003-infra-base-cognito/](../specs/003-infra-base-cognito/) (identidad y accesos) y [specs/004-infra-sagemaker-modelos/](../specs/004-infra-sagemaker-modelos/) (base de SageMaker).
 
+## Demo EC2/RDS: preparación incremental, sin despliegue
+
+Contrato: [specs/009-ec2-rds-test/](../specs/009-ec2-rds-test/). Esta sección prevalece **para la demo** sobre los procedimientos históricos de cuenta limpia y liberación global de esta guía: la cuenta es compartida, no se reinicia bootstrap, no se migra el backend y no se destruye la raíz dev completa. Solo datos sintéticos; compartir el enlace no autoriza acceso anónimo a datos ni uso clínico.
+
+### Estado de la primera unidad (T001–T004)
+
+- Versiones de fuente: Terraform `~> 1.15`, CI `1.15.1`, AWS `~> 6.72`; ambos locks de bootstrap/dev fijan `6.72.0`. No se cambiaron locks ni versiones.
+- Tras autorización humana e instalación local por el padre, se usó `infra/.terraform/tools/terraform/1.15.1/terraform.exe` con AWS `6.72.0` ya inicializado sin backend. Schema local observado y acciones/recursos/condiciones consultados en la referencia JSON oficial AWS; detalles y fallos históricos en research. No se repitió init, no se accedió a AWS/estado. tofu/tflint no se instalaron.
+- Implementados el límite `medicia-dev-demo-boundary` y dos políticas adicionales de operador: `medicia-dev-terraform-operator-demo` y `medicia-dev-terraform-operator-demo-network` (separación por cuota de tamaño IAM). El Deny original protege las tres. **No se adjuntan automáticamente**; no se creó rol/perfil ni infraestructura: pertenecen a demo-host y unidades posteriores.
+- Evidencia local: baseline 41 mocks; RED metadata 3 pass/1 fail; GREEN 8 enfocados y 46 en suite completa. fmt -check y validate exitosos. Diferencial offline: nueve checks públicos anteriores coinciden en stdout/stderr/exit entre HEAD y candidato. Mocks no simulan IAM efectivo ni demuestran disponibilidad cloud. T003 sigue abierta por evidencia test-first parcial: RED observado solo para metadata, no individualmente para las demás reglas; corresponde al padre disponer esa brecha, no ocultarla tras GREEN.
+- Usuario local, claves, outputs, trust OIDC, políticas ML y Deny de estudios conservados. `local.plan_read_statements` agrega únicamente metadata EC2/RDS/secretos/rol/perfil/releases; esa fuente amplía también el techo compartido de **lectura**, no la política efectiva local. Ningún valor secreto, escritura SSM ni PassRole entra al techo compartido. Persisten los riesgos heredados de secretos en estado accesible al operador/plan; no se habilitan pacientes reales.
+
+### Recursos previos frente a recursos propuestos
+
+“Previo” significa declarado en el repositorio, **no inventario AWS comprobado**. El responsable debe confirmar existencia, propiedad y cambios del plan por canal privado; nunca copiar estado o secretos al chat.
+
+| Grupo | Previo que se conserva | Nuevo propuesto para demo | Comprobación humana antes de ejecutar |
+| --- | --- | --- | --- |
+| Estado/acceso | Backend S3, bloqueo/cifrado, operador, OIDC/plan, usuario local y límites existentes | Límite EC2 separado y política demo del operador, sin adjuntar privilegios de más | Administrador revisa/instala permisos antes de cualquier plan dev; no reiniciar ni migrar bootstrap |
+| Identidad/estudios | Cognito/cliente y bucket privado studies del dev | Referencias runtime, no copia de credenciales locales | Pool/cliente exactos; roles web sin estado ni master, operador/plan sin acceso directo a objetos studies |
+| Red | Ningún módulo demo de red declarado | VPC dedicada, IGW, una subnet pública, dos privadas en AZ distintas, rutas/SG; sin NAT/ALB | CIDR sin solapamientos; ninguna sustitución de redes ajenas |
+| Host/publicación | Sin host demo declarado | Una EC2 AL2023 amd64 t3.small, EBS gp3 cifrado 20 GiB, EIP/IPv4, perfil/rol SSM sin SSH | AMI fijada y soportada, cuotas, TLS DuckDNS/Let's Encrypt y renovación; sin promesa de disponibilidad |
+| Base | Sin RDS demo declarada | PostgreSQL 17 menor por verificar, db.t4g.micro Single-AZ, 20 GiB gp3, backup 7 días, snapshots/protecciones | Compatibilidad regional/versiones; DB privada/TLS y usuario app limitado; preparación/migraciones solo humanas |
+| Release/secretos | Artefactos ML y estudios en buckets separados | Bucket privado de releases Linux amd64; metadatos de secretos app y DuckDNS, master administrado por RDS | Valores fuera de Terraform; no inventar ARN/clave/checksum; rol web solo release seleccionado y secretos runtime autorizados |
+| Inferencia | Catálogo/rol/bucket/ECR EchoNext, endpoint apagado por defecto | Segundo servicio FEVI completo ECGFounder+E022, solo tras G-ML/G-APP | Artefactos/contrato/validación E022 y capacidad externos; no tres endpoints ni resultados simulados |
+
+### Presupuesto paramétrico obligatorio (D8)
+
+No hay cotización actual consultada ni total aprobado. Para `sa-east-1`, el responsable registra **fuente oficial, fecha de consulta, moneda, impuestos si corresponden, cantidad y precio unitario** de cada fila, incluso recursos previos que continúen facturando. No asumir free-tier ni que detener recursos elimina todos los cargos. Definir `h_web`, `h_db`, `h_echo`, `h_fevi` como horas facturables por servicio y `m` como fracción de mes según las unidades de la tarifa consultada; usar duración real, no convertir todos los cargos a 730 horas por conveniencia.
+
+| Componente | Cálculo a completar con precios fechados | Precio/fecha verificada |
+| --- | --- | --- |
+| EC2 web | `h_web × tarifa_EC2(t3.small)` | Pendiente / sin consulta |
+| EBS web | `20 GiB × m × tarifa_gp3` + IOPS/throughput adicionales si los hubiera | Pendiente / sin consulta |
+| IPv4/EIP | `horas_IP_facturables × cantidad_IP × tarifa_IP` (incluye intervalos no asociados según tarifa) | Pendiente / sin consulta |
+| RDS cómputo | `h_db × tarifa_RDS(db.t4g.micro, PostgreSQL, Single-AZ)` | Pendiente / sin consulta |
+| RDS datos/backup | `20 GiB × m × tarifa_gp3_RDS` + backup/snapshot facturable + I/O/créditos según tarifa | Pendiente / sin consulta |
+| EchoNext | `h_echo × tarifa_endpoint(tipo verificado)` | Pendiente de revalidar; histórico abajo |
+| FEVI completo | `h_fevi × tarifa_endpoint(tipo validado por ML)` | Pendiente tipo/capacidad y precio; no asumir que cabe como EchoNext |
+| S3/ECR/releases | GB-mes por bucket/repo + peticiones + versiones retenidas según tarifas | Pendiente / sin consulta |
+| Secrets Manager | Secretos-mes (incluido master RDS) + llamadas runtime/rotación | Pendiente / sin consulta |
+| Transferencia/operación | Egress Internet/inter-AZ, logs/retención, SSM según modalidad y uso, DNS/ACME según condiciones vigentes | Pendiente / sin consulta |
+
+`Total_estimado = suma de filas verificadas + gasto previo que sigue activo`. Separar incremento de demo y total de cuenta; NAT/ALB no forman parte de esta propuesta. Referencia histórica del repositorio: EchoNext `ml.t2.medium`, 0,089 USD/h, 2026-11-09; **no** es precio actual ni cotización FEVI. No calcular dos servicios con ese precio sin validar capacidad y tarifa de ambos.
+
+Gate económico humano antes de ejecutar: completar precios/fechas y total, presupuesto máximo, inicio/fin con zona horaria, horas de cada endpoint y base, responsable nominal y hora de apagado, responsable de alertas y costos residuales aceptados. Todo está **pendiente**, no aprobado; una alerta de presupuesto no corta automáticamente el gasto. No hace falta autorizar gasto para escribir esta propuesta, pero sí antes de desplegarla.
+
+### Orden y cierre humanos, todavía bloqueados
+
+1. Completar las unidades de red/base/host y su revisión independiente antes de cualquier despliegue. Confirmar AMI, engine/class/cuotas/región y prerrequisitos de servicios administrados (por ejemplo service-linked role RDS y claves de cifrado existentes) con administrador. Los mocks y el schema no prueban esas dependencias ni autorización efectiva. No agregar permisos globales/service-linked roles automáticamente ante una falla.
+2. Con costo/duración/cierre aprobados, un **administrador** instala el límite y actualiza bootstrap antes del plan dev, luego adjunta las **cuatro** políticas al operador: las dos previas más `medicia-dev-terraform-operator-demo` y `medicia-dev-terraform-operator-demo-network`. Ninguna reemplaza a las previas ni se adjunta a EC2. Para la rotación administrativa descrita más abajo considerar las cuatro si ya están instaladas, conservar sus Deny y restaurarlas juntas al terminar; preferir una vía administrativa separada con MFA. No dejar AdministratorAccess permanente ni quitar protecciones del código para resolver AccessDenied.
+3. Responsable revisa plan completo privado: bloquear cualquier sustitución/borrado de backend, Cognito, estudios, modelos o usuario/claves existentes. Sin lectura de estado ni comandos AWS por el agente. Desplegar/verificar HTTPS, sesión, DB privada/TLS y ambos servicios es trabajo posterior, no observado aquí.
+4. Al terminar, apagar endpoints explícitamente por catálogo y revisar EC2/RDS. Detener RDS no es cierre indefinido: puede reiniciarse automáticamente. EBS/IPv4, almacenamiento, secretos, snapshots y artefactos pueden seguir facturando. No usar “Liberar los recursos al terminar” para destruir dev en esta cuenta compartida.
+5. Eliminación definitiva solo de recursos nuevos tras plan humano completo, snapshot final y autorización específica para retirar protecciones. Conservar servicios anteriores/backend. Rollback de release no revierte migraciones ni estado; nunca reparación manual de estado por el agente.
+
+### Contrato IAM para las unidades siguientes
+
+- Rol/perfil reservado `medicia-dev-demo-web`, límite `medicia-dev-demo-boundary`. Solo ese rol puede crearse/modificarse con el límite nuevo; un Deny impide asignarle el genérico o ninguno, y el Deny heredado impide quitar límites. PassRole solo a ese ARN y a `ec2.amazonaws.com`. demo-host debe crear el trust exclusivo EC2 y la política efectiva equivalente; el límite por sí solo **no concede** permisos y bootstrap no crea el rol.
+- Todos los recursos EC2/red nuevos, incluidos volúmenes, ENI y reglas SG, deben llevar `Deployment=ec2-rds-demo` desde su creación. Se separan recursos nuevos (RequestTag) y existentes (ResourceTag) en APIs multi-resource. RunInstances requiere AMI exacta aprobada mediante `demo_ami_arn`, tipo t3.small, IMDSv2 y perfil exacto; `null` no autoriza ninguna imagen. No hay límite IAM de cantidad de recursos/costo: revisar siempre el plan; las actualizaciones de atributos EC2 siguen limitadas a recursos etiquetados demo.
+- RDS se limita a nombres `medicia-dev-demo*` de DB, parameter/subnet groups y snapshots. Estos prefijos quedan reservados para la demo; comprobar que no pertenezcan a otro proyecto antes de ejecutar. Los módulos posteriores deben fijar capacidad/cifrado/protecciones; IAM no sustituye esas validaciones.
+- Releases: bucket `medicia-releases-dev-896618135592`, publicaciones solo `releases/*`. EC2 lee un solo objeto versionado aprobado; plan solo configuración del bucket. Nunca usar el bucket de estudios o el backend como distribución de releases.
+- Secretos runtime reservados `medicia-dev-demo/app` y `medicia-dev-demo/duckdns`. El primero contiene la configuración sensible de app (incluida conexión del usuario DB limitado), el segundo solo token DNS. Terraform administrará metadatos, nunca versiones/valores. Operador no recibe GetSecretValue, PutSecretValue ni UpdateSecret; **CreateSecret admite valores iniciales en la API**, restricción que IAM no permite separar en esa acción: no afirmar que la política impide ese uso. Las modificaciones de metadatos que requieran UpdateSecret se realizan por vía administrativa, no ampliando permisos silenciosamente.
+- `demo_runtime` comienza en `null`, sin permisos de app/inferencia/secretos/releases. Administrador proporciona después referencias **no valores** exactas: pool, los dos ARNs de secretos con sufijo real, clave release y uno o dos endpoints reales del entorno. No obtenerlas del estado por agente ni introducir referencias ficticias FEVI. El límite rechaza secretos master, otras cuentas/regiones, comodines y claves con traversal. Esta fase puede exigir actualizar bootstrap después de provisionar metadatos en dev, antes de arrancar runtime.
+- SSM agente: UpdateInstanceInformation sobre instancias demo etiquetadas; tres APIs de canales sin resource scope usan `*` justificado, OpenDataChannel se limita a sesiones de cuenta/región. No permisos del iniciador SSM, Parameter Store, master RDS o estado para EC2. El humano privilegiado prepara DB por su vía SSM separada; operador/plan no ganan sesiones con acceso indirecto a datos.
+
 ## Reglas que no se negocian
 
 - **El estado nunca va a git.** Vive en un bucket privado, cifrado y versionado. El estado contiene secretos (por ejemplo el secreto del cliente de Cognito y la clave de la aplicación): quien pueda leerlo, puede leerlos.
@@ -13,6 +78,7 @@ Especificación y decisiones: [specs/003-infra-base-cognito/](../specs/003-infra
 
 ## Estructura
 
+- `bootstrap/demo-access.tf` y `demo-boundary.tf`: las dos políticas demo adicionales y el límite exclusivo EC2, sin attachments ni recursos host/red/base. Ver contrato IAM arriba.
 - `bootstrap/`: el bucket del estado, el acceso de CI (rol `medicia-dev-plan` y proveedor de GitHub), las dos políticas del operador (`operator-policy.tf` y `operator-policy-ml.tf`, esta última con SageMaker, `iam:PassRole` y ECR) y las dos políticas límite de permisos: `medicia-dev-boundary` (plan y usuario de la aplicación) y `medicia-dev-sagemaker-boundary`, en `sagemaker-boundary.tf` (rol de ejecución de SageMaker). Es la única raíz que arranca con estado local y la aplica un administrador.
 - `modules/identity/`: el grupo de usuarios de Cognito, su cliente de aplicación y el usuario de IAM que usa el servidor. Incluye sus pruebas.
 - `modules/model-artifacts/`: el bucket privado donde viven los artefactos de los modelos.

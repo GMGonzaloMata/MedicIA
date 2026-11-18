@@ -1,0 +1,176 @@
+#!/bin/bash
+# Solo este proceso privilegiado lee secretos. Nunca shell tracing ni salida del SDK.
+set -Eeuo pipefail
+umask 077
+exec 3>&2 2>/dev/null
+runtime_root='${runtime_root}'
+release_root='${release_root}'
+stage=''
+release_stage=''
+locked=false
+cleanup() {
+  if [[ -n "$stage" && -d "$stage" ]]; then rm -rf -- "$stage"; fi
+  if [[ -n "$release_stage" && -d "$release_stage" ]]; then rm -rf -- "$release_stage"; fi
+  if [[ "$locked" == true ]]; then rmdir "$runtime_root/.lock"; fi
+}
+trap cleanup EXIT
+trap 'printf "medicia runtime: rejected\n" >&3; exit 1' ERR
+[[ "$(uname -sm)" == 'Linux x86_64' ]]
+[[ "$(node --version)" =~ ^v24[.] ]]
+command -v aws >/dev/null
+export MEDICIA_RUNTIME_ROOT="$runtime_root" MEDICIA_RELEASE_ROOT="$release_root"
+node <<'JS' >/dev/null
+const fs = require('node:fs');
+for (const [directory, mode] of [[process.env.MEDICIA_RUNTIME_ROOT, 0o751], [process.env.MEDICIA_RELEASE_ROOT, 0o755]]) {
+  fs.mkdirSync(directory, { recursive: true, mode });
+  fs.chmodSync(directory, mode);
+}
+JS
+[[ "$(findmnt -n -o FSTYPE --target "$runtime_root")" == tmpfs ]]
+mkdir "$runtime_root/.lock"
+locked=true
+stage=$(mktemp -d "$runtime_root/.candidate.XXXXXXXX")
+release_stage=$(mktemp -d "$release_root/.candidate.XXXXXXXX")
+export MEDICIA_STAGE="$stage" MEDICIA_RELEASE_STAGE="$release_stage"
+printf '%s' '${runtime_config_base64}' | base64 --decode > "$stage/config.json"
+node <<'JS' >/dev/null
+const fs = require('node:fs');
+const path = require('node:path');
+const stage = process.env.MEDICIA_STAGE;
+const config = JSON.parse(fs.readFileSync(path.join(stage, 'config.json'), 'utf8'));
+if (!/^[a-f0-9]{64}$/.test(config.release_sha256)) throw Error('checksum');
+if (!/^releases\/[A-Za-z0-9][A-Za-z0-9/_.-]+\.tar\.gz$/.test(config.release_key) || config.release_key.includes('..') || config.release_key.includes('//') || /(^|[/_.-])latest([/_.-]|$)/i.test(config.release_key)) throw Error('release');
+for (const [name, value] of Object.entries({ 'app-arn': config.app_secret_arn, 'duckdns-arn': config.duckdns_secret_arn, 'region': config.region, 'release-uri': 's3://' + config.release_bucket + '/' + config.release_key })) {
+  if (typeof value !== 'string' || /[\r\n\0]/.test(value)) throw Error('reference');
+  fs.writeFileSync(path.join(stage, name), value, { mode: 0o600 });
+}
+JS
+app_arn=$(< "$stage/app-arn")
+duckdns_arn=$(< "$stage/duckdns-arn")
+region=$(< "$stage/region")
+release_uri=$(< "$stage/release-uri")
+export AWS_PAGER='' AWS_CLI_AUTO_PROMPT=off
+aws secretsmanager get-secret-value --region "$region" --secret-id "$app_arn" --query SecretString --output text > "$stage/app.json"
+aws secretsmanager get-secret-value --region "$region" --secret-id "$duckdns_arn" --query SecretString --output text > "$stage/duckdns.json"
+aws s3 cp "$release_uri" "$stage/release.tar.gz" --region "$region" --only-show-errors
+node <<'JS' >/dev/null
+const fs = require('node:fs');
+const path = require('node:path');
+const { createHash } = require('node:crypto');
+const { gunzipSync } = require('node:zlib');
+const stage = process.env.MEDICIA_STAGE;
+const config = JSON.parse(fs.readFileSync(path.join(stage, 'config.json'), 'utf8'));
+const app = JSON.parse(fs.readFileSync(path.join(stage, 'app.json'), 'utf8'));
+const duckdns = JSON.parse(fs.readFileSync(path.join(stage, 'duckdns.json'), 'utf8'));
+function text(value) {
+  if (typeof value !== 'string' || !value.length || value.length > 16384 || /[\x00-\x1f\x7f]/.test(value)) throw Error('secret');
+  return value;
+}
+const connection = new URL(text(app.DATABASE_URL));
+// El driver PostgreSQL permite sobrescribir autoridad con claves de consulta decodificadas.
+for (const key of ['user', 'password', 'host', 'port']) if (connection.searchParams.has(key)) throw Error('connection');
+// El driver usa el último duplicado; URLSearchParams.get usa el primero.
+if (connection.searchParams.getAll('sslmode').length !== 1 || connection.searchParams.getAll('sslrootcert').length !== 1) throw Error('connection');
+if (!['postgres:', 'postgresql:'].includes(connection.protocol) || connection.hostname !== config.database_address || (connection.port && connection.port !== '5432') || !connection.username || !connection.password || ['postgres', 'medicia_admin'].includes(decodeURIComponent(connection.username)) || connection.pathname !== '/medicia' || connection.searchParams.get('sslmode') !== 'verify-full' || connection.searchParams.get('sslrootcert') !== '/etc/pki/rds/global-bundle.pem') throw Error('connection');
+text(app.COGNITO_CLIENT_SECRET);
+text(duckdns.token);
+if (!/^[A-Za-z0-9-]{16,128}$/.test(duckdns.token)) throw Error('token');
+const packed = fs.readFileSync(path.join(stage, 'release.tar.gz'));
+if (packed.length > 128 * 1024 * 1024 || createHash('sha256').update(packed).digest('hex') !== config.release_sha256) throw Error('checksum');
+// Formato ustar deliberadamente pequeño: sin links, dispositivos, PAX ni longnames.
+// El empaquetador externo debe desreferenciar links y excluir caches/datos/secretos.
+const tar = gunzipSync(packed, { maxOutputLength: 512 * 1024 * 1024 });
+const entries = new Map();
+let offset = 0;
+function string(buffer) { return buffer.toString('utf8').split('\0')[0]; }
+function octal(buffer) {
+  const value = string(buffer).trim();
+  if (!/^[0-7]+$/.test(value)) throw Error('tar-number');
+  return parseInt(value, 8);
+}
+while (offset + 512 <= tar.length) {
+  const header = tar.subarray(offset, offset + 512);
+  if (header.every(byte => byte === 0)) break;
+  let sum = 0;
+  for (let i = 0; i < 512; i++) sum += i >= 148 && i < 156 ? 32 : header[i];
+  if (sum !== octal(header.subarray(148, 156)) || string(header.subarray(257, 263)) !== 'ustar') throw Error('tar-header');
+  const type = String.fromCharCode(header[156]);
+  if (!['0', '\0', '5'].includes(type)) throw Error('tar-type');
+  const prefix = string(header.subarray(345, 500));
+  let name = (prefix ? prefix + '/' : '') + string(header.subarray(0, 100));
+  name = name.replace(/^(\.\/)+/, '').replace(/\/$/, '');
+  if (type === '5' && (name === '.' || name === '')) { offset += 512; continue; }
+  const segments = name.split('/');
+  if (!name || /[\\:\x00-\x1f\x7f]/.test(name) || segments.some(part => !part || part === '.' || part === '..' || part.startsWith('.env') || ['.aws', '.git', 'credentials', 'tests'].includes(part) || part.includes('.tfstate') || part.endsWith('.tfvars'))) throw Error('tar-path');
+  if (entries.has(name) || entries.size >= 100000) throw Error('tar-duplicate');
+  const size = octal(header.subarray(124, 136));
+  if (!Number.isSafeInteger(size) || offset + 512 + size > tar.length || (type === '5' && size !== 0)) throw Error('tar-size');
+  entries.set(name, { directory: type === '5', mode: octal(header.subarray(100, 108)), body: tar.subarray(offset + 512, offset + 512 + size) });
+  offset += 512 + Math.ceil(size / 512) * 512;
+}
+for (const required of ['release.json', '.next/BUILD_ID', 'node_modules/next/dist/bin/next', 'generated/prisma/client.ts']) {
+  if (!entries.has(required) || entries.get(required).directory || !entries.get(required).body.length) throw Error('package');
+}
+const manifest = JSON.parse(entries.get('release.json').body.toString('utf8'));
+if (manifest.platform !== 'linux' || manifest.arch !== 'x64' || manifest.node !== 24) throw Error('platform');
+// El payload nunca se renombra desde tmpfs a EBS: staging y destino comparten raíz.
+const release = process.env.MEDICIA_RELEASE_STAGE;
+for (const [name, entry] of entries) {
+  const destination = path.join(release, name);
+  if (entry.directory) fs.mkdirSync(destination, { recursive: true, mode: 0o755 });
+  else {
+    fs.mkdirSync(path.dirname(destination), { recursive: true, mode: 0o755 });
+    const mode = entry.mode & 0o111 ? 0o755 : 0o644;
+    fs.writeFileSync(destination, entry.body, { flag: 'wx', mode });
+    fs.chmodSync(destination, mode);
+  }
+}
+// mkdir(mode) respeta umask077: normalizar directorios explícitamente antes de publicar.
+function readableDirectories(directory) {
+  fs.chmodSync(directory, 0o755);
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    if (entry.isDirectory()) readableDirectories(path.join(directory, entry.name));
+  }
+}
+readableDirectories(release);
+fs.writeFileSync(path.join(release, '.medicia-sha256'), config.release_sha256, { mode: 0o644 });
+fs.chmodSync(path.join(release, '.medicia-sha256'), 0o644);
+const environment = { ...config.environment, DATABASE_URL: app.DATABASE_URL, COGNITO_CLIENT_SECRET: app.COGNITO_CLIENT_SECRET };
+const lines = Object.entries(environment).map(([key, value]) => {
+  if (!/^[A-Z][A-Z0-9_]*$/.test(key)) throw Error('environment-key');
+  return key + '="' + text(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+});
+fs.writeFileSync(path.join(stage, 'runtime.env'), lines.join('\n') + '\n', { mode: 0o600 });
+fs.writeFileSync(path.join(stage, 'duckdns'), duckdns.token + '\n', { mode: 0o600 });
+fs.chmodSync(path.join(stage, 'runtime.env'), 0o600);
+fs.chmodSync(path.join(stage, 'duckdns'), 0o600);
+// Borrar las respuestas originales antes de publicar una generación en tmpfs.
+for (const name of ['app.json', 'duckdns.json', 'release.tar.gz', 'app-arn', 'duckdns-arn', 'region', 'release-uri']) fs.unlinkSync(path.join(stage, name));
+JS
+# Directorios atravesables por el usuario web, archivos secretos solo root/systemd.
+chown -R root:root "$stage" "$release_stage"
+chmod 0751 "$stage"
+node <<'JS' >/dev/null
+const fs = require('node:fs');
+const path = require('node:path');
+const { randomUUID } = require('node:crypto');
+const stage = process.env.MEDICIA_STAGE;
+const root = process.env.MEDICIA_RUNTIME_ROOT;
+const config = JSON.parse(fs.readFileSync(path.join(stage, 'config.json'), 'utf8'));
+const artifact = path.join(process.env.MEDICIA_RELEASE_ROOT, config.release_sha256);
+if (fs.existsSync(artifact)) {
+  if (!fs.lstatSync(artifact).isDirectory() || fs.lstatSync(artifact).isSymbolicLink() || fs.readFileSync(path.join(artifact, '.medicia-sha256'), 'utf8') !== config.release_sha256) throw Error('existing-release');
+  fs.rmSync(process.env.MEDICIA_RELEASE_STAGE, { recursive: true });
+} else fs.renameSync(process.env.MEDICIA_RELEASE_STAGE, artifact);
+fs.unlinkSync(path.join(stage, 'config.json'));
+// junction es ignorado en POSIX y permite verificar el mismo script en Windows aislado.
+fs.symlinkSync(artifact, path.join(stage, 'release'), 'junction');
+const generation = path.join(root, 'generation-' + randomUUID());
+fs.renameSync(stage, generation);
+const next = path.join(root, '.next-' + randomUUID());
+fs.symlinkSync(generation, next, 'junction');
+// Único punto de activación: release y configuración cambian juntos, nunca dos enlaces.
+fs.renameSync(next, path.join(root, 'current'));
+JS
+stage=''
+printf 'medicia runtime: activated\n'

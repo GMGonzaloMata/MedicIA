@@ -1,0 +1,83 @@
+#!/bin/bash
+# Private root interface: no arguments. Invoke through medicia-acme.service, never source this file.
+set +x
+set -Eeuo pipefail
+umask 077
+if [[ $# -ne 0 ]]; then printf 'medicia acme: rejected\n' >&2; exit 1; fi
+exec node - <<'NODE'
+const fs = require('node:fs');
+const path = require('node:path');
+const { spawnSync } = require('node:child_process');
+const { X509Certificate, createPrivateKey } = require('node:crypto');
+let lock;
+let locked = false;
+let outcome = 1;
+try {
+  const c = ${acme_config_json};
+  const emailPattern = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?([.][A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)+$/;
+  if (process.getuid() !== 0 || c.acceptTerms !== true || typeof c.email !== 'string' ||
+      c.email.length > 254 || c.email !== c.email.trim() || !emailPattern.test(c.email) ||
+      typeof c.hostname !== 'string' || !/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?[.]duckdns[.]org$/.test(c.hostname)) throw Error('gate');
+  const stat = file => { try { return fs.lstatSync(file); } catch (e) { if (e.code === 'ENOENT') return null; throw e; } };
+  const privateFile = file => {
+    const s = stat(file);
+    if (!s || !s.isFile() || s.isSymbolicLink() || s.uid !== 0 || (s.mode & 0o077) !== 0 || s.size > 1048576) throw Error('file');
+    return fs.readFileSync(file, 'utf8');
+  };
+  const roots = [c.configRoot, c.workRoot, c.logsRoot, c.homeRoot, path.dirname(c.cliConfig)];
+  const marker = path.join(c.configRoot, '.medicia-owner.json');
+  const identity = JSON.stringify({ schema: 1, hostname: c.hostname });
+  for (const file of ["/etc/letsencrypt/cli.ini", path.join(c.homeRoot, '.config/letsencrypt/cli.ini'),
+    path.join(c.homeRoot, 'xdg/letsencrypt/cli.ini')]) if (stat(file)) throw Error('defaults');
+  for (const root of roots) {
+    const s = stat(root);
+    if (s && (!s.isDirectory() || s.isSymbolicLink() || s.uid !== 0 || (s.mode & 0o022) !== 0)) throw Error('directory');
+  }
+  if (stat(marker)) {
+    if (privateFile(marker) !== identity) throw Error('identity');
+  } else {
+    for (const root of roots) if (stat(root) && fs.readdirSync(root).length) throw Error('unowned');
+  }
+  if (stat(c.cliConfig) && privateFile(c.cliConfig) !== '') throw Error('configuration');
+  lock = path.join(c.configRoot, '.medicia-operation');
+  if (stat(lock)) throw Error('locked');
+  fs.mkdirSync(c.configRoot, { recursive: true, mode: 0o700 });
+  if (!stat(marker)) fs.writeFileSync(marker, identity, { mode: 0o600, flag: 'wx' });
+  fs.mkdirSync(lock, { mode: 0o700 }); locked = true;
+  for (const root of roots) fs.mkdirSync(root, { recursive: true, mode: 0o700 });
+  if (!stat(c.cliConfig)) fs.writeFileSync(c.cliConfig, '', { mode: 0o600, flag: 'wx' });
+  const env = { PATH: '/usr/local/bin:/usr/bin:/usr/sbin:/bin:/sbin', LANG: 'C.UTF-8', HOME: c.homeRoot,
+    XDG_CONFIG_HOME: path.join(c.homeRoot, 'xdg') };
+  const options = { env, shell: false, encoding: 'utf8', timeout: 300000, killSignal: 'SIGKILL', maxBuffer: 65536 };
+  const result = spawnSync(c.binary, ['certonly', '--config', c.cliConfig, '--config-dir', c.configRoot,
+    '--work-dir', c.workRoot, '--logs-dir', c.logsRoot, '--non-interactive', '--no-directory-hooks',
+    '--server', 'https://acme-v02.api.letsencrypt.org/directory', '--webroot', '--webroot-path', c.webroot,
+    '--preferred-challenges', 'http', '--cert-name', c.hostname, '--domains', c.hostname,
+    '--email', c.email, '--agree-tos', '--keep-until-expiring'], options);
+  if (result.error || result.signal || result.status !== 0) throw Error('issuance');
+  const archive = path.resolve(c.configRoot, 'archive', c.hostname) + path.sep;
+  const certificateFile = (name, secret) => {
+    const real = fs.realpathSync(path.join(c.configRoot, 'live', c.hostname, name));
+    if (!real.startsWith(archive)) throw Error('lineage');
+    const s = stat(real);
+    if (!s || !s.isFile() || s.isSymbolicLink() || s.uid !== 0 || (s.mode & 0o022) !== 0 ||
+        (secret && (s.mode & 0o077) !== 0) || !s.size || s.size > 1048576) throw Error('certificate');
+    return fs.readFileSync(real);
+  };
+  const certificate = new X509Certificate(certificateFile('fullchain.pem', false));
+  const key = createPrivateKey(certificateFile('privkey.pem', true));
+  const now = Date.now();
+  if (certificate.checkHost(c.hostname) !== c.hostname || certificate.subjectAltName !== 'DNS:' + c.hostname ||
+      !certificate.checkPrivateKey(key) || !(Date.parse(certificate.validFrom) <= now && now < Date.parse(certificate.validTo))) throw Error('certificate');
+  const activation = spawnSync(c.proxyHelper, ['activate'], { ...options, timeout: 45000 });
+  if (activation.status === 2) outcome = 2;
+  else if (activation.error || activation.signal || activation.status !== 0) throw Error('activation');
+  else outcome = 0;
+} catch { }
+finally {
+  if (locked) { try { fs.rmdirSync(lock); } catch { outcome = 2; } }
+}
+if (outcome === 0) process.stdout.write('medicia acme: activated\n');
+else process.stderr.write(outcome === 2 ? 'medicia acme: recovery unconfirmed\n' : 'medicia acme: rejected\n');
+process.exitCode = outcome;
+NODE

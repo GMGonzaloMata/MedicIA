@@ -1,0 +1,54 @@
+# Activated only after a future issuer has installed certificates and nginx -t succeeds.
+user nginx;
+worker_processes auto;
+pid /run/medicia-nginx/nginx.pid;
+error_log /dev/null;
+events { worker_connections 256; }
+http {
+  access_log off;
+  server_tokens off;
+  client_max_body_size 3m;
+  client_body_temp_path ${state_root}/body;
+  proxy_temp_path ${state_root}/proxy;
+  fastcgi_temp_path ${state_root}/fastcgi;
+  uwsgi_temp_path ${state_root}/uwsgi;
+  scgi_temp_path ${state_root}/scgi;
+  server {
+    listen 80 default_server;
+    server_name ${public_hostname};
+    if ($http_host !~* "^${hostname_pattern}(:80)?$") { return 444; }
+    location ^~ /.well-known/acme-challenge/ {
+      root /var/lib/medicia/acme;
+      default_type text/plain;
+      disable_symlinks on;
+      autoindex off;
+      try_files $uri =404;
+    }
+    location / { return 308 https://${public_hostname}$request_uri; }
+  }
+  server {
+    listen 443 ssl default_server;
+    server_name ${public_hostname};
+    if ($http_host !~* "^${hostname_pattern}(:443)?$") { return 444; }
+    if ($http_origin !~* "^(https://${hostname_pattern}(:443)?)?$") { return 403; }
+    ssl_certificate ${certificate_root}/fullchain.pem;
+    ssl_certificate_key ${certificate_root}/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_session_tickets off;
+    location / {
+      proxy_pass http://127.0.0.1:3000;
+      proxy_http_version 1.1;
+      proxy_set_header Host ${public_hostname};
+      proxy_set_header X-Forwarded-Host ${public_hostname};
+      proxy_set_header X-Forwarded-Proto https;
+      proxy_set_header X-Forwarded-Port 443;
+      proxy_set_header X-Forwarded-For $remote_addr;
+      proxy_set_header Forwarded "";
+      proxy_set_header Connection "";
+      proxy_buffering off;
+      proxy_cache off;
+      proxy_hide_header Cache-Control;
+      add_header Cache-Control "no-store" always;
+    }
+  }
+}

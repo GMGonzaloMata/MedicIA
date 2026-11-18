@@ -254,6 +254,12 @@ resource "aws_iam_policy" "operator" {
           local.operator_ml_policy_arn,
           local.boundary_policy_arn,
           local.sagemaker_boundary_policy_arn,
+          # Reservados para D5 (009): proteger antes de crear las políticas demo.
+          # Solo administración puede instalarlas; el operador genérico no puede
+          # anticiparse con otro contenido ni ampliar su política demo.
+          "arn:aws:iam::${var.account_id}:policy/medicia-${var.environment}-demo-boundary",
+          "arn:aws:iam::${var.account_id}:policy/medicia-${var.environment}-terraform-operator-demo",
+          "arn:aws:iam::${var.account_id}:policy/medicia-${var.environment}-terraform-operator-demo-network",
         ]
       },
       {

@@ -1,0 +1,25 @@
+[Unit]
+Description=MedicIA isolated initial ACME issuance (not public readiness)
+Wants=network-online.target
+Requires=medicia-dns.service medicia-nginx.service
+After=network-online.target medicia-dns.service medicia-nginx.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+UMask=0077
+ExecStart=/usr/local/libexec/medicia-acme
+TimeoutStartSec=360
+TimeoutStopSec=10
+KillMode=control-group
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/etc/medicia /var/lib/medicia /var/log/medicia /run/medicia-nginx
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
