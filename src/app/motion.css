@@ -1,0 +1,10 @@
+/* Add to the entering screen or a newly displayed section. No wrapper or delayed navigation. */
+@media (prefers-reduced-motion: no-preference) {
+  .medicia-enter-screen { animation: medicia-screen-in 220ms ease-out; }
+  .medicia-enter-section { animation: medicia-section-in 280ms ease-out; }
+  @keyframes medicia-screen-in { from { opacity: .65; } to { opacity: 1; } }
+  @keyframes medicia-section-in {
+    from { opacity: .55; transform: translateY(.35rem); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}

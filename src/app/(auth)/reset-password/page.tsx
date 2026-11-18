@@ -1,3 +1,5 @@
+import { AccountFormShell } from "../_components/account-form-shell";
+
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -9,7 +11,7 @@ export const metadata: Metadata = { title: "Contraseña nueva" };
 
 export default function ResetPasswordPage() {
   return (
-    <>
+    <AccountFormShell>
       <h1 className="text-[28px] font-semibold leading-tight sm:text-4xl">Contraseña nueva</h1>
       <p className="text-sm text-muted">Ingresá el código que te enviamos y elegí tu contraseña nueva.</p>
       <ResetPasswordForm />
@@ -18,6 +20,6 @@ export default function ResetPasswordPage() {
           Volver a ingresar
         </Link>
       </p>
-    </>
+    </AccountFormShell>
   );
 }

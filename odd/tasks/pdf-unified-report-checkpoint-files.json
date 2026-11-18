@@ -1,0 +1,433 @@
+{
+  "capturedAt": "2026-11-16T22:26:18.864Z",
+  "branch": "feature/pdf-ecg-ingestion",
+  "head": "71df097ead0f7ca82486d037def47cfaba678ee9",
+  "purpose": "Explicit user STOP snapshot, not verification approval",
+  "files": [
+    {
+      "path": "odd/tasks/pdf-unified-report-checkpoint.md",
+      "bytes": 12106,
+      "sha256": "6da15bc10f518debd10cf8ed3962e2ad08708093b9d2e8a5cf7c286ea49cf0db"
+    },
+    {
+      "path": "odd/tasks/pdf-unified-report.md",
+      "bytes": 61332,
+      "sha256": "62055d220258684ebc09f6a21a0e490f90cd021c7394f16122657eeac2c643de"
+    },
+    {
+      "path": "prisma/migrations/20261116000000_pdf_unified_report/migration.sql",
+      "bytes": 3180,
+      "sha256": "7f2d26ebacfcc5b972bb2472ab088e46fe29fc24aae4bfa83becec316b1c9bb1"
+    },
+    {
+      "path": "prisma/schema.prisma",
+      "bytes": 13664,
+      "sha256": "f8520f350d10fbddde545bd82092785efe44f0ea9359f0035c76477d33a34e23"
+    },
+    {
+      "path": "runtime/pdf-e022/Dockerfile",
+      "bytes": 644,
+      "sha256": "906643eeac4873405965d4aa8fbdaab495874d50c8b40a491d7740b829d359d4"
+    },
+    {
+      "path": "runtime/pdf-e022/extractor.py",
+      "bytes": 7213,
+      "sha256": "b65f7a5beaa50af10d83f15e67859a6e4835ddb5a9e6c8d2bc61c7cc51dfb23d"
+    },
+    {
+      "path": "runtime/pdf-e022/requirements.txt",
+      "bytes": 130,
+      "sha256": "cdb6a72155b6debacb39012870b88a6d7047311e4602585e63c11ff59b1d215a"
+    },
+    {
+      "path": "runtime/pdf-e022/smoke.py",
+      "bytes": 4320,
+      "sha256": "ab42a9722c990c894cfae24db8bef5a676cec2a12b0e7d2f1aed957dc2f98f54"
+    },
+    {
+      "path": "runtime/pdf-e022/synthetic_pdf.py",
+      "bytes": 1414,
+      "sha256": "84b9aec76ccdd8f61534badd7029e3434e1f50243123289cde8d955411fae15d"
+    },
+    {
+      "path": "runtime/pdf-e022/test_extractor.py",
+      "bytes": 4516,
+      "sha256": "d5a1d59146508e193ac8cc59515c792b18d2d9d8b077663cf08ab8363682d734"
+    },
+    {
+      "path": "runtime/pdf-e022/verify_model.py",
+      "bytes": 3417,
+      "sha256": "7855f1c902cd7b7c4340a0b6ec142be8b8b5a7ac76eb7ce62f826f0771a5ccd2"
+    },
+    {
+      "path": "scripts/pdf-e022-local/prepare-source.mjs",
+      "bytes": 3908,
+      "sha256": "aa6ce5be4cc25ba5fed346b7c60a2dc38784749fe72565b077535fdec3256e9f"
+    },
+    {
+      "path": "scripts/pdf-e022-local/runtime.ps1",
+      "bytes": 7508,
+      "sha256": "18f1022cd65f59005d09b8f85fd3482e10a23f648daef905e55f62a9994a6fcf"
+    },
+    {
+      "path": "specs/010-pdf-unified-report/checklists/requirements.md",
+      "bytes": 4756,
+      "sha256": "51775cb781a69a3dc0043a644ad879a3e3bf342dc48ab1c6bbe1e7c3d8d8f515"
+    },
+    {
+      "path": "specs/010-pdf-unified-report/contracts/processing-boundary.md",
+      "bytes": 22344,
+      "sha256": "12ab22b530a361a736f5ba114fbf3b192aced8e9662f6d60f375f98cdd794f03"
+    },
+    {
+      "path": "specs/010-pdf-unified-report/contracts/report-presentation.md",
+      "bytes": 6704,
+      "sha256": "9b28ae7639d436ddb9b139db67dedbec48b3b6d04fb2f9c4816d8e4fed89b509"
+    },
+    {
+      "path": "specs/010-pdf-unified-report/contracts/study-and-report-ui.md",
+      "bytes": 16626,
+      "sha256": "d5f59196974a7dff012da2cc0174968fe5745ea40da5c6a984c4c7370128f8b7"
+    },
+    {
+      "path": "specs/010-pdf-unified-report/data-model.md",
+      "bytes": 28328,
+      "sha256": "9fecd832693d753e08cd65faf9b4a7d72b514e4037ece696917d3c0e1582ea56"
+    },
+    {
+      "path": "specs/010-pdf-unified-report/plan.md",
+      "bytes": 12966,
+      "sha256": "b558a6073ff43e2dd566ed51df40379369caf370c86468a3af29d34cba36f4b8"
+    },
+    {
+      "path": "specs/010-pdf-unified-report/quickstart.md",
+      "bytes": 9194,
+      "sha256": "31cd4a496c754e42ab07a85cbea4d4d61bb0d942f9ba5a0881a420f0424ecf23"
+    },
+    {
+      "path": "specs/010-pdf-unified-report/research.md",
+      "bytes": 13364,
+      "sha256": "1a09a6cd347122d3e3a495318eb2b35aacb067e51f5c825695c8dfb21b59ecec"
+    },
+    {
+      "path": "specs/010-pdf-unified-report/spec.md",
+      "bytes": 30260,
+      "sha256": "a6299f86bf9d2626c54aeffd51e121a0f61df5c49646766d4c006733dd7ca5bc"
+    },
+    {
+      "path": "specs/010-pdf-unified-report/tasks.md",
+      "bytes": 57984,
+      "sha256": "2a10754b7111f3bec373af8906d0db9ca9283929c632c8744415bb10c002a44e"
+    },
+    {
+      "path": "src/app/(dashboard)/_components/clinic-header.tsx",
+      "bytes": 1833,
+      "sha256": "afa9c667aaf36383510ac9077a927b071434a4c65bbb8039b83d79c41121d183"
+    },
+    {
+      "path": "src/app/(dashboard)/_studies/_actions/get-integrated-analysis.ts",
+      "bytes": 1349,
+      "sha256": "c10e36145c2e5ad121271f7ffe2ef7b5951ed4374ccdd5f3556e08bc18ee7238"
+    },
+    {
+      "path": "src/app/(dashboard)/_studies/_actions/request-integrated-analysis.ts",
+      "bytes": 2641,
+      "sha256": "bab53d050d4eba9964304971babeddfa03aea211e81c8e867f1931133362abe4"
+    },
+    {
+      "path": "src/app/(dashboard)/_studies/_actions/upload-pdf-study.ts",
+      "bytes": 1565,
+      "sha256": "599b47bbc9cd1ec708012adb2904f9e473514f888c8816f86d90c4a75979a261"
+    },
+    {
+      "path": "src/app/(dashboard)/_studies/_components/analysis/integrated-analysis-section.tsx",
+      "bytes": 5204,
+      "sha256": "b3206b417972d0522657a37213d6624becd55b36633f65b756828586689b6872"
+    },
+    {
+      "path": "src/app/(dashboard)/_studies/_components/analysis/unified-report.tsx",
+      "bytes": 5034,
+      "sha256": "122f75185901625163294b8e35f50b20e0acb324242120d70d9d24c97278af50"
+    },
+    {
+      "path": "src/app/(dashboard)/_studies/_components/pdf-dropzone.tsx",
+      "bytes": 4524,
+      "sha256": "1bbabec7cc1e4e7344b4b10f358bb529f4e472f5597806c895aea0e5c01d3a01"
+    },
+    {
+      "path": "src/app/(dashboard)/_studies/_components/upload-form.tsx",
+      "bytes": 6553,
+      "sha256": "061c1b14266436a931cf13c275e94976e055ace6cf1e9b953190d5b8c7fb3371"
+    },
+    {
+      "path": "src/app/(dashboard)/_studies/_components/viewer/pdf-study-viewer.tsx",
+      "bytes": 6837,
+      "sha256": "f365d2a944849c2c786356cf0c8430d02e366b26336a80bda0cc5381eeb3bfb2"
+    },
+    {
+      "path": "src/app/(dashboard)/_studies/_lib/pdf-upload-action.ts",
+      "bytes": 3323,
+      "sha256": "15b01d9afac8b491ba74e6e901252eddd7999c8650c61d9210a8d39da98b4b78"
+    },
+    {
+      "path": "src/app/(dashboard)/_studies/_lib/study-messages.ts",
+      "bytes": 2567,
+      "sha256": "daa21b2a33bc59dc88436f663ddb8d9ec4522bf8bb04643f0a01f078596176c7"
+    },
+    {
+      "path": "src/app/(dashboard)/layout.tsx",
+      "bytes": 500,
+      "sha256": "469cdb869d6bd88eec2af311e59105494c7266fcda1dabf0fbedb5380011a869"
+    },
+    {
+      "path": "src/app/(dashboard)/studies/[studyId]/page.tsx",
+      "bytes": 5647,
+      "sha256": "89e295c9e56217c258af9bbfaa15ff826b0285ae25618705852bd645c79d3115"
+    },
+    {
+      "path": "src/app/globals.css",
+      "bytes": 5192,
+      "sha256": "3f057b8526c65e914ffefbeb9ffcea881aefd2a3626cc5389ff151d72380cbab"
+    },
+    {
+      "path": "src/modules/analyses/application/ports/out/analysis-repository.ts",
+      "bytes": 4480,
+      "sha256": "0ac23f658318643dd356025ac76ce8ea0ed9723d285f5118e33fcd5b80849669"
+    },
+    {
+      "path": "src/modules/analyses/application/ports/out/raw-ecg-inference.ts",
+      "bytes": 1487,
+      "sha256": "c6281fba9b1488ad66be3c31ef816adb18d7deb4fcb2bd0d30487dc2cde5bfb1"
+    },
+    {
+      "path": "src/modules/analyses/application/ports/out/study-source.ts",
+      "bytes": 1251,
+      "sha256": "62e9fc0e9d064a2790c0dc7acfc96553d525f0cbd9088ca422b44023e6722254"
+    },
+    {
+      "path": "src/modules/analyses/application/use-cases/get-integrated-analysis.ts",
+      "bytes": 1755,
+      "sha256": "3ceb493f744f8c7e9a24e440accee4058fcdbd42bd7e1b4a9915cbca797a94b7"
+    },
+    {
+      "path": "src/modules/analyses/application/use-cases/request-integrated-analysis.ts",
+      "bytes": 9892,
+      "sha256": "dc2383fbd33236d0b7760d6f40d1662c4f4138737b76d90d1b2fd53f46f8c196"
+    },
+    {
+      "path": "src/modules/analyses/composition.ts",
+      "bytes": 4024,
+      "sha256": "6dd5301ae2f3d074e57872d92af597fcfd3623df377f695e67d8ec719da4446b"
+    },
+    {
+      "path": "src/modules/analyses/domain/unified-report.ts",
+      "bytes": 8822,
+      "sha256": "c0efda88be39cb82e09a741a469b9d2f550b1818b33ec2086883d5fd72d53d95"
+    },
+    {
+      "path": "src/modules/analyses/infrastructure/adapters/create-raw-ecg-inference.ts",
+      "bytes": 906,
+      "sha256": "781cd6cc4b1ccc2c8fc67950fdabb68d933598f64f70ef8bbffc47e5f082b80b"
+    },
+    {
+      "path": "src/modules/analyses/infrastructure/adapters/http-raw-ecg-inference.ts",
+      "bytes": 8825,
+      "sha256": "90200466f46071d52b0db1a317cfcc279cb757de7fad8ba7e28f753116bb60dc"
+    },
+    {
+      "path": "src/modules/analyses/infrastructure/repositories/prisma-analysis-repository.ts",
+      "bytes": 14710,
+      "sha256": "50cf5bf9b180ab8db47a56e8b54d4d58fec3687ab832e7143ecd5adfe232d532"
+    },
+    {
+      "path": "src/modules/studies/application/ports/out/pdf-extraction.ts",
+      "bytes": 1035,
+      "sha256": "4a1e0343979400937448004291fa30716ccbfc9c77c06dc4d11de0ed702ccfba"
+    },
+    {
+      "path": "src/modules/studies/application/use-cases/get-study-waveform.ts",
+      "bytes": 4721,
+      "sha256": "0a0d1764b1d25f4d987fa52eaf0c6f318751e484ada273f5789cadb9eb7fc03b"
+    },
+    {
+      "path": "src/modules/studies/application/use-cases/read-study-extraction.ts",
+      "bytes": 2082,
+      "sha256": "43eba998acd01dc48470dc2e2c52349a4c42b362bb05914dee583e14c1beceb0"
+    },
+    {
+      "path": "src/modules/studies/application/use-cases/upload-pdf-study.ts",
+      "bytes": 2552,
+      "sha256": "884635793ed0b730624b3a34c84f1093d6be56801615d9a5a74ad8802b31003d"
+    },
+    {
+      "path": "src/modules/studies/application/use-cases/upload-study.ts",
+      "bytes": 4538,
+      "sha256": "7eaf11d385c439c34e16fcf4cdd452800c12006082fff56570eba7afc881ed17"
+    },
+    {
+      "path": "src/modules/studies/composition.ts",
+      "bytes": 4058,
+      "sha256": "c0ce9a08f65bdb0139035b9fb3900f254f255c8a4e6193c0d7149c85e42a3530"
+    },
+    {
+      "path": "src/modules/studies/domain/pdf-extraction.ts",
+      "bytes": 2291,
+      "sha256": "782773351691fe642fd40161e8bf6d23bdb5ed64b276e6fc3c5568184e97533a"
+    },
+    {
+      "path": "src/modules/studies/domain/pdf-study-format.ts",
+      "bytes": 2575,
+      "sha256": "6752d879c9849e1c749aa0a22a8c9212468eae94aeca42d6dc5dd9db7d69e7e1"
+    },
+    {
+      "path": "src/modules/studies/infrastructure/adapters/create-configured-pdf-extraction.ts",
+      "bytes": 697,
+      "sha256": "0bc8bda9a0a76d435e99c498d24846305aed9a28935ed88ef8cf6507b7fefb2e"
+    },
+    {
+      "path": "src/modules/studies/infrastructure/adapters/fake-pdf-extraction.ts",
+      "bytes": 2505,
+      "sha256": "83d5b4afde6a572025b6a751df4dcb665b4740c74eb3cc909cec9d4ac64fffc7"
+    },
+    {
+      "path": "src/modules/studies/infrastructure/adapters/http-pdf-extraction.ts",
+      "bytes": 5922,
+      "sha256": "cff7c718c2282abc1e72bddd5e82a695bdd15b8d3d8db56a708311a247d4c623"
+    },
+    {
+      "path": "tests/integration/analyses/integrated-analysis.test.ts",
+      "bytes": 15329,
+      "sha256": "0fe737287cc78ff8735ec4186a1ca87edfff12a55fde414e6896aee88c9c9621"
+    },
+    {
+      "path": "tests/support/pdf-viewer-runtime/README.md",
+      "bytes": 11138,
+      "sha256": "6fb2f9ad0c0a49a76fc3ee983a3e5e56f457ae882cfbf9b3fbe372fd70f95a1c"
+    },
+    {
+      "path": "tests/support/pdf-viewer-runtime/launcher.mjs",
+      "bytes": 22620,
+      "sha256": "0c9c6fce9e34f05107236521db2a1c735c61713664633a410fb6239c44cd710f"
+    },
+    {
+      "path": "tests/unit/app/studies/integrated-analysis-actions.test.ts",
+      "bytes": 10502,
+      "sha256": "d9aaa7da17c14e36a2836604afb6d18ba5fe03beae483c4aac4aaa842fcf7d45"
+    },
+    {
+      "path": "tests/unit/app/studies/integrated-analysis-section.test.tsx",
+      "bytes": 8225,
+      "sha256": "5a0641bdaac7ba075459c094859edf35264a3efb2f44a71906b34a71f9574552"
+    },
+    {
+      "path": "tests/unit/app/studies/pdf-dropzone.test.tsx",
+      "bytes": 11876,
+      "sha256": "41f1cba728daa030da672bf9bd93fcea5a992a4462a3e2766ff0370dcd718614"
+    },
+    {
+      "path": "tests/unit/app/studies/pdf-study-viewer.test.tsx",
+      "bytes": 6013,
+      "sha256": "0b9e7a8943f043531e08423ddb78aae531c3f31b3f44a3874b10848679035c5e"
+    },
+    {
+      "path": "tests/unit/app/studies/study-viewer.test.tsx",
+      "bytes": 6045,
+      "sha256": "965fc59fcaf605679834cf1881574246875aefb90078f0b7287c11012689b729"
+    },
+    {
+      "path": "tests/unit/app/studies/unified-report.test.tsx",
+      "bytes": 5613,
+      "sha256": "f5428c7e439c270fd3aadd4ff36dff762f4f53a8ddbdd6fd0da6c38c50ca3467"
+    },
+    {
+      "path": "tests/unit/app/studies/upload-form.test.tsx",
+      "bytes": 3530,
+      "sha256": "67b3ace4a0a9e36236826bc0b5375f7017fcbecd31ffe13201c823875ffd4526"
+    },
+    {
+      "path": "tests/unit/app/studies/upload-pdf-form.test.tsx",
+      "bytes": 7671,
+      "sha256": "b912a07627a9ad331cec46d2fe2f25fc5edf8091c36051b00142f3fe18f60eaf"
+    },
+    {
+      "path": "tests/unit/app/studies/upload-pdf-study-action.test.ts",
+      "bytes": 13205,
+      "sha256": "dfa153540bbef94d350a3567270ce35b45ccdc51563b6cad18a632711bf295ab"
+    },
+    {
+      "path": "tests/unit/app/studies/upload-study-action.test.ts",
+      "bytes": 7549,
+      "sha256": "cca87d46f53ec995bb9905c25a170da5c9e3c3c67b94b2cc0544a19fd0e3a76d"
+    },
+    {
+      "path": "tests/unit/modules/analyses/application/get-integrated-analysis.test.ts",
+      "bytes": 5355,
+      "sha256": "9ba3eb5515f020a5d53f2588392b182c22303280f28dee99d2526b4f17fd5d2a"
+    },
+    {
+      "path": "tests/unit/modules/analyses/application/request-integrated-analysis.test.ts",
+      "bytes": 28044,
+      "sha256": "fcab799c9b40102bcd674667f0ec40fe4c3f88f73e1b388f35c5a8d567673146"
+    },
+    {
+      "path": "tests/unit/modules/analyses/domain/unified-report.test.ts",
+      "bytes": 16589,
+      "sha256": "2fdf251a87478a347fc6023809e78da9010c44db09a21fb5eb6f00535c52f7f5"
+    },
+    {
+      "path": "tests/unit/modules/analyses/infrastructure/http-raw-ecg-inference.test.ts",
+      "bytes": 13260,
+      "sha256": "95535a578aa520adc5199eb71def14cb6e3e5528c865e189a5141dc6e97105d1"
+    },
+    {
+      "path": "tests/unit/modules/analyses/infrastructure/integrated-analysis-repository.test.ts",
+      "bytes": 30030,
+      "sha256": "09a6195c0edf8a1b490556c1ccda16f845e60421db6552d1b04f85f0d44996fe"
+    },
+    {
+      "path": "tests/unit/modules/studies/application/get-study-waveform.test.ts",
+      "bytes": 8050,
+      "sha256": "689fbe0823fef4f738fe8023bd9b997f5e667c64f5cd5a14dff101d27cd4779a"
+    },
+    {
+      "path": "tests/unit/modules/studies/application/pdf-study-waveform.test.ts",
+      "bytes": 8483,
+      "sha256": "60c54dcbbe896af80ba7d8a843638142704ca9104b87c68fe6722bb7eb03639e"
+    },
+    {
+      "path": "tests/unit/modules/studies/application/read-study-extraction.test.ts",
+      "bytes": 6956,
+      "sha256": "cf9d1e3568c18443279c120bd62c9495868da6e5b87fbe24f4c4d6684e962f21"
+    },
+    {
+      "path": "tests/unit/modules/studies/application/upload-pdf-study.test.ts",
+      "bytes": 16491,
+      "sha256": "12ef2545a7928c56ea1151a3746e9e27aa1fc6d7dc2d2c0372e3c4c25631ba94"
+    },
+    {
+      "path": "tests/unit/modules/studies/application/upload-study.test.ts",
+      "bytes": 10305,
+      "sha256": "b0246578a51e85535d5e6c188a0015d97b4af25b546a84ba1fe612a7afc780bd"
+    },
+    {
+      "path": "tests/unit/modules/studies/domain/pdf-study-format.test.ts",
+      "bytes": 13401,
+      "sha256": "044179e3073ee7739d08056871397533bb2399ebf65aa9f1ce8ec4f80038240f"
+    },
+    {
+      "path": "tests/unit/modules/studies/infrastructure/configured-pdf-extraction.test.ts",
+      "bytes": 2234,
+      "sha256": "4f1c31bea3053254199085889cca544d51190656a435f073745b730b413f2af7"
+    },
+    {
+      "path": "tests/unit/modules/studies/infrastructure/pdf-extraction.test.ts",
+      "bytes": 19200,
+      "sha256": "856fe531a6a2ae70159d0ca57c292825c1bb65b21f0a42f2e986e5e15a530332"
+    },
+    {
+      "path": "tests/unit/support/pdf-viewer-runtime-launcher.test.ts",
+      "bytes": 11837,
+      "sha256": "a9ef8f29f3b53e5159895c9092d7bec3b3888dea8a3aeb597eb07ab0827f3ec6"
+    }
+  ]
+}

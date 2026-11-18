@@ -262,6 +262,14 @@ enum AnalysisFailureCode {
   @@map("analysis_failure_code")
 }
 
+// Contrato de persistencia: las filas históricas conservan la variante legacy sin reescritura.
+enum AnalysisKind {
+  LEGACY_ECHONEXT
+  ECG_UNIFIED_V1
+
+  @@map("analysis_kind")
+}
+
 // Una ejecución del modelo sobre un estudio (specs/008-analisis-estudio-ecg/data-model.md). Un estudio puede tener
 // muchos análisis; eliminar el estudio elimina los suyos. Se agregan a mano en el SQL de la migración: el índice
 // único parcial `analyses_one_in_progress` (un solo análisis en curso por estudio) y los CHECK de coherencia
@@ -273,6 +281,11 @@ model Analysis {
   // La cuenta que lo pidió. Se toma siempre de la sesión.
   requestedByUserId String               @map("requested_by_user_id") @db.Uuid
   status            AnalysisStatus       @default(PENDING)
+  kind              AnalysisKind         @default(LEGACY_ECHONEXT)
+  // Documento completo ecg-unified.v1, validado por el dominio al escribir/leer; SQL NULL para legacy.
+  integratedResult  Json?                @map("integrated_result") @db.JsonB
+  // Reservado para las transiciones CAS de T021; T015 solo inserta revisión cero.
+  revision          Int                  @default(0)
   failureCode       AnalysisFailureCode? @map("failure_code")
   // El modelo y la versión que informó el contenedor en su respuesta, no los que se esperaban.
   modelName         String?              @map("model_name")

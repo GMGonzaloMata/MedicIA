@@ -3,6 +3,12 @@
 
 export const STUDY_MESSAGES = {
   uploadUnavailable: "No pudimos guardar el estudio. Probá de nuevo en unos minutos.",
+  pdfFileHint: "Un PDF Mortara compatible de hasta 2 MB (2.097.152 bytes). No se admiten PDFs escaneados ni de otros fabricantes.",
+  pdfNotEnabled: "Al guardar el PDF, se abrirá el estudio. Desde allí podés solicitar el análisis con E022.",
+  pdfMultiple: "Elegí un solo PDF por vez.",
+  pdfExtension: "Elegí un archivo con extensión .pdf. El contenido se valida en el servidor.",
+  pdfRemoved: "PDF quitado. Elegí otro archivo para subir.",
+  uploadPending: "Enviando el archivo para validar y guardar. Esto no ejecuta un análisis.",
   forbidden: "No tenés acceso para cargar estudios a este paciente.",
   fileTooLarge: "El archivo supera el tamaño máximo de 2 MB.",
   fileMissing: "Elegí un archivo para subir.",

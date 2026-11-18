@@ -1,10 +1,11 @@
 import { defineConfig, devices } from "@playwright/test";
 import { config as loadEnvFile } from "dotenv";
+import { isolatedUiTests } from "./tests/support/ui-test-environment.mts";
 
-// Las pruebas E2E leen DATABASE_URL de .env.local para preparar datos; en CI viene del entorno.
-loadEnvFile({ path: ".env.local", quiet: true });
+// El modo aislado exige TEST precargado; nunca carga aquí el entorno de demo.
+if (!isolatedUiTests) loadEnvFile({ path: ".env.local", quiet: true });
 
-const BASE_URL = "http://localhost:3000";
+const BASE_URL = isolatedUiTests ? "http://127.0.0.1:3100" : "http://localhost:3000";
 const BUILD_TIMEOUT_MS = 180_000;
 
 const isContinuousIntegration = Boolean(process.env.CI);
@@ -26,9 +27,11 @@ export default defineConfig({
     { name: "mobile", use: { ...devices["Pixel 7"] } },
   ],
   webServer: {
-    command: "npm run build && npm run start",
+    command: isolatedUiTests
+      ? "npm run build && npm run start -- --hostname 127.0.0.1 --port 3100"
+      : "npm run build && npm run start",
     url: BASE_URL,
-    reuseExistingServer: !isContinuousIntegration,
+    reuseExistingServer: !isolatedUiTests && !isContinuousIntegration,
     timeout: BUILD_TIMEOUT_MS,
     // El servidor de pruebas usa el proveedor de identidad simulado, sin AWS, y la misma base
     // local que las pruebas de integración.

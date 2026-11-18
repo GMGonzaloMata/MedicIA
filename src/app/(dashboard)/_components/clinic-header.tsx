@@ -1,12 +1,11 @@
-import Link from "next/link";
 import { Suspense } from "react";
 
 import { getAccessContext } from "../../_lib/access";
 import { describeRelationship } from "../_lib/relationship-labels";
+import { DashboardNavLink } from "./dashboard-nav-link";
 import { SignOutButton } from "./sign-out-button";
 
-// Encabezado de las pantallas protegidas: la clínica activa siempre visible y el acceso para
-// cambiarla (spec FR-020). Lee la sesión en cada solicitud, así que va dentro de <Suspense>.
+// Marco visual reutilizado del rebranding; la clínica y los destinos conservan sus permisos vigentes.
 export function ClinicHeader() {
   return (
     <header className="dashboard-sidebar">
@@ -26,12 +25,7 @@ export function ClinicHeader() {
 
 async function ActiveClinic() {
   const context = await getAccessContext();
-
-  // Sin clínica activa no hay nada que mostrar: las pantallas de elección y de sin acceso
-  // explican la situación por su cuenta.
-  if (context.status !== "ready") {
-    return null;
-  }
+  if (context.status !== "ready") return null;
 
   return (
     <>
@@ -41,20 +35,20 @@ async function ActiveClinic() {
         <p className="text-muted">{describeRelationship(context.clinic.relationship)}</p>
       </div>
       <nav aria-label="Navegación principal" className="dashboard-nav">
-        <Link href="/" className="dashboard-nav-link">Inicio</Link>
+        <DashboardNavLink href="/" className="dashboard-nav-link">Inicio</DashboardNavLink>
         {context.clinic.relationship.kind === "PATIENT" ? (
-          <Link href="/studies" className="dashboard-nav-link">
+          <DashboardNavLink href="/studies" className="dashboard-nav-link">
             Mis estudios
-          </Link>
+          </DashboardNavLink>
         ) : null}
         {context.clinic.relationship.kind === "STAFF" && context.clinic.relationship.isDoctor ? (
-          <Link href="/patients" className="dashboard-nav-link">
+          <DashboardNavLink href="/patients" className="dashboard-nav-link">
             Mis pacientes
-          </Link>
+          </DashboardNavLink>
         ) : null}
-        <Link href="/select-clinic" className="dashboard-nav-link">
+        <DashboardNavLink href="/select-clinic" className="dashboard-nav-link">
           Cambiar de clínica
-        </Link>
+        </DashboardNavLink>
       </nav>
     </>
   );

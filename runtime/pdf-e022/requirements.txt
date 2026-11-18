@@ -1,0 +1,4 @@
+# Dependencias mínimas del lector; no instalar el portal/CLI ni su stack de datos.
+PyMuPDF==1.26.7
+pydantic==2.12.5
+numpy==2.4.6

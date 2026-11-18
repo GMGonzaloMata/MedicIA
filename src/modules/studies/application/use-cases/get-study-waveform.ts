@@ -1,4 +1,6 @@
 import { splitLeads } from "../../domain/ecg-leads";
+import type { PdfExtraction } from "../../domain/pdf-extraction";
+import { decodePdfStudy } from "../../domain/pdf-study-format";
 import type { StudyUploader } from "../../domain/study";
 import { canActOnPatient, type StudyActor } from "../../domain/study-access";
 import { StudyForbiddenError, StudyNotFoundError, StudyUnavailableError } from "../../domain/study-errors";
@@ -24,9 +26,22 @@ export interface WaveformStudy {
   patientName: string | null;
 }
 
+// Contrato aditivo: las muestras PDF siguen crudas y la máscara nunca se convierte en amplitud.
+export interface StudyWaveformV2 {
+  status: "PDF_READY";
+  version: 2;
+  format: "PDF";
+  study: WaveformStudy;
+  samplingHz: 500;
+  unit: "uV";
+  leads: readonly Readonly<Pick<PdfExtraction["leads"][number], "name" | "samples" | "observed">>[];
+}
+
 export type StudyWaveformResult =
   | { status: "READY"; study: WaveformStudy; leads: Float32Array[] }
-  | { status: "UNAVAILABLE"; study: WaveformStudy };
+  | { status: "UNAVAILABLE"; study: WaveformStudy }
+  | StudyWaveformV2
+  | { status: "PDF_UNAVAILABLE"; version: 2; format: "PDF"; study: WaveformStudy };
 
 function errorName(error: unknown): string {
   return error instanceof Error ? error.name : "UnknownError";
@@ -80,15 +95,28 @@ export function createGetStudyWaveform({ studies, storage, directory }: GetStudy
       throw new StudyUnavailableError();
     }
 
+    // Solo la clave persistida por el servidor elige el codec; no se infiere por bytes del cliente.
+    const isPdf = detail.storageKey.endsWith(".pdfecg1");
+    const unavailable: StudyWaveformResult = isPdf
+      ? { status: "PDF_UNAVAILABLE", version: 2, format: "PDF", study }
+      : { status: "UNAVAILABLE", study };
+
     if (!bytes) {
-      return { status: "UNAVAILABLE", study };
+      return unavailable;
     }
 
     try {
+      if (isPdf) {
+        const { samplingHz, unit, leads } = decodePdfStudy(bytes).extraction;
+        return {
+          status: "PDF_READY", version: 2, format: "PDF", study, samplingHz, unit,
+          leads: leads.map(({ name, samples, observed }) => ({ name, samples, observed })),
+        };
+      }
       return { status: "READY", study, leads: splitLeads(decodeStoredStudy(bytes).waveform) };
     } catch (error) {
       if (error instanceof StoredStudyCorruptError) {
-        return { status: "UNAVAILABLE", study };
+        return unavailable;
       }
 
       throw error;

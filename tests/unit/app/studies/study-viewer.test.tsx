@@ -36,6 +36,15 @@ describe("visor de la onda", () => {
     expect(screen.getByText("Tocá una derivación para verla ampliada.")).toBeTruthy();
   });
 
+  it("conserva el dibujo continuo legacy y su resumen de 250 Hz sin máscara PDF", () => {
+    const { container } = render(<><StudyViewer leads={syntheticLeads()} /><WaveformSummary /></>);
+    expect(container.querySelectorAll("polyline")).toHaveLength(12);
+    expect(container.querySelectorAll("path")).toHaveLength(0);
+    expect(screen.getByText("250 Hz")).toBeTruthy();
+    expect(screen.queryByText(/500 Hz/)).toBeNull();
+    expect(screen.queryByText(/tramos no observados/)).toBeNull();
+  });
+
   it("elegir una derivación la amplía y se vuelve a las 12 con el botón", () => {
     render(<StudyViewer leads={syntheticLeads()} />);
 
