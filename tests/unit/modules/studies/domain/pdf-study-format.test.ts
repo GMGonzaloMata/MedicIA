@@ -17,17 +17,17 @@ type Measurement = { value: number | null; unit: string };
 function extraction() {
   const measurement = (value: number | null, unit: string): Measurement => ({ value, unit });
   const measurements: { sex: "female" | "male" | null } & Record<typeof NUMERIC_MEASURES[number], Measurement> = {
-    sex: "female", age: measurement(40, "years"), ventricular_rate: measurement(70, "bpm"),
-    atrial_rate: measurement(null, "bpm"), pr_interval: measurement(null, "ms"),
-    qrs_duration: measurement(90, "ms"), qt_corrected: measurement(400, "ms"),
+    sex: "female", age: measurement(40, "years"), ["ventricular_rate"]: measurement(70, "bpm"),
+    ["atrial_rate"]: measurement(null, "bpm"), ["pr_interval"]: measurement(null, "ms"),
+    ["qrs_duration"]: measurement(90, "ms"), ["qt_corrected"]: measurement(400, "ms"),
   };
   return {
     contract: "mortara-extraction.v1", extractorVersion: "2", sourceReference: PIN,
     samplingHz: 500, unit: "uV",
     leads: LEADS.map((name, index) => ({
       name,
-      samples: Array.from({ length: 5000 }, (_, sample) => sample < 2 ? Math.fround(index + sample / 10) : 0),
-      observed: Array.from({ length: 5000 }, (_, sample) => sample < 2),
+      samples: Array.from({ length: 5000 }, (unused, sample) => sample < 2 ? Math.fround(index + sample / 10) : 0),
+      observed: Array.from({ length: 5000 }, (unused, sample) => sample < 2),
     })),
     measurements,
   };
@@ -65,15 +65,15 @@ function rejectExtraction(value: unknown) {
   if (isDeepStrictEqual(value, JSON.parse(JSON.stringify(value)))) {
     expectError(() => decodePdfStudy(storedBytes), StoredStudyCorruptError, CORRUPT_MESSAGE);
   }
-  expect(storedBytes).toEqual(beforeBytes);
-  expect(value).toEqual(before);
+  expect(isDeepStrictEqual(storedBytes, beforeBytes)).toBe(true);
+  expect(isDeepStrictEqual(value, before)).toBe(true);
 }
 
 describe("sobre MEDPDF01 independiente de ecg1", () => {
   it("preserva bytes privados, señal observada, máscara, unidades, medidas y procedencia sin mutar", () => {
     const original = envelope();
     // Incluye los 256 bytes posibles, no solo una cadena PDF convertida a UTF-8.
-    const originalBytes = Buffer.from(Array.from({ length: 256 }, (_, index) => index));
+    const originalBytes = Buffer.from(Array.from({ length: 256 }, (unused, index) => index));
     original.originalPdfBase64 = originalBytes.toString("base64");
     const before = structuredClone(original);
     const bytes = encodePdfStudy(original);

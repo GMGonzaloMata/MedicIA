@@ -1,14 +1,13 @@
 // @vitest-environment node
 import { spawnSync } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
-import { resolve } from "node:path";
-import { describe, expect, it } from "vitest";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
+import { describe, expect, it, onTestFinished } from "vitest";
 
-interface LauncherApi {
-  APP_ROOT: string;
-  DEPENDENCY_ROOT: string;
-  LINK_PATH: string;
-  createEnvironment(inherited: object, runRoot: string): Record<string, string> & { NODE_ENV: "development" };
+type LauncherApi = Record<"APP_ROOT" | "DEPENDENCY_ROOT" | "LINK_PATH", string> & {
+  createEnvironment(inherited: object, runRoot: string): Record<string, string>;
   fixtureFiles(): Record<string, string>;
   closeOwnedRuntime(steps: { stopAccepting(): Promise<void>; closeConnections(): void; closeApplication(): Promise<void> }): Promise<void>;
   parseCommand(args: string[]): string;
@@ -16,7 +15,7 @@ interface LauncherApi {
   validateAppEntries(names: string[], directory?: string): void;
   validateCompilation(result: unknown): void;
   validateLinkRecord(record: unknown, target: string): void;
-}
+};
 
 function isLauncherApi(value: unknown): value is LauncherApi {
   return typeof value === "object" && value !== null
@@ -31,22 +30,34 @@ if (!isLauncherApi(importedLauncher)) throw new Error("Invalid launcher API.");
 const { APP_ROOT, DEPENDENCY_ROOT, LINK_PATH, createEnvironment, fixtureFiles, parseCommand, parseMcpResponse, validateAppEntries, validateCompilation, validateLinkRecord } = importedLauncher;
 
 const runRoot = resolve(APP_ROOT, "..", "unit-synthetic-run");
-const launcher = resolve("tests/support/pdf-viewer-runtime/launcher.mjs");
-const environment = () => createEnvironment({ SystemRoot: "C:\\Windows" }, runRoot);
+const launcherPath = "tests/support/pdf-viewer-runtime/launcher.mjs";
+const osEnvironment = () => Object.fromEntries([["SystemRoot", "C:\\Windows"]]);
+const environment = () => createEnvironment(osEnvironment(), runRoot);
 
-function cacheEntries() {
-  return [resolve(APP_ROOT, ".."), APP_ROOT].map((directory) => ({
-    directory, entries: existsSync(directory) ? readdirSync(directory).sort() : [],
-  }));
+function isolatedLauncher() {
+  const root = mkdtempSync(resolve(tmpdir(), "medicia-pdf-launcher-"));
+  onTestFinished(() => rmSync(root, { recursive: true, force: true }));
+  const launcher = resolve(root, launcherPath);
+  mkdirSync(dirname(launcher), { recursive: true });
+  copyFileSync(launcherPath, launcher);
+  const cache = resolve(root, "node_modules/.cache/medicia-pdf-runtime");
+  const cacheEntries = () => [cache, resolve(cache, "app")].map((directory) =>
+    existsSync(directory) ? readdirSync(directory).sort() : null,
+  );
+  function run(args: string[]) {
+    const before = cacheEntries();
+    const result = spawnSync(process.execPath, args, {
+      cwd: root, env: { ...osEnvironment(), NODE_ENV: "test" }, encoding: "utf8", timeout: 3000,
+    });
+    expect(cacheEntries()).toEqual(before);
+    return result;
+  }
+  return { launcher, run };
 }
 
 function cli(args: string[]) {
-  const before = cacheEntries();
-  const result = spawnSync(process.execPath, ["--", launcher, ...args], {
-    env: environment(), encoding: "utf8", timeout: 3000,
-  });
-  expect(cacheEntries()).toEqual(before);
-  return result;
+  const { launcher, run } = isolatedLauncher();
+  return run(["--", launcher, ...args]);
 }
 
 function rpc(result: unknown) {
@@ -55,21 +66,21 @@ function rpc(result: unknown) {
 
 describe("launcher aislado de preflight PDF (sin arrancar Next)", () => {
   it("no lee ni propaga variables privadas, ni siquiera mediante getters", () => {
-    const inherited = {
-      SystemRoot: "C:\\Windows",
-      get DATABASE_URL(): never { throw new Error("No leer secretos"); },
-      get AWS_ACCESS_KEY_ID(): never { throw new Error("No leer secretos"); },
-      get NODE_OPTIONS(): never { throw new Error("No leer hooks"); },
-      get NEXT_PUBLIC_PRIVATE_MARKER(): never { throw new Error("No leer secretos"); },
-      get PATH(): never { throw new Error("No heredar búsqueda de ejecutables"); },
-      get HOME(): never { throw new Error("No usar estado global"); },
-    };
+    const inherited = osEnvironment();
+    for (const key of ["DATABASE_URL", "AWS_ACCESS_KEY_ID", "NODE_OPTIONS", "NEXT_PUBLIC_PRIVATE_MARKER", "PATH", "HOME"]) {
+      Object.defineProperty(inherited, key, {
+        enumerable: true,
+        get() { throw new Error(`No leer variables heredadas: ${key}`); },
+      });
+    }
     expect(createEnvironment(inherited, runRoot)).toEqual(environment());
     const env = environment();
     for (const key of ["DATABASE_URL", "AWS_ACCESS_KEY_ID", "NODE_OPTIONS", "NEXT_PUBLIC_PRIVATE_MARKER", "NODE_PATH", "HTTP_PROXY", "HTTPS_PROXY", "AGENT_BROWSER_SESSION"]) {
       expect(env).not.toHaveProperty(key);
     }
-    expect(env).toMatchObject({ NODE_ENV: "development", CI: "1", NEXT_TELEMETRY_DISABLED: "1", npm_config_offline: "true", npm_config_ignore_scripts: "true" });
+    expect(env).toMatchObject({ NODE_ENV: "development", CI: "1", NEXT_TELEMETRY_DISABLED: "1" });
+    expect(env["npm_config_offline"]).toBe("true");
+    expect(env["npm_config_ignore_scripts"]).toBe("true");
   });
 
   it("confina home, temporales y cachés a la ejecución, sin usar el enlace", () => {
@@ -147,9 +158,8 @@ describe("launcher aislado de preflight PDF (sin arrancar Next)", () => {
     expect(help.status).toBe(0);
     expect(help.stderr).toBe("");
     expect(help.stdout).toBe("Usage: launcher.mjs prepare | preflight | --help\nprepare: synthetic files + exact owned dependency link; no server.\npreflight: owned loopback Next/Turbopack + MCP check; runtime deadline 29s after preparation.\n");
-    const before = cacheEntries();
-    const imported = spawnSync(process.execPath, ["--input-type=module", "-e", `await import(${JSON.stringify(new URL(`file:///${launcher.replaceAll("\\", "/")}`).href)});`], { env: environment(), encoding: "utf8", timeout: 3000 });
-    expect(cacheEntries()).toEqual(before);
+    const { launcher, run } = isolatedLauncher();
+    const imported = run(["--input-type=module", "-e", `await import(${JSON.stringify(pathToFileURL(launcher).href)});`]);
     expect(imported.status).toBe(0);
     expect(imported.stdout).toBe("");
     expect(imported.stderr).toBe("");

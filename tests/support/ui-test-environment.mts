@@ -6,7 +6,7 @@ export const isolatedUiTests = process.env.MEDICIA_ISOLATED_UI_TESTS === "1";
 
 function rejectTarget(): never {
   process.stderr.write(
-    "medicia UI tests: expected 127.0.0.1:55433/medicia_test with no routing overrides\n",
+    "medicia UI tests: expected 127.0.0.1:15433/medicia_test with no routing overrides\n",
   );
   process.exit(2);
 }
@@ -25,7 +25,7 @@ if (process.env.MEDICIA_ISOLATED_UI_TESTS !== undefined) {
   );
   if (
     !["postgres:", "postgresql:"].includes(target.protocol) ||
-    target.hostname !== "127.0.0.1" || target.port !== "55433" ||
+    target.hostname !== "127.0.0.1" || target.port !== "15433" ||
     target.pathname !== "/medicia_test" || target.hash !== "" || !publicSchemaOnly
   ) rejectTarget();
 }

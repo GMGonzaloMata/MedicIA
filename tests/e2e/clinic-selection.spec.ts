@@ -105,7 +105,7 @@ test("(d) sin sesión, el inicio lleva al ingreso y después vuelve; un destino 
     await page.goto(`/sign-in?next=${external}`);
     await signIn(page, email);
 
-    await expect(page).toHaveURL(/localhost:3000\/$/);
+    await expect(page).toHaveURL("/");
   }
 });
 

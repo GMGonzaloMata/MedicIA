@@ -102,16 +102,16 @@ describe("carga PDF autorizada con servicios únicamente sintéticos", () => {
     if (reject) expect(await w.upload(w.input)).toEqual({ studyId: "study-1", number: 1 });
   });
   it("la composición conserva NPZ y requiere inyectar un extractor PDF, sin fake por defecto", async () => {
-    const module = getStudiesModule();
-    expect(module.uploadStudy).toBeTypeOf("function");
-    expect(module).not.toHaveProperty("uploadPdfStudy");
+    const studiesModule = getStudiesModule();
+    expect(studiesModule.uploadStudy).toBeTypeOf("function");
+    expect(studiesModule).not.toHaveProperty("uploadPdfStudy");
     const extract = vi.fn(createFakePdfExtraction().extract);
-    const upload = module.createUploadPdfStudy({ extract });
+    const upload = studiesModule.createUploadPdfStudy({ extract });
     expect(extract).not.toHaveBeenCalled();
     expect(await upload({ actor: patient, patientId: "patient-1", type: "ECG", readBytes: async () => pdfBytes(), signal: new AbortController().signal }))
       .toEqual({ studyId: expect.any(String), number: 1 });
     expect(extract).toHaveBeenCalledTimes(1);
-    expect(getStudiesModule()).toBe(module);
+    expect(getStudiesModule()).toBe(studiesModule);
     expect(console.error).not.toHaveBeenCalled();
     expect(console.log).not.toHaveBeenCalled();
   });

@@ -1,29 +1,27 @@
 # Verify the isolated UI worktree without erasing demo data
 
-Use the opt-in test profile below from `Trabajo-lucho-dark-rebrand`. It validates the dedicated `127.0.0.1:55433/medicia_test` target before running commands. Never run destructive integration tests against `medicia_demo`.
+Use the opt-in test profile below from the integration worktree. It validates the dedicated `127.0.0.1:15433/medicia_test` target before running commands. Never run destructive integration tests against `medicia_demo`.
 
 ## Run the quality check and E2E
 
-Prerequisites: the human has applied the existing migrations, configured the main checkout's private TEST connection, and prepared the browser. This invocation uses native Node TypeScript support and `--env-file`; the explicit entrypoint validates TEST before delegating to `--run`. Do not combine a preload hook with `--run` and assume the hook executes. The interaction was tested synthetically; the verification host uses Node 26.13.0. Do not paste connection strings into commands or reports.
+Prerequisites: the project owner has migrated the dedicated disposable database on port 15433 and prepared Chromium. From the integration worktree, start a PowerShell session configured with the dedicated TEST connection in DATABASE_URL. Do not use the demo configuration or print connection strings. No sibling checkout or environment file is required.
 
 ```powershell
 & {
+    if (-not $env:DATABASE_URL) { throw 'Configure the dedicated TEST connection first.' }
     $previousMode = $env:MEDICIA_ISOLATED_UI_TESTS
     try {
         $env:MEDICIA_ISOLATED_UI_TESTS = '1'
-        node --env-file=../Trabajo-lucho/.env.local ./tests/support/ui-test-environment.mts check
+        node ./tests/support/ui-test-environment.mts check
         if ($LASTEXITCODE -ne 0) { throw 'Quality check failed; stop before E2E.' }
-        node --env-file=../Trabajo-lucho/.env.local ./tests/support/ui-test-environment.mts test:e2e
+        node ./tests/support/ui-test-environment.mts test:e2e
         if ($LASTEXITCODE -ne 0) { throw 'E2E failed; inspect the sanitized report.' }
     }
-    finally {
-        if ($null -eq $previousMode) { Remove-Item Env:MEDICIA_ISOLATED_UI_TESTS -ErrorAction SilentlyContinue }
-        else { $env:MEDICIA_ISOLATED_UI_TESTS = $previousMode }
-    }
+    finally { $env:MEDICIA_ISOLATED_UI_TESTS = $previousMode }
 }
 ```
 
-The env-file path is specific to these sibling worktrees. Replace it with your human-managed TEST configuration when using another layout; never select the UI worktree's DEMO configuration. An already-set `DATABASE_URL` takes precedence over Node's file loader: an unexpected target is rejected rather than silently replaced.
+The explicit entrypoint validates the inherited TEST connection before delegating. Never run integration tests against a database that contains data you need to keep.
 
 ## What is isolated
 
@@ -36,3 +34,10 @@ The env-file path is specific to these sibling worktrees. Replace it with your h
 | Without opt-in | Previous loader, port 3000, commands and reuse behavior are retained. This legacy mode is **not** suitable for the UI DEMO configuration. |
 
 Do not run a development server on 3100 concurrently with E2E, or move/delete `.next` while a server is running. E2E and live `next-dev-loop` verification are separate checks; the latter also requires agent-browser >=0.31.1, Turbopack and a live `/_next/mcp`. Passing `check` alone is not visual, E2E, AWS or clinical validation.
+
+## Qué evidencia da cada prueba de ECG
+
+- **NPZ (compatibilidad):** los E2E eligen explícitamente «NPZ (compatibilidad)» y «Electrocardiograma (ECG)». Usan un NPZ sintético, la acción de carga y la base TEST; el almacenamiento y el modelo legacy son simulados. Los estudios que se siembran sin archivo solo comprueban el escenario que declara cada prueba.
+- **Selector PDF:** `tests/e2e/study-pdf-picker.spec.ts` usa el formulario autenticado del paciente, con una cuenta sintética. Comprueba apertura por teclado, foco visible, nombre y tamaño, reflujo, retiro, rechazo y cambio de formato. El archivo sintético nunca se envía: esto no prueba extracción Mortara, guardado, visor, modelo ni aislamiento entre clínicas para PDF. Los éxitos simulados en Vitest tampoco son prueba del backend.
+- **Movimiento en el ingreso:** `tests/e2e/sign-in-motion.spec.ts` comprueba que el ECG decorativo queda estático con movimiento reducido y conserva su animación de 18 s con la preferencia predeterminada.
+- **Backend PDF:** requiere una ejecución aislada y autorizada que observe carga → visor → pedido explícito → resultado del modelo, y compruebe el rechazo desde otra clínica. No se infiere de los fixtures ni del listado estático de Playwright, que no ejecuta pruebas ni demuestra comportamiento en navegador.

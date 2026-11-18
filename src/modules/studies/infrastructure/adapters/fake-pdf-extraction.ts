@@ -24,7 +24,7 @@ export function createFakePdfExtraction({ outcome = "SUCCESS", delayMs = 0 }: Fa
   return createHttpPdfExtraction({
     endpoint: "https://synthetic.invalid/extract",
     // Transporte cerrado: nunca hay red ni fallback a globalThis.fetch.
-    fetch: async (_url, init) => {
+    fetch: async (url, init) => {
       if (outcome === "TIMEOUT") return new Promise<Response>(() => undefined);
       if (delayMs > 0) {
         await new Promise<void>((resolve, reject) => {

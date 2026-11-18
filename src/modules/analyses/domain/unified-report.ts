@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { ANALYSIS_FAILURE_CODES } from "./analysis";
+import { ANALYSIS_FAILURE_CODES, type AnalysisRequester } from "./analysis";
 import { InvalidProbabilitiesError, parseProbabilities } from "./findings";
 
 const COMPONENT_KEYS = ["echonext", "e022"] as const;
@@ -138,7 +138,12 @@ type PublicationSummary = Readonly<{
 }>;
 export type UnifiedReportPublication = PublicationSummary & (
   | Readonly<{ coverage: "WAITING" | "NONE" }>
-  | Readonly<{ coverage: "COMPLETE" | "PARTIAL"; contributions: readonly UnifiedContribution[] }>
+  | Readonly<{
+    coverage: "COMPLETE" | "PARTIAL";
+    contributions: readonly UnifiedContribution[];
+    // La consulta autorizada agrega la proyección visible; no forma parte del documento persistido.
+    requestedBy?: Readonly<AnalysisRequester>;
+  }>
 );
 
 export class InvalidUnifiedReportError extends Error {

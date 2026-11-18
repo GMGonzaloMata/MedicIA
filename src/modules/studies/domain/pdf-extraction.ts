@@ -29,11 +29,12 @@ const extractionSchema = z.strictObject({
   measurements: z.strictObject({
     sex: z.enum(["female", "male"]).nullable(),
     age: measurementSchema,
-    ventricular_rate: measurementSchema,
-    atrial_rate: measurementSchema,
-    pr_interval: measurementSchema,
-    qrs_duration: measurementSchema,
-    qt_corrected: measurementSchema,
+    // Las claves externas conservan el nombre exacto de mortara-extraction.v1.
+    ["ventricular_rate"]: measurementSchema,
+    ["atrial_rate"]: measurementSchema,
+    ["pr_interval"]: measurementSchema,
+    ["qrs_duration"]: measurementSchema,
+    ["qt_corrected"]: measurementSchema,
   }).readonly(),
 }).readonly();
 

@@ -66,7 +66,7 @@ export function createHttpPdfExtraction(options: HttpPdfExtractionOptions): PdfE
       signal.addEventListener("abort", onCallerAbort, { once: true });
       const timer = setTimeout(() => controller.abort(), DEADLINE_MS);
       let onAbort: () => void = () => undefined;
-      const aborted = new Promise<never>((_resolve, reject) => {
+      const aborted = new Promise<never>((resolve, reject) => {
         onAbort = () => { cancelBody(); reject(unavailable()); };
         controller.signal.addEventListener("abort", onAbort, { once: true });
       });

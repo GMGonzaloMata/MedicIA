@@ -3,6 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { enterClinicAs } from "../support/e2e-accounts";
 import { createE2eDatabase, uniqueName, type E2eDatabase } from "../support/e2e-database";
 import { buildNpz } from "../support/npz-builder";
+import { selectNpzEcg } from "./fixtures/npz-upload";
 
 let database: E2eDatabase;
 
@@ -15,6 +16,7 @@ test.afterAll(async () => {
 });
 
 async function uploadValidStudy(page: Page) {
+  await selectNpzEcg(page);
   await page.getByLabel("Archivo del electrocardiograma").setInputFiles({
     name: "estudio.npz",
     mimeType: "application/octet-stream",

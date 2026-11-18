@@ -39,7 +39,18 @@ function IntegratedAnalysisPanel({ studyId, analysisId }: IntegratedAnalysisSect
         const result = await getIntegratedAnalysisAction(studyId, activeId);
         if (cancelled) return;
         setIsLoading(false);
-        if (!result.ok) { setError(result.message); return; }
+        if (!result.ok) {
+          if (result.code === "NOT_FOUND") {
+            // Una selección inexistente o inaccesible vuelve al estudio sin iniciar otro pedido.
+            setReport(null);
+            setActiveId(undefined);
+            setError(ANALYSIS_MESSAGES.notAvailable);
+            replace(`/studies/${encodeURIComponent(studyId)}`, { scroll: false });
+          } else {
+            setError(result.message);
+          }
+          return;
+        }
         if (result.report.studyId !== studyId || result.report.analysisId !== activeId) {
           setError(ANALYSIS_MESSAGES.notAvailable); return;
         }
@@ -57,7 +68,7 @@ function IntegratedAnalysisPanel({ studyId, analysisId }: IntegratedAnalysisSect
     }
     startTransition(read);
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [activeId, readAttempt, refresh, studyId]);
+  }, [activeId, readAttempt, refresh, replace, studyId]);
 
   const unresolved = Boolean(activeId && (!report || report.coverage === "WAITING"));
   function request() {

@@ -1,3 +1,5 @@
+// @vitest-environment node
+// El adaptador corre en Node: jsdom mezcla los realms de TextEncoder y Uint8Array.
 import { Buffer } from "node:buffer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -37,8 +39,13 @@ function json(value: unknown, status = 200): Response {
   return new Response(JSON.stringify(value), { status, headers: { "Content-Type": "application/json" } });
 }
 
-function adapter(response: () => Response | Promise<Response> = () => json(extraction())) {
-  const transport = vi.fn(async (_url: string, _init: RequestInit) => response());
+function mockTransport(response: () => Response | Promise<Response> = () => json(extraction())) {
+  type Transport = NonNullable<Parameters<typeof createHttpPdfExtraction>[0]["fetch"]>;
+  return vi.fn<Transport>(async () => response());
+}
+
+function adapter(response?: () => Response | Promise<Response>) {
+  const transport = mockTransport(response);
   return { reader: createHttpPdfExtraction({ endpoint: ENDPOINT, fetch: transport }), transport };
 }
 
@@ -272,7 +279,7 @@ describe("frontera HTTP privada de extracción PDF", () => {
   });
 
   it.each(["localhost", "127.0.0.1", "[::1]"])("permite solo loopback explícito de prueba %s", async (host) => {
-    const transport = vi.fn(async (_url: string, _init: RequestInit) => json(extraction()));
+    const transport = mockTransport();
     const reader = createHttpPdfExtraction({ endpoint: `http://${host}:9000/extract`, allowLoopbackHttpForTests: true, fetch: transport });
     await reader.extract({ bytes: pdf(), signal: signal() });
     expect(transport).toHaveBeenCalledTimes(1);
@@ -285,7 +292,7 @@ describe("frontera HTTP privada de extracción PDF", () => {
   });
 
   it("captura configuración y genera correlaciones independientes, sin URL del llamante", async () => {
-    const transport = vi.fn(async (_url: string, _init: RequestInit) => json(extraction()));
+    const transport = mockTransport();
     const options = { endpoint: ENDPOINT, fetch: transport };
     const reader = createHttpPdfExtraction(options);
     options.endpoint = "https://changed.invalid";

@@ -20,10 +20,16 @@ export function createGetIntegratedAnalysis({ analyses, studySource, now }: GetI
     await analyses.expireIntegratedStale({ tenantId: actor.tenantId, studyId, now: now() });
     const row = await analyses.findIntegratedById({ tenantId: actor.tenantId, studyId, analysisId });
     if (!row || row.tenantId !== actor.tenantId || row.studyId !== studyId || row.id !== analysisId
-      || row.integratedResult.analysisId !== analysisId || row.integratedResult.studyId !== studyId) {
+      || row.integratedResult.analysisId !== analysisId || row.integratedResult.studyId !== studyId
+      || row.integratedResult.requestedByUserId !== row.requestedByUserId) {
       throw new AnalysisNotFoundError();
     }
     // Reutiliza la política de publicación: WAITING/NONE no transportan contribuciones clínicas.
-    return publishUnifiedReport(row.integratedResult);
+    const report = publishUnifiedReport(row.integratedResult);
+    if (report.coverage !== "COMPLETE" && report.coverage !== "PARTIAL") return report;
+    const requestedBy = row.requestedBy.kind === "PATIENT"
+      ? { kind: "PATIENT" } as const
+      : { kind: "DOCTOR", fullName: row.requestedBy.fullName } as const;
+    return Object.freeze({ ...report, requestedBy: Object.freeze(requestedBy) });
   };
 }

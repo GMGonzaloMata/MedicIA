@@ -57,10 +57,35 @@ describe("panel PDF con pedido explícito y consulta real", () => {
     expect(mocks.request).not.toHaveBeenCalled(); expect(screen.getByText("No se obtuvo un resultado válido.")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Analizar estudio" })).toHaveProperty("disabled", false);
   });
+  it.each([false, true])("NOT_FOUND descarta la selección sin pedir otro análisis (sondeo=%s)", async (polling) => {
+    const denied = { ok: false, code: "NOT_FOUND", message: "No tenés acceso a este estudio." };
+    if (!polling) mocks.read.mockResolvedValueOnce(denied);
+    render(<IntegratedAnalysisSection studyId={STUDY} analysisId={ANALYSIS} />); await tick();
+    if (polling) {
+      expect(screen.getByText(`Pedido ${ANALYSIS}`, { exact: false })).toBeTruthy();
+      mocks.read.mockResolvedValueOnce(denied);
+      await tick(3000);
+    }
+    expect(screen.queryByText("Analizando el estudio…")).toBeNull();
+    expect(screen.queryByText(`Pedido ${ANALYSIS}`, { exact: false })).toBeNull();
+    expect(screen.queryByText("0,7234")).toBeNull();
+    expect(screen.getByRole("alert").textContent).toBe("No pudimos cargar el análisis. Probá de nuevo en unos minutos.");
+    expect(screen.queryByRole("button", { name: "Actualizar informe" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Analizar estudio" })).toHaveProperty("disabled", false);
+    expect(mocks.replace).toHaveBeenCalledExactlyOnceWith(`/studies/${STUDY}`, { scroll: false });
+    expect(mocks.refresh).not.toHaveBeenCalled();
+    await tick(9000);
+    expect(mocks.read).toHaveBeenCalledTimes(polling ? 2 : 1);
+    expect(mocks.request).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Analizar estudio" })); await tick();
+    expect(mocks.request).toHaveBeenCalledExactlyOnceWith(STUDY);
+  });
   it("un error de lectura detiene el sondeo y ofrece recuperación sin otro pedido", async () => {
     mocks.read.mockResolvedValueOnce({ ok: false, code: "UNAVAILABLE", message: "No pudimos cargar el análisis. Probá de nuevo en unos minutos." });
     render(<IntegratedAnalysisSection studyId={STUDY} analysisId={ANALYSIS} />); await tick();
-    expect(screen.getByRole("alert").textContent).toContain("No pudimos cargar el análisis");
+    expect(screen.getByRole("alert").textContent).toBe("No pudimos cargar el análisis. Probá de nuevo en unos minutos.");
+    expect(screen.getByRole("button", { name: "Hay un análisis en curso" })).toHaveProperty("disabled", true);
+    expect(mocks.replace).not.toHaveBeenCalled();
     await tick(9000); expect(mocks.read).toHaveBeenCalledTimes(1);
     mocks.read.mockResolvedValueOnce({ ok: true, report: publication("COMPLETED") });
     fireEvent.click(screen.getByRole("button", { name: "Actualizar informe" })); await tick();

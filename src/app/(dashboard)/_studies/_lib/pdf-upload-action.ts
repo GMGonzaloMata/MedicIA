@@ -18,7 +18,7 @@ type UploadPdfStudy = (input: UploadPdfStudyInput) => Promise<{ studyId: string;
 // La dependencia queda capturada solo en servidor, nunca en argumentos de la Server Action.
 // null es una capacidad no habilitada: no lee bytes, construye infraestructura ni selecciona un fake.
 export function createPdfUploadAction(upload: UploadPdfStudy | null) {
-  return async (_previous: UploadStudyState, formData: FormData): Promise<UploadStudyState> => {
+  return async (previousState: UploadStudyState, formData: FormData): Promise<UploadStudyState> => {
     const access = await requireClinicContextForAction();
     const actor = access.isAuthorized ? toStudyActor(access.context) : null;
     if (!actor) return { ok: false, code: "FORBIDDEN", message: STUDY_MESSAGES.forbidden };

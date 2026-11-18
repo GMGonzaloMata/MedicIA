@@ -5,7 +5,7 @@ import { appendFile, lstat, mkdir, readFile, readdir, realpath, symlink, writeFi
 import { createServer, request } from "node:http";
 import { createRequire } from "node:module";
 import { delimiter, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
 
 const REPOSITORY = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");

@@ -144,7 +144,7 @@ describe("PDF → pedido → informe persistido: autorización integrada con SQL
     expect(saved?.integratedResult.components).toEqual({ e022: execution });
     expect(w.predict).toHaveBeenCalledExactlyOnceWith({ component: "e022", extraction: stored.extraction, signal: expect.any(AbortSignal) });
     const expected = {
-      ...pending.analysis, coverage: "PARTIAL",
+      ...pending.analysis, coverage: "PARTIAL", requestedBy: { kind: "PATIENT" },
       components: { e022: { status: "COMPLETED", startedAt: executedAt, finishedAt: executedAt, failureCode: null } },
       contributions: [{ component: "e022", execution }],
     };

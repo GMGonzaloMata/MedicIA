@@ -133,7 +133,7 @@ describe("dropzone PDF integrado, sin servicios reales", () => {
   });
   it("pending dura exactamente la promesa, impide cambiar el archivo y muestra error recuperable sin detalles", async () => {
     let reject: (error: Error) => void = () => { throw new Error("Promesa ausente"); };
-    pdfAction.mockImplementation(() => new Promise((_resolve, rejectPromise) => { reject = rejectPromise; }));
+    pdfAction.mockImplementation(() => new Promise((resolvePromise, rejectPromise) => { reject = rejectPromise; }));
     render(<UploadForm maxBytes={MAX} />); ecg(); drop([file()]); send();
     await waitFor(() => expect(screen.getByRole("button", { name: "Enviando estudio…" })).toHaveProperty("disabled", true));
     expect(screen.getByRole("status").textContent).toBe("Enviando el archivo para validar y guardar. Esto no ejecuta un análisis.");

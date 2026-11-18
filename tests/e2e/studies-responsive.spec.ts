@@ -3,6 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { enterClinicAs } from "../support/e2e-accounts";
 import { createE2eDatabase, uniqueName, type E2eDatabase } from "../support/e2e-database";
 import { buildNpz } from "../support/npz-builder";
+import { selectNpzEcg } from "./fixtures/npz-upload";
 
 // Las tres pantallas de estudios se prueban en los tres anchos y los dos esquemas de color dentro de una sola
 // ejecución (el viewport se fija acá), así que corre solo en el proyecto de escritorio.
@@ -113,6 +114,7 @@ test("los estados tienen texto además de color", async ({ page }) => {
 
   await expect(page.getByRole("cell", { name: "Cargado" })).toBeVisible();
 
+  await selectNpzEcg(page);
   await page.getByLabel("Archivo del electrocardiograma").setInputFiles({
     name: "no-es-npz.npz",
     mimeType: "application/octet-stream",
@@ -126,13 +128,14 @@ test("los estados tienen texto además de color", async ({ page }) => {
   await expect(alert.locator("svg")).toBeVisible();
 });
 
-test("la carga y la eliminación se completan solo con teclado, con foco visible", async ({ page }) => {
+test("el envío NPZ y la eliminación se completan con teclado, con foco visible", async ({ page }) => {
   const { tenantId } = await world();
   await enterClinicAs(page, database, { role: "patient", tenantId });
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/studies");
 
-  // El contenido de la sesión llega por streaming: se espera al formulario antes de tabular.
+  // El recorrido de teclado empieza en el campo de archivo, después de preparar el formulario NPZ.
+  await selectNpzEcg(page);
   await expect(page.getByLabel("Archivo del electrocardiograma")).toBeVisible();
 
   // Tabulación hasta el campo de archivo; el foco es visible.

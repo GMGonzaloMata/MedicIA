@@ -3,6 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { enterClinicAs } from "../support/e2e-accounts";
 import { createE2eDatabase, uniqueName, type E2eDatabase } from "../support/e2e-database";
 import { buildNpz } from "../support/npz-builder";
+import { selectNpzEcg } from "./fixtures/npz-upload";
 
 let database: E2eDatabase;
 
@@ -15,6 +16,7 @@ test.afterAll(async () => {
 });
 
 async function uploadValidStudy(page: Page) {
+  await selectNpzEcg(page);
   await page.getByLabel("Archivo del electrocardiograma").setInputFiles({
     name: "ecg-de-prueba.npz",
     mimeType: "application/octet-stream",
@@ -60,6 +62,7 @@ test("un archivo inválido se rechaza con el motivo y no consume número", async
   await enterClinicAs(page, database, { role: "patient", tenantId });
   await page.goto("/studies");
 
+  await selectNpzEcg(page);
   await page.getByLabel("Archivo del electrocardiograma").setInputFiles({
     name: "no-es-npz.npz",
     mimeType: "application/octet-stream",

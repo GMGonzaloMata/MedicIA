@@ -6,8 +6,8 @@ import { afterEach, describe, expect, it } from "vitest";
 
 const ROOT = process.cwd();
 const PRELOAD = resolve(ROOT, "tests/support/ui-test-environment.mts");
-const TEST_URL = "postgresql://127.0.0.1:55433/medicia_test?schema=public";
-const DEMO_URL = "postgresql://127.0.0.1:55433/medicia_demo?schema=public";
+const TEST_URL = "postgresql://127.0.0.1:15433/medicia_test?schema=public";
+const DEMO_URL = "postgresql://127.0.0.1:15433/medicia_demo?schema=public";
 const fixtures: string[] = [];
 
 function fixture(database = TEST_URL) {
@@ -53,14 +53,14 @@ afterEach(() => {
 
 describe("isolated UI test configuration", () => {
   it("rejects non-owned database targets before the command can start", () => {
-    for (const database of [DEMO_URL, TEST_URL.replace(":55433", ":5432"), TEST_URL + "&host=remote.invalid"]) {
+    for (const database of [DEMO_URL, TEST_URL.replace(":15433", ":55433"), TEST_URL.replace(":15433", ":5432"), TEST_URL + "&host=remote.invalid"]) {
       const directory = fixture(database);
       const before = readFileSync(join(directory, ".env.local"), "utf8");
       const result = probe(directory, "await import('node:fs').then(fs=>fs.writeFileSync('started.txt','1'));", true, true);
       expect(result.error).toBeUndefined();
       expect(result.status).toBe(2);
       expect(result.stdout).toBe("");
-      expect(result.stderr).toBe("medicia UI tests: expected 127.0.0.1:55433/medicia_test with no routing overrides\n");
+      expect(result.stderr).toBe("medicia UI tests: expected 127.0.0.1:15433/medicia_test with no routing overrides\n");
       expect(existsSync(join(directory, "started.txt"))).toBe(false);
       expect(readFileSync(join(directory, ".env.local"), "utf8")).toBe(before);
     }
@@ -94,7 +94,7 @@ describe("isolated UI test configuration", () => {
       expect(result.error).toBeUndefined();
       expect(result.status).toBe(status);
       expect(result.stdout).toBe(status === 0 ? "test-command-started\n" : "");
-      expect(result.stderr).toBe(status === 0 ? "" : "medicia UI tests: expected 127.0.0.1:55433/medicia_test with no routing overrides\n");
+      expect(result.stderr).toBe(status === 0 ? "" : "medicia UI tests: expected 127.0.0.1:15433/medicia_test with no routing overrides\n");
       expect(existsSync(join(directory, "started.txt"))).toBe(status === 0);
       expect(readFileSync(join(directory, "settings.test"), "utf8")).toBe(before);
     }
@@ -109,7 +109,7 @@ describe("isolated UI test configuration", () => {
   });
 
   it("uses an exclusive loopback server without reuse in isolated Playwright mode", () => {
-    const result = probe(fixture(), configProgram("playwright.config.ts"), true);
+    const result = probe(fixture(), configProgram("playwright.config.mts"), true);
     expect(result.error).toBeUndefined();
     expect(result.status).toBe(0);
     expect(result.stderr).toBe("");
@@ -128,7 +128,7 @@ describe("isolated UI test configuration", () => {
   });
 
   it("preserves the previous Playwright URL, command and reuse without opt-in", () => {
-    const result = probe(fixture(), configProgram("playwright.config.ts"), false);
+    const result = probe(fixture(), configProgram("playwright.config.mts"), false);
     expect(result.error).toBeUndefined();
     expect(result.status).toBe(0);
     expect(result.stderr).toBe("");

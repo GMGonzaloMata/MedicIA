@@ -52,7 +52,7 @@ describe("visor PDF: muestras observadas, no señal normalizada", () => {
     const second = leads[1];
     if (!first || !second) throw new Error("Fixture incompleta");
     first.observed.fill(true);
-    first.samples = first.samples.map((_, index) => index === 100 ? 0.1 : index === 4999 ? -123.25 : 0);
+    first.samples = first.samples.map((sample, index) => index === 100 ? 0.1 : index === 4999 ? -123.25 : 0);
     second.observed[0] = true;
     second.samples[0] = 5000;
     render(<PdfStudyViewer leads={leads} />);

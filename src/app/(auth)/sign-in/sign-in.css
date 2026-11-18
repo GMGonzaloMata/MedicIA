@@ -160,6 +160,9 @@
 .medicia-login-trace { grid-row: 2; overflow: hidden; width: 100%; height: auto; margin-top: 1rem; }
 .medicia-login-ribbon { animation: medicia-login-scroll 18s linear infinite; }
 @keyframes medicia-login-scroll { to { transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) {
+  .medicia-login-ribbon { animation: none; }
+}
 @media (max-width: 48rem) {
   .medicia-login-page { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
   .medicia-login-access { padding: 7.5rem 1.5rem 2rem; }

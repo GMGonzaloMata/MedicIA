@@ -29,8 +29,8 @@ async function setup(extension = "pdfecg1") {
   // Orden no canónico y valores no redondeados: el DTO debe conservar nombres, muestras y máscara.
   const leads = [...extraction.leads].reverse().map((lead) => ({
     ...lead,
-    samples: lead.samples.map((_, i) => i === 1 ? 0.1 : i === 2 ? -123.25 : i === 4999 ? 456.5 : 0),
-    observed: lead.observed.map((_, i) => i === 1 || i === 2 || i === 4 || i === 4999),
+    samples: lead.samples.map((sample, i) => i === 1 ? 0.1 : i === 2 ? -123.25 : i === 4999 ? 456.5 : 0),
+    observed: lead.observed.map((observed, i) => i === 1 || i === 2 || i === 4 || i === 4999),
   }));
   const stored = encodePdfStudy({ format: "MEDPDF01", originalPdfBase64: original.toString("base64"), extraction: { ...extraction, leads }, derivatives: { version: 1 } });
   const key = `studies/tenant-a/study-1.${extension}`;
