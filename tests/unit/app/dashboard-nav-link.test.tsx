@@ -59,12 +59,11 @@ describe("enlace de navegación", () => {
 
 describe("estilo actual de navegación", () => {
   it("vincula el indicador a aria-current con tokens y una señal no cromática", () => {
-    const css = readFileSync("src/app/globals.css", "utf8");
-    const rule = css.match(/\.dashboard-nav-link\[aria-current="page"\]\s*\{([^}]+)\}/)?.[1];
-    expect(rule).toBeDefined();
-    expect(rule).toContain("var(--workspace-accent-surface)");
-    expect(rule).toContain("var(--workspace-accent)");
-    expect(rule).toContain("font-weight: 600");
-    expect(css).toContain(".dashboard-shell :where(a, button):focus-visible");
+    const css = readFileSync("src/app/(dashboard)/dashboard.css", "utf8");
+    const rule = css.match(/\.clinical-nav-link\[aria-current="page"\]\s*\{([^}]+)\}/)?.[1];
+    expect(rule).toContain("var(--clinical-selected)");
+    expect(rule).toContain("font-weight: 650");
+    expect(css).toMatch(/\.clinical-nav-link\[aria-current="page"\]::before\s*\{[^}]+border-inline-start:/);
+    expect(css).toMatch(/\.clinical-shell [^\n]+:focus-visible\s*\{[^}]+outline: 2px solid var\(--clinical-focus\)/);
   });
 });

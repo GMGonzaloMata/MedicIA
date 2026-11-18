@@ -45,13 +45,19 @@ test("el selector PDF se alcanza y abre por teclado, y quitar el archivo devuelv
   await format.selectOption("PDF");
   await expect(file).toHaveAttribute("accept", ".pdf");
 
-  await type.focus();
-  await page.keyboard.press("Tab");
-  await expect(picker).toBeFocused();
-  await expect(picker).not.toHaveCSS("outline-style", "none");
-  await expect(picker).not.toHaveCSS("outline-width", "0px");
-
-  const [chooser] = await Promise.all([page.waitForEvent("filechooser"), page.keyboard.press("Enter")]);
+  // Playwright activa la interceptación en Chromium de forma asíncrona. Registrala antes
+  // de navegar con Tab: Enter en paralelo con el registro puede abrir el selector sin interceptarlo.
+  const [chooser] = await Promise.all([
+    page.waitForEvent("filechooser"),
+    (async () => {
+      await type.focus();
+      await page.keyboard.press("Tab");
+      await expect(picker).toBeFocused();
+      await expect(picker).not.toHaveCSS("outline-style", "none");
+      await expect(picker).not.toHaveCSS("outline-width", "0px");
+      await page.keyboard.press("Enter");
+    })(),
+  ]);
   await chooser.setFiles(PDF_FILE);
   await expect(region.getByText(PDF_FILE.name, { exact: true })).toBeVisible();
   await expect(region.getByText(`${PDF_FILE.buffer.length} bytes`, { exact: true })).toBeVisible();

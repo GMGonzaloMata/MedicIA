@@ -1,0 +1,9 @@
+# Investigación: Resumen clínico en Inicio
+
+| Decisión | Fundamento | Alternativa descartada |
+| --- | --- | --- |
+| Usar `Study.uploadedAt` descendente con `id` descendente en empates. | Es la única fecha persistida de `Study`; `formatUploadedAt` ya la presenta en la zona horaria de Buenos Aires. El número correlativo es por paciente y no ordena entre pacientes. | Fecha inferida del archivo o del análisis; orden solo por número. |
+| Consultar `Patient` vinculado con `assignments.some` vigente de tenant y membresía, como en el directorio existente. Aplicar ese mismo predicado a ambos conteos y la lista. | Reproduce el acceso vigente sin devolver documentos de pacientes, materializar todos los IDs o reunir páginas del directorio. | Sumar la primera página del directorio o consultar el historial de cada paciente. |
+| Proyección de lectura independiente y tres operaciones Prisma en una transacción `RepeatableRead`. | Evita ensanchar repositorios y mocks generales, y mantiene totales y fila reciente coherentes ante cambios concurrentes. La relación de paciente se selecciona como parte de la lectura acotada. | SQL propio o varias consultas por paciente y sin instantánea común. |
+| Identidad derivada con `requireClinicContext` y `toStudyActor`. | Respeta la sesión y mantiene el acceso ordinario del vínculo doble. La pantalla no acepta filtros del usuario ni cachea el resultado. | Enviar IDs del médico al navegador para que un endpoint resuelva el resumen. |
+| Enlaces de estudios sin prefetch. | No conviene anticipar lecturas clínicas desde Inicio; el visor vuelve a decidir el acceso al abrirse. Las guías locales de Next documentan `Link` con `prefetch={false}` para App Router y lectura dentro de `Suspense`. | Prefetch deliberado de los visores autorizados en la última carga. |

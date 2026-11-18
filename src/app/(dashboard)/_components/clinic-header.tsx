@@ -2,21 +2,18 @@ import { Suspense } from "react";
 
 import { getAccessContext } from "../../_lib/access";
 import { describeRelationship } from "../_lib/relationship-labels";
+import { ClinicalIcon } from "./clinical-icon";
 import { DashboardNavLink } from "./dashboard-nav-link";
 import { SignOutButton } from "./sign-out-button";
 
-// Marco visual reutilizado del rebranding; la clínica y los destinos conservan sus permisos vigentes.
 export function ClinicHeader() {
   return (
-    <header className="dashboard-sidebar">
-      <p className="dashboard-brand">
-        <span aria-hidden="true" className="dashboard-monogram">M</span>
-        MedicIA
-      </p>
-      <Suspense fallback={<p className="text-sm text-muted">Cargando…</p>}>
+    <header className="clinical-sidebar">
+      <p className="clinical-brand">Medic<span>IA</span></p>
+      <Suspense fallback={<p role="status" className="clinical-sidebar-loading">Cargando…</p>}>
         <ActiveClinic />
       </Suspense>
-      <div className="dashboard-session">
+      <div className="clinical-session">
         <SignOutButton />
       </div>
     </header>
@@ -29,27 +26,33 @@ async function ActiveClinic() {
 
   return (
     <>
-      <div className="dashboard-clinic space-y-2 text-sm">
-        <p className="dashboard-label">Clínica activa</p>
-        <p className="font-semibold">{context.clinic.tenantName}</p>
-        <p className="text-muted">{describeRelationship(context.clinic.relationship)}</p>
-      </div>
-      <nav aria-label="Navegación principal" className="dashboard-nav">
-        <DashboardNavLink href="/" className="dashboard-nav-link">Inicio</DashboardNavLink>
+      <nav aria-label="Navegación principal" className="clinical-nav">
+        <DashboardNavLink href="/" className="clinical-nav-link">
+          <ClinicalIcon name="home" />
+          <span>Inicio</span>
+        </DashboardNavLink>
         {context.clinic.relationship.kind === "PATIENT" ? (
-          <DashboardNavLink href="/studies" className="dashboard-nav-link">
-            Mis estudios
+          <DashboardNavLink href="/studies" className="clinical-nav-link">
+            <ClinicalIcon name="studies" />
+            <span>Mis estudios</span>
           </DashboardNavLink>
         ) : null}
         {context.clinic.relationship.kind === "STAFF" && context.clinic.relationship.isDoctor ? (
-          <DashboardNavLink href="/patients" className="dashboard-nav-link">
-            Mis pacientes
+          <DashboardNavLink href="/patients" className="clinical-nav-link">
+            <ClinicalIcon name="patients" />
+            <span>Mis pacientes</span>
           </DashboardNavLink>
         ) : null}
-        <DashboardNavLink href="/select-clinic" className="dashboard-nav-link">
-          Cambiar de clínica
+        <DashboardNavLink href="/select-clinic" className="clinical-nav-link">
+          <ClinicalIcon name="switch" />
+          <span>Cambiar de clínica</span>
         </DashboardNavLink>
       </nav>
+      <div className="clinical-clinic">
+        <p className="clinical-kicker">Clínica activa</p>
+        <p className="clinical-clinic-name">{context.clinic.tenantName}</p>
+        <p className="clinical-clinic-role">{describeRelationship(context.clinic.relationship)}</p>
+      </div>
     </>
   );
 }

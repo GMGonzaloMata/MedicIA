@@ -7,6 +7,7 @@ import { getAnalysesModule } from "@/modules/analyses/composition";
 import { createAuthorizeStudy } from "./application/use-cases/authorize-study";
 import { createDeleteStudy } from "./application/use-cases/delete-study";
 import { createGetAssignedPatient } from "./application/use-cases/get-assigned-patient";
+import { createGetDoctorOverview } from "./application/use-cases/get-doctor-overview";
 import { createGetStudyWaveform } from "./application/use-cases/get-study-waveform";
 import { createListDoctorPatients } from "./application/use-cases/list-doctor-patients";
 import { createListStudies } from "./application/use-cases/list-studies";
@@ -17,8 +18,12 @@ import { createUploadPdfStudy, type UploadPdfStudyInput } from "./application/us
 import { PdfExtractionError, type PdfExtraction } from "./application/ports/out/pdf-extraction";
 import { createStudyFileStorage } from "./infrastructure/adapters/create-study-file-storage";
 import { createNpzStudyFileReader } from "./infrastructure/adapters/npz-reader";
+import { prismaDoctorOverview } from "./infrastructure/repositories/prisma-doctor-overview";
 import { prismaPatientDirectory } from "./infrastructure/repositories/prisma-patient-directory";
 import { prismaStudyRepository } from "./infrastructure/repositories/prisma-study-repository";
+
+// Inicio solo lee metadatos: no necesita inicializar el almacenamiento de archivos.
+export const getDoctorOverview = createGetDoctorOverview({ overview: prismaDoctorOverview });
 
 function buildStudiesModule() {
   const storage = createStudyFileStorage(process.env);

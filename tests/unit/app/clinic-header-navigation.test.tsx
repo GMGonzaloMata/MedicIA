@@ -1,22 +1,28 @@
 import { render, screen, within } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { renderToReadableStream } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ClinicHeader } from "@/app/(dashboard)/_components/clinic-header";
+import HomePage from "@/app/(dashboard)/page";
+import type { ReadyAccessContext } from "@/app/_lib/access";
 import type { AccessContext, ClinicRelationship } from "@/modules/users/domain/access-context";
 
-const { getAccessContext, usePathname } = vi.hoisted(() => ({
+const { getAccessContext, requireClinicContext, usePathname, getDoctorOverview } = vi.hoisted(() => ({
   getAccessContext: vi.fn<() => Promise<AccessContext>>(),
+  requireClinicContext: vi.fn<() => Promise<ReadyAccessContext>>(),
   usePathname: vi.fn<() => string>(),
+  getDoctorOverview: vi.fn(),
 }));
 
-vi.mock("@/app/_lib/access", () => ({ getAccessContext }));
+vi.mock("@/app/_lib/access", () => ({ getAccessContext, requireClinicContext }));
+vi.mock("@/modules/studies/composition", () => ({ getDoctorOverview }));
 vi.mock("next/navigation", () => ({ usePathname }));
 vi.mock("@/app/(dashboard)/_components/sign-out-button", () => Object.fromEntries([
   ["SignOutButton", () => <button>Salir</button>],
 ]));
 
-function readyContext(relationship: ClinicRelationship): AccessContext {
+function readyContext(relationship: ClinicRelationship): ReadyAccessContext {
   return {
     status: "ready",
     user: { id: "test-user", email: "user@example.test", fullName: "Usuario de prueba", isPlatformAdmin: false },
@@ -24,16 +30,21 @@ function readyContext(relationship: ClinicRelationship): AccessContext {
   };
 }
 
-async function renderHeader() {
+async function renderServerView(view: ReactNode) {
   // Render público del servidor con acceso simulado: no se importa auth ni persistencia real.
-  const stream = await renderToReadableStream(<ClinicHeader />);
+  const stream = await renderToReadableStream(view);
   await stream.allReady;
   const html = await new Response(stream).text();
   const htmlKey = "__html";
   render(<div dangerouslySetInnerHTML={{ [htmlKey]: html }} />);
 }
 
+function renderHeader() {
+  return renderServerView(<ClinicHeader />);
+}
+
 beforeEach(() => {
+  vi.clearAllMocks();
   usePathname.mockReturnValue("/");
   getAccessContext.mockResolvedValue(readyContext({ kind: "PATIENT", patientId: "test-patient" }));
 });
@@ -105,5 +116,40 @@ describe("visibilidad y destinos conservados por vínculo", () => {
     getAccessContext.mockResolvedValue(context);
     await renderHeader();
     expect(screen.queryByRole("navigation")).toBeNull();
+    expect(screen.getByRole("button", { name: "Salir" })).toBeTruthy();
+  });
+});
+
+describe("Inicio para vínculos no médicos", () => {
+  it.each<{ relationship: ClinicRelationship; title: string; destination?: [string, string] }>([
+    {
+      relationship: { kind: "PATIENT", patientId: "test-patient" },
+      title: "Estudios clínicos",
+      destination: ["Mis estudios", "/studies"],
+    },
+    {
+      relationship: { kind: "STAFF", membershipId: "test-member", isClinicAdmin: true, isDoctor: false },
+      title: "Perfil administrativo",
+    },
+  ])("organiza el acceso como $title", async ({ relationship, title, destination }) => {
+    requireClinicContext.mockResolvedValue(readyContext(relationship));
+    await renderServerView(<HomePage />);
+
+    expect(screen.getByRole("heading", { level: 1, name: "Inicio" })).toBeTruthy();
+    expect(screen.getByText("Clínica de prueba")).toBeTruthy();
+    expect(screen.queryByText("Contexto de trabajo")).toBeNull();
+    expect(screen.queryByRole("region", { name: "Resumen clínico" })).toBeNull();
+    expect(getDoctorOverview).not.toHaveBeenCalled();
+    const area = within(screen.getByRole("region", { name: title }));
+    expect(area.getByRole("heading", { level: 2, name: title })).toBeTruthy();
+    if (destination) {
+      const [label, href] = destination;
+      expect(area.getByText("Consultá tus estudios y revisá los análisis disponibles.")).toBeTruthy();
+      expect(area.getByRole("link", { name: label }).getAttribute("href")).toBe(href);
+      expect(screen.getAllByRole("link")).toHaveLength(1);
+    } else {
+      expect(area.getByText("Este perfil no tiene acceso a pacientes ni a estudios.")).toBeTruthy();
+      expect(screen.queryByRole("link")).toBeNull();
+    }
   });
 });
