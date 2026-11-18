@@ -8,7 +8,7 @@ interface LauncherApi {
   APP_ROOT: string;
   DEPENDENCY_ROOT: string;
   LINK_PATH: string;
-  createEnvironment(inherited: object, runRoot: string): Record<string, string>;
+  createEnvironment(inherited: object, runRoot: string): Record<string, string> & { NODE_ENV: "development" };
   fixtureFiles(): Record<string, string>;
   closeOwnedRuntime(steps: { stopAccepting(): Promise<void>; closeConnections(): void; closeApplication(): Promise<void> }): Promise<void>;
   parseCommand(args: string[]): string;
