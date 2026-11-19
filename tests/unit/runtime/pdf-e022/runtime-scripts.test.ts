@@ -1,9 +1,14 @@
-import { expect, it } from "vitest";
+import { expect, it as vitestIt } from "vitest";
 import { mkdtempSync, readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import { createHash } from "node:crypto";
+
+// Estos scripts de runtime son de PowerShell de Windows: donde no existe `powershell.exe` (como el runner
+// de Linux del CI) las pruebas se omiten en vez de fallar.
+const hasPowerShell = spawnSync("powershell.exe", ["-NoProfile", "-Command", "exit 0"]).error === undefined;
+const it = hasPowerShell ? vitestIt : vitestIt.skip;
 
 // La copia sin cambios del runner conserva su whitelist; TODO el fixture queda en la caché de esta ronda.
 const evidence = resolve("node_modules/.cache/medicia-pdf-runtime-import-recovery");
