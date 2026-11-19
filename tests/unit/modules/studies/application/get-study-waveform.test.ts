@@ -91,6 +91,21 @@ describe("leer la onda de un estudio", () => {
     });
   });
 
+  it("preserva el contrato READY ecg1 exacto y sus muestras Float32 sin versión PDF", async () => {
+    const { getWaveform } = await setup("user-p1");
+    const result = await getWaveform({ actor: patient, studyId: STUDY_ID });
+    expect(Object.keys(result).sort()).toEqual(["leads", "status", "study"]);
+    expect(result.status).toBe("READY");
+    if (result.status !== "READY") throw new Error("Se perdió el visor legacy");
+    const waveform = syntheticWaveform();
+    for (let lead = 0; lead < 12; lead += 1) {
+      const samples = result.leads[lead];
+      expect(samples).toBeInstanceOf(Float32Array);
+      expect(samples?.length).toBe(2500);
+      for (let index = 0; index < 2500; index += 1) expect(samples?.[index]).toBe(waveform[index * 12 + lead]);
+    }
+  });
+
   it("el médico con asignación vigente la ve con el nombre del paciente y de quién la cargó", async () => {
     const { getWaveform } = await setup("user-m1");
 

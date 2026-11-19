@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
+import "./motion.css";
 
 // Tipografía de memory/design.md: Plus Jakarta Sans para títulos y textos, Inter para etiquetas.
 const plusJakartaSans = Plus_Jakarta_Sans({

@@ -18,12 +18,12 @@ export function AnalysisResult({ result }: { result: AnalysisResultView }) {
     result.requestedBy.kind === "PATIENT" ? ANALYSIS_MESSAGES.requestedByPatient : result.requestedBy.fullName;
 
   return (
-    <section aria-labelledby="analysis-result-title" className="flex flex-col gap-4">
+    <section aria-labelledby="analysis-result-title" className="flex flex-col gap-4 border-t border-border pt-4">
       <h3 id="analysis-result-title" className="text-xl font-semibold">
         {ANALYSIS_MESSAGES.resultTitle}
       </h3>
       <AnalysisDisclaimer />
-      <dl className="grid grid-cols-1 gap-x-6 gap-y-1 text-base sm:grid-cols-[auto_1fr]">
+      <dl className="dashboard-metadata grid grid-cols-1 gap-x-6 gap-y-1 text-base sm:grid-cols-[auto_1fr]">
         <dt className="font-medium">Modelo</dt>
         <dd>{result.modelName}</dd>
         <dt className="font-medium">Versión</dt>

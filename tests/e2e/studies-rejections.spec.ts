@@ -11,6 +11,7 @@ import {
   syntheticTabular,
   syntheticWaveform,
 } from "../support/npz-builder";
+import { selectNpzEcg } from "./fixtures/npz-upload";
 
 let database: E2eDatabase;
 
@@ -23,6 +24,7 @@ test.afterAll(async () => {
 });
 
 async function chooseAndSubmit(page: Page, buffer: Buffer) {
+  await selectNpzEcg(page);
   await page.getByLabel("Archivo del electrocardiograma").setInputFiles({
     name: "estudio.npz",
     mimeType: "application/octet-stream",

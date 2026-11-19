@@ -11,6 +11,8 @@ import type { StudyActor } from "@/modules/studies/domain/study-access";
 import { requireClinicContext } from "../../../_lib/access";
 import { toStudyActor } from "../../../_lib/study-actor";
 import { AnalysisSection } from "../../_studies/_components/analysis/analysis-section";
+import { IntegratedAnalysisSection } from "../../_studies/_components/analysis/integrated-analysis-section";
+import { PdfStudyViewer } from "../../_studies/_components/viewer/pdf-study-viewer";
 import { StudyViewer } from "../../_studies/_components/viewer/study-viewer";
 import { StudyNoAccess, WaveformUnavailable } from "../../_studies/_components/viewer/viewer-states";
 import { WaveformSummary } from "../../_studies/_components/viewer/waveform-summary";
@@ -79,7 +81,15 @@ async function StudyContent({
   const back = listLink(actor, study.patientId);
   // Un `analysisId` mal formado se ignora y se muestra el análisis más reciente.
   const requestedAnalysis = z.uuid().safeParse((await searchParams).analysisId);
-  const analysis = (
+  // La fuente persistida separa PDF del flujo legacy, incluso si falta el archivo.
+  // Consultar el panel nunca solicita un análisis: solo el botón explícito lo hace.
+  const isPdf = result.status === "PDF_READY" || result.status === "PDF_UNAVAILABLE";
+  const analysis = isPdf ? (
+    <IntegratedAnalysisSection
+      studyId={parsedId.data}
+      analysisId={requestedAnalysis.success ? requestedAnalysis.data : undefined}
+    />
+  ) : (
     // Se muestra siempre que el estudio sea accesible, incluso con la onda no disponible. Tiene su propio
     // `Suspense`: el visor no espera al análisis.
     <Suspense
@@ -99,8 +109,8 @@ async function StudyContent({
 
   return (
     <>
-      <h1 className="text-[28px] font-semibold leading-tight sm:text-4xl">Estudio {study.number}</h1>
-      <dl className="grid grid-cols-1 gap-x-6 gap-y-1 text-base sm:grid-cols-[auto_1fr]">
+      <h1 className="text-[28px] font-semibold leading-tight tracking-tight sm:text-4xl">Estudio {study.number}</h1>
+      <dl className="dashboard-metadata grid grid-cols-1 gap-x-6 gap-y-1 text-base sm:grid-cols-[auto_1fr]">
         {actor.kind === "DOCTOR" ? (
           <>
             <dt className="font-medium">Paciente</dt>
@@ -113,10 +123,16 @@ async function StudyContent({
         <dd>{study.uploadedBy.kind === "PATIENT" ? "El propio paciente" : study.uploadedBy.fullName}</dd>
       </dl>
 
-      {result.status === "READY" ? (
+      {result.status === "READY" || result.status === "PDF_READY" ? (
         <>
-          <StudyViewer leads={result.leads} />
-          <WaveformSummary />
+          {result.status === "PDF_READY" ? (
+            <PdfStudyViewer leads={result.leads} />
+          ) : (
+            <>
+              <StudyViewer leads={result.leads} />
+              <WaveformSummary />
+            </>
+          )}
           {analysis}
           <p>
             <Link href={back.href} className={`${linkClassName} inline-flex min-h-11 items-center`}>

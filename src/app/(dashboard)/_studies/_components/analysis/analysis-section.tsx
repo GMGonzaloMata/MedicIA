@@ -69,7 +69,7 @@ export async function AnalysisSection({ actor, studyId, analysisId }: AnalysisSe
     !result && latest?.status === "FAILED" && latest.failureCode ? ANALYSIS_FAILURE_MESSAGES[latest.failureCode] : null;
 
   return (
-    <section aria-labelledby="analysis-title" className="flex flex-col gap-4">
+    <section aria-labelledby="analysis-title" className="dashboard-context">
       <h2 id="analysis-title" className="text-2xl font-semibold">
         {ANALYSIS_MESSAGES.sectionTitle}
       </h2>

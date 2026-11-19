@@ -2,9 +2,10 @@ import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
 import { config as loadEnvFile } from "dotenv";
 import { defineConfig } from "vitest/config";
+import { isolatedUiTests } from "./tests/support/ui-test-environment.mts";
 
-// Las pruebas de integración leen DATABASE_URL de .env.local; en CI viene del entorno.
-loadEnvFile({ path: ".env.local", quiet: true });
+// El modo aislado exige TEST precargado; nunca carga aquí el entorno de demo.
+if (!isolatedUiTests) loadEnvFile({ path: ".env.local", quiet: true });
 
 export default defineConfig({
   plugins: [react()],

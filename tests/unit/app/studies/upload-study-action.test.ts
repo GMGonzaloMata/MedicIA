@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MAX_UPLOAD_BYTES } from "@/modules/studies/domain/ecg-study";
@@ -63,6 +64,13 @@ describe("acción de subir un estudio", () => {
     expect(Object.keys(call).sort()).toEqual(["actor", "bytes", "patientId", "type"]);
     expect(call.bytes).toEqual(Uint8Array.from([1, 2, 3]));
     expect(revalidatePath).toHaveBeenCalledWith("/studies");
+  });
+
+  it("PRESERVE: campos nuevos PDF no cambian la acción NPZ ni sus dos refrescos", async () => {
+    expect(await uploadStudyAction(undefined, form({ format: "PDF", extraction: "fake", endpoint: "https://invalid.test", actor: "DOCTOR" }))).toEqual({ ok: true, number: 4 });
+    expect(studiesModule.uploadStudy).toHaveBeenCalledTimes(1);
+    expect(studiesModule.uploadStudy.mock.calls[0]?.[0]).toMatchObject({ type: "ECG", patientId: PATIENT_ID, bytes: Uint8Array.from([1, 2, 3]) });
+    expect(revalidatePath.mock.calls).toEqual([["/studies"], ["/patients", "layout"]]);
   });
 
   it("el médico sube al paciente que indica", async () => {

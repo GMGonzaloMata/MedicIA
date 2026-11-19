@@ -1,0 +1,6 @@
+# Contrato: Inicio (`/`)
+
+- Encabezado `Inicio` y nombre de la clínica se mantienen. Solo la rama médica presenta la región `Resumen clínico`, cuya explicación ubica el alcance en las asignaciones vigentes del médico en esa clínica.
+- `Pacientes asignados` y `Estudios de esos pacientes` muestran los totales, aunque no haya filas. `Estudios recientes` enumera hasta cinco filas descendentes por fecha de carga; cada fila muestra paciente, `Estudio {número}`, fecha de carga y `Ver estudio`, con un nombre accesible que contextualiza paciente y número. El enlace va a `/studies/{id}` sin prefetch. `Mis pacientes` sigue como enlace secundario a `/patients`.
+- Sin asignaciones: `Todavía no tenés pacientes asignados.` Sin estudios para pacientes asignados: `Tus pacientes asignados todavía no tienen estudios cargados.` Ambos estados conservan sus cifras. Error de lectura: `No pudimos cargar el resumen clínico. Probá de nuevo en unos minutos.`; no se muestran cifras ni nombres.
+- Paciente: `Estudios clínicos` y `Mis estudios` en `/studies`. Administrador sin rol médico: `Perfil administrativo` y su texto existente, sin enlace de estudios. Barra lateral, roles, navegación y autorización del visor no cambian.

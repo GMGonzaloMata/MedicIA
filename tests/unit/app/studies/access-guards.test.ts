@@ -50,7 +50,12 @@ describe("las acciones y pantallas de estudios comprueban el acceso por su cuent
       const source = read(path);
 
       expect(source).toMatch(/kind === "PATIENT" \? \([\s\S]*?Mis estudios/);
-      expect(source).toMatch(/isDoctor \? \([\s\S]*?Mis pacientes/);
+      if (path.endsWith("clinic-header.tsx")) {
+        expect(source).toMatch(/isDoctor \? \([\s\S]*?Mis pacientes/);
+      } else {
+        expect(source).toMatch(/actor\?\.kind === "DOCTOR" \? \(\s*<DoctorOverview /);
+        expect(read("src/app/(dashboard)/_components/doctor-overview.tsx")).toMatch(/href="\/patients"[\s\S]*?Mis pacientes/);
+      }
     }
   });
 });

@@ -1,3 +1,5 @@
+import { AccountFormShell } from "../_components/account-form-shell";
+
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -9,7 +11,7 @@ export const metadata: Metadata = { title: "Verificar correo" };
 
 export default function VerifyEmailPage() {
   return (
-    <>
+    <AccountFormShell>
       <h1 className="text-[28px] font-semibold leading-tight sm:text-4xl">Verificar correo</h1>
       <p className="text-sm text-muted">
         Ingresá el código que te enviamos al registrarte. Si no te llegó o ya venció, pedí uno nuevo.
@@ -20,6 +22,6 @@ export default function VerifyEmailPage() {
           Volver a ingresar
         </Link>
       </p>
-    </>
+    </AccountFormShell>
   );
 }

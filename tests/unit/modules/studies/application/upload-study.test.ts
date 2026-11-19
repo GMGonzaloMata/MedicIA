@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest";
 
-import { createUploadStudy } from "@/modules/studies/application/use-cases/upload-study";
+import { createUploadStudy, studyStorageKey } from "@/modules/studies/application/use-cases/upload-study";
 import { STORED_STUDY_BYTES } from "@/modules/studies/domain/stored-study-format";
 import type { StudyActor } from "@/modules/studies/domain/study-access";
 import {
@@ -46,6 +46,34 @@ describe("subir un estudio", () => {
 
   afterEach(() => {
     errors.mockRestore();
+  });
+
+  it("conserva la clave legacy por defecto y permite formato explícito", () => {
+    expect(studyStorageKey(TENANT, "study-1")).toBe(`studies/${TENANT}/study-1.ecg1`);
+    expect(studyStorageKey(TENANT, "study-1", "ecg1")).toBe(`studies/${TENANT}/study-1.ecg1`);
+    expect(studyStorageKey(TENANT, "study-1", "pdfecg1")).toBe(`studies/${TENANT}/study-1.pdfecg1`);
+  });
+
+  it("NPZ conserva autorización previa al lector, bytes y numeración tras un rechazo", async () => {
+    const studies = new InMemoryStudyRepository();
+    const storage = createInMemoryStudyFileStorage(new Map());
+    const directory = new InMemoryPatientDirectory();
+    const reader = { read: vi.fn(createNpzStudyFileReader().read) };
+    const generateId = vi.fn(() => "preserved");
+    const upload = createUploadStudy({ studies, storage, directory, reader, generateId });
+    const bytes = validBytes();
+    const before = bytes.slice();
+    await expect(upload({ actor: patient, patientId: "patient-2", type: "ECG", bytes })).rejects.toMatchObject({
+      name: "StudyForbiddenError", message: "No tenés acceso a este estudio.",
+    });
+    expect(reader.read).not.toHaveBeenCalled();
+    expect(generateId).not.toHaveBeenCalled();
+    expect(await storage.list("studies/")).toEqual([]);
+    expect(await studies.listByPatient({ tenantId: TENANT, patientId: "patient-1", page: 1, pageSize: 20 })).toEqual({ items: [], totalItems: 0 });
+    expect(await upload({ actor: patient, patientId: "patient-1", type: "ECG", bytes })).toEqual({ studyId: "preserved", number: 1 });
+    expect(bytes).toEqual(before);
+    expect((await storage.get(`studies/${TENANT}/preserved.ecg1`))?.byteLength).toBe(STORED_STUDY_BYTES);
+    expect(console.error).not.toHaveBeenCalled();
   });
 
   it("guarda el objeto en el formato propio y registra el estudio con el siguiente número", async () => {

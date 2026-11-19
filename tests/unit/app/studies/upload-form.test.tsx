@@ -4,10 +4,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const uploadStudyAction = vi.hoisted(() => vi.fn());
 
 vi.mock("@/app/(dashboard)/_studies/_actions/upload-study", () => ({ uploadStudyAction }));
+vi.mock("@/app/(dashboard)/_studies/_actions/upload-pdf-study", () => ({ uploadPdfStudyAction: vi.fn() }));
 
 import { UploadForm } from "@/app/(dashboard)/_studies/_components/upload-form";
 
 const MAX_BYTES = 100;
+
+function selectCompatibility() {
+  fireEvent.change(screen.getByLabelText("Formato del archivo"), { target: { value: "NPZ" } });
+  fireEvent.change(screen.getByLabelText("Tipo de estudio"), { target: { value: "ECG" } });
+}
 
 function chooseFile(size: number) {
   const input = screen.getByLabelText("Archivo del electrocardiograma") as HTMLInputElement;
@@ -36,6 +42,7 @@ describe("formulario de carga", () => {
       },
     );
     render(<UploadForm maxBytes={MAX_BYTES} />);
+    selectCompatibility();
     chooseFile(MAX_BYTES + 1);
 
     expect(screen.getByText("El archivo supera el tamaño máximo de 2 MB.")).toBeTruthy();
@@ -49,6 +56,7 @@ describe("formulario de carga", () => {
   it("muestra el aviso de éxito y el motivo de un rechazo", async () => {
     uploadStudyAction.mockResolvedValueOnce({ ok: true, number: 3 });
     const { rerender } = render(<UploadForm maxBytes={MAX_BYTES} />);
+    selectCompatibility();
     chooseFile(10);
 
     fireEvent.submit(screen.getByRole("button", { name: "Subir estudio" }).closest("form") as HTMLFormElement);
@@ -56,6 +64,7 @@ describe("formulario de carga", () => {
 
     uploadStudyAction.mockResolvedValueOnce({ ok: false, code: "SEX_INVALID", message: "El sexo debe ser 0 o 1." });
     rerender(<UploadForm maxBytes={MAX_BYTES} />);
+    fireEvent.change(screen.getByLabelText("Tipo de estudio"), { target: { value: "ECG" } });
     fireEvent.submit(screen.getByRole("button", { name: "Subir estudio" }).closest("form") as HTMLFormElement);
     await waitFor(() => expect(screen.getByText("El sexo debe ser 0 o 1.")).toBeTruthy());
   });

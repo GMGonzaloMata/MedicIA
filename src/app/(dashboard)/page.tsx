@@ -2,50 +2,80 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
-import { linkClassName } from "@/components/form/button-styles";
+import { getDoctorOverview } from "@/modules/studies/composition";
 
 import { requireClinicContext } from "../_lib/access";
-import { describeRelationship } from "./_lib/relationship-labels";
+import { toStudyActor } from "../_lib/study-actor";
+import { ClinicalIcon } from "./_components/clinical-icon";
+import { DoctorOverview } from "./_components/doctor-overview";
 
 export const metadata: Metadata = { title: "Inicio" };
 
-// Inicio provisional: muestra con qué clínica y vínculo se está trabajando. Las funcionalidades
-// siguientes lo reemplazan con el contenido real.
 export default function HomePage() {
   return (
-    <>
-      <h1 className="text-[28px] font-semibold leading-tight sm:text-4xl">Inicio</h1>
+    <div className="clinical-home">
+      <p className="clinical-kicker">Área de trabajo</p>
+      <h1 className="clinical-home-title">Inicio</h1>
       {/* Leer la sesión ocurre en cada solicitud, así que va dentro de Suspense. */}
-      <Suspense fallback={<p className="text-muted">Cargando…</p>}>
-        <ActiveClinicSummary />
+      <Suspense fallback={<p role="status" className="clinical-home-dateline">Cargando…</p>}>
+        <ClinicWorkspace />
       </Suspense>
+    </div>
+  );
+}
+
+async function ClinicWorkspace() {
+  const context = await requireClinicContext();
+  const { clinic } = context;
+  const actor = toStudyActor(context);
+  const overview = actor?.kind === "DOCTOR" ? await getDoctorOverview({ actor }).catch(() => null) : null;
+
+  return (
+    <>
+      <p className="clinical-home-dateline">{clinic.tenantName}</p>
+      {clinic.relationship.kind === "PATIENT" ? (
+        <WorkspacePanel
+          icon="studies"
+          title="Estudios clínicos"
+          description="Consultá tus estudios y revisá los análisis disponibles."
+          destination={{ href: "/studies", label: "Mis estudios" }}
+        />
+      ) : actor?.kind === "DOCTOR" ? (
+        <DoctorOverview overview={overview} />
+      ) : (
+        <WorkspacePanel
+          icon="clinic"
+          title="Perfil administrativo"
+          description="Este perfil no tiene acceso a pacientes ni a estudios."
+        />
+      )}
     </>
   );
 }
 
-async function ActiveClinicSummary() {
-  const { clinic } = await requireClinicContext();
+interface WorkspacePanelProps {
+  icon: "clinic" | "studies";
+  title: string;
+  description: string;
+  destination?: { href: string; label: string };
+}
 
+function WorkspacePanel({ icon, title, description, destination }: WorkspacePanelProps) {
   return (
-    <>
-      <p className="text-base">
-        Estás trabajando en <strong>{clinic.tenantName}</strong> como{" "}
-        {describeRelationship(clinic.relationship).toLowerCase()}.
-      </p>
-      {clinic.relationship.kind === "PATIENT" ? (
-        <p className="text-base">
-          <Link href="/studies" className={linkClassName}>
-            Mis estudios
+    <section aria-labelledby="clinical-workspace-title" className="clinical-workspace">
+      <div className="clinical-workspace-body">
+        <h2 id="clinical-workspace-title">{title}</h2>
+        <p>{description}</p>
+        {destination ? (
+          <Link href={destination.href} className="clinical-home-action">
+            {destination.label}
+            <ClinicalIcon name="arrow" />
           </Link>
-        </p>
-      ) : null}
-      {clinic.relationship.kind === "STAFF" && clinic.relationship.isDoctor ? (
-        <p className="text-base">
-          <Link href="/patients" className={linkClassName}>
-            Mis pacientes
-          </Link>
-        </p>
-      ) : null}
-    </>
+        ) : null}
+      </div>
+      <div aria-hidden="true" className="clinical-workspace-plate">
+        <ClinicalIcon name={icon} />
+      </div>
+    </section>
   );
 }

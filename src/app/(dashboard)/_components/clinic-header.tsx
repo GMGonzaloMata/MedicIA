@@ -1,25 +1,20 @@
-import Link from "next/link";
 import { Suspense } from "react";
-
-import { linkClassName } from "@/components/form/button-styles";
 
 import { getAccessContext } from "../../_lib/access";
 import { describeRelationship } from "../_lib/relationship-labels";
+import { ClinicalIcon } from "./clinical-icon";
+import { DashboardNavLink } from "./dashboard-nav-link";
 import { SignOutButton } from "./sign-out-button";
 
-// Encabezado de las pantallas protegidas: la clínica activa siempre visible y el acceso para
-// cambiarla (spec FR-020). Lee la sesión en cada solicitud, así que va dentro de <Suspense>.
 export function ClinicHeader() {
   return (
-    <header className="border-b border-border bg-card">
-      <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-3">
-        <p className="text-lg font-semibold">MedicIA</p>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <Suspense fallback={<p className="text-sm text-muted">Cargando…</p>}>
-            <ActiveClinic />
-          </Suspense>
-          <SignOutButton />
-        </div>
+    <header className="clinical-sidebar">
+      <p className="clinical-brand">Medic<span>IA</span></p>
+      <Suspense fallback={<p role="status" className="clinical-sidebar-loading">Cargando…</p>}>
+        <ActiveClinic />
+      </Suspense>
+      <div className="clinical-session">
+        <SignOutButton />
       </div>
     </header>
   );
@@ -27,32 +22,37 @@ export function ClinicHeader() {
 
 async function ActiveClinic() {
   const context = await getAccessContext();
-
-  // Sin clínica activa no hay nada que mostrar: las pantallas de elección y de sin acceso
-  // explican la situación por su cuenta.
-  if (context.status !== "ready") {
-    return null;
-  }
+  if (context.status !== "ready") return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-      <p>
-        <span className="font-semibold">{context.clinic.tenantName}</span>
-        <span className="text-muted"> · {describeRelationship(context.clinic.relationship)}</span>
-      </p>
-      {context.clinic.relationship.kind === "PATIENT" ? (
-        <Link href="/studies" className={linkClassName}>
-          Mis estudios
-        </Link>
-      ) : null}
-      {context.clinic.relationship.kind === "STAFF" && context.clinic.relationship.isDoctor ? (
-        <Link href="/patients" className={linkClassName}>
-          Mis pacientes
-        </Link>
-      ) : null}
-      <Link href="/select-clinic" className={linkClassName}>
-        Cambiar de clínica
-      </Link>
-    </div>
+    <>
+      <nav aria-label="Navegación principal" className="clinical-nav">
+        <DashboardNavLink href="/" className="clinical-nav-link">
+          <ClinicalIcon name="home" />
+          <span>Inicio</span>
+        </DashboardNavLink>
+        {context.clinic.relationship.kind === "PATIENT" ? (
+          <DashboardNavLink href="/studies" className="clinical-nav-link">
+            <ClinicalIcon name="studies" />
+            <span>Mis estudios</span>
+          </DashboardNavLink>
+        ) : null}
+        {context.clinic.relationship.kind === "STAFF" && context.clinic.relationship.isDoctor ? (
+          <DashboardNavLink href="/patients" className="clinical-nav-link">
+            <ClinicalIcon name="patients" />
+            <span>Mis pacientes</span>
+          </DashboardNavLink>
+        ) : null}
+        <DashboardNavLink href="/select-clinic" className="clinical-nav-link">
+          <ClinicalIcon name="switch" />
+          <span>Cambiar de clínica</span>
+        </DashboardNavLink>
+      </nav>
+      <div className="clinical-clinic">
+        <p className="clinical-kicker">Clínica activa</p>
+        <p className="clinical-clinic-name">{context.clinic.tenantName}</p>
+        <p className="clinical-clinic-role">{describeRelationship(context.clinic.relationship)}</p>
+      </div>
+    </>
   );
 }

@@ -14,8 +14,8 @@ export function SignInForm({ next }: { next: string }) {
   const [state, action] = useActionState(signIn, undefined);
 
   return (
-    <div className="flex flex-col gap-6">
-      <form action={action} className="flex flex-col gap-4">
+    <div className="medicia-login-form-stack">
+      <form action={action} className="medicia-login-form">
         <input type="hidden" name="next" value={next} />
         {state?.status === "error" && state.message ? (
           <FormMessage tone="error">{state.message}</FormMessage>
@@ -40,7 +40,7 @@ export function SignInForm({ next }: { next: string }) {
         />
         <SubmitButton pendingLabel="Ingresando…">Ingresar</SubmitButton>
       </form>
-      <ul className="flex flex-col gap-2 text-sm">
+      <ul className="medicia-login-support-links">
         <li>
           <Link href="/forgot-password" className={linkClassName}>
             ¿Olvidaste tu contraseña?

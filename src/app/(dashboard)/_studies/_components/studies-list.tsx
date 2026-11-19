@@ -26,12 +26,12 @@ function uploaderLabel(study: StudySummary): string {
 // el nombre del archivo subido: el sistema no lo guarda.
 export function StudiesList({ studies }: { studies: StudySummary[] }) {
   if (studies.length === 0) {
-    return <p className="text-base text-muted">{STUDY_MESSAGES.emptyList}</p>;
+    return <p className="dashboard-context text-base text-muted">{STUDY_MESSAGES.emptyList}</p>;
   }
 
   return (
     <>
-      <div className="hidden overflow-x-auto md:block">
+      <div className="dashboard-table hidden overflow-x-auto md:block">
         <table className="w-full border-collapse text-left text-base">
           <caption className="sr-only">Estudios cargados, del más reciente al más antiguo</caption>
           <thead>
@@ -66,7 +66,7 @@ export function StudiesList({ studies }: { studies: StudySummary[] }) {
 
       <ul className="flex flex-col gap-3 md:hidden">
         {studies.map((study) => (
-          <li key={study.id} className="flex flex-col gap-1 rounded-control border border-border bg-card p-4">
+          <li key={study.id} className="dashboard-record flex flex-col gap-1 p-4">
             <p className="text-lg font-semibold">Estudio {study.number}</p>
             <p>{STUDY_MESSAGES.typeLabel}</p>
             <p className="text-sm text-muted">{formatUploadedAt(study.uploadedAt)}</p>
