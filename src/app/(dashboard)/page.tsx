@@ -46,7 +46,8 @@ async function ClinicWorkspace() {
         <WorkspacePanel
           icon="clinic"
           title="Perfil administrativo"
-          description="Este perfil no tiene acceso a pacientes ni a estudios."
+          description="Este perfil no tiene acceso a pacientes ni a estudios. Desde acá administrás el personal de la clínica."
+          destination={{ href: "/clinic/staff", label: "Personal de la clínica" }}
         />
       )}
     </>

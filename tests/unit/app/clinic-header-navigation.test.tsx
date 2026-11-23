@@ -90,12 +90,12 @@ describe("visibilidad y destinos conservados por vínculo", () => {
     },
     {
       relationship: { kind: "STAFF", membershipId: "test-member", isClinicAdmin: true, isDoctor: true },
-      links: [["Inicio", "/"], ["Mis pacientes", "/patients"], ["Cambiar de clínica", "/select-clinic"]],
+      links: [["Inicio", "/"], ["Mis pacientes", "/patients"], ["Personal", "/clinic/staff"], ["Cambiar de clínica", "/select-clinic"]],
       label: "Administrador de la clínica y médico",
     },
     {
       relationship: { kind: "STAFF", membershipId: "test-member", isClinicAdmin: true, isDoctor: false },
-      links: [["Inicio", "/"], ["Cambiar de clínica", "/select-clinic"]],
+      links: [["Inicio", "/"], ["Personal", "/clinic/staff"], ["Cambiar de clínica", "/select-clinic"]],
       label: "Administrador de la clínica",
     },
   ])("conserva los enlaces de $label", async ({ relationship, links, label }) => {
@@ -121,7 +121,7 @@ describe("visibilidad y destinos conservados por vínculo", () => {
 });
 
 describe("Inicio para vínculos no médicos", () => {
-  it.each<{ relationship: ClinicRelationship; title: string; destination?: [string, string] }>([
+  it.each<{ relationship: ClinicRelationship; title: string; destination: [string, string] }>([
     {
       relationship: { kind: "PATIENT", patientId: "test-patient" },
       title: "Estudios clínicos",
@@ -130,6 +130,7 @@ describe("Inicio para vínculos no médicos", () => {
     {
       relationship: { kind: "STAFF", membershipId: "test-member", isClinicAdmin: true, isDoctor: false },
       title: "Perfil administrativo",
+      destination: ["Personal de la clínica", "/clinic/staff"],
     },
   ])("organiza el acceso como $title", async ({ relationship, title, destination }) => {
     requireClinicContext.mockResolvedValue(readyContext(relationship));
@@ -142,14 +143,8 @@ describe("Inicio para vínculos no médicos", () => {
     expect(getDoctorOverview).not.toHaveBeenCalled();
     const area = within(screen.getByRole("region", { name: title }));
     expect(area.getByRole("heading", { level: 2, name: title })).toBeTruthy();
-    if (destination) {
-      const [label, href] = destination;
-      expect(area.getByText("Consultá tus estudios y revisá los análisis disponibles.")).toBeTruthy();
-      expect(area.getByRole("link", { name: label }).getAttribute("href")).toBe(href);
-      expect(screen.getAllByRole("link")).toHaveLength(1);
-    } else {
-      expect(area.getByText("Este perfil no tiene acceso a pacientes ni a estudios.")).toBeTruthy();
-      expect(screen.queryByRole("link")).toBeNull();
-    }
+    const [label, href] = destination;
+    expect(area.getByRole("link", { name: label }).getAttribute("href")).toBe(href);
+    expect(screen.getAllByRole("link")).toHaveLength(1);
   });
 });

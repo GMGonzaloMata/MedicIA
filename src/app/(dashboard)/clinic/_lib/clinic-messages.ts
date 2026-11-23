@@ -11,6 +11,9 @@ export const CLINIC_MESSAGES = {
     "Esta invitación no es válida. Puede haber vencido o haberse usado. Pedile a quien administra la clínica que te envíe una nueva.",
   alreadyMember: "Esa persona ya pertenece a la clínica con esos roles. Si querés darle otro rol, elegí uno que no tenga.",
   memberDeactivated: "Esa persona está desactivada en la clínica. Reactivala desde la lista de personal en lugar de invitarla.",
+  licenseInUse: "Esa matrícula ya la tiene otra persona de la clínica. Revisala o pedile a quien invitás que la confirme.",
+  invitationSent: "Listo, enviamos la invitación. Tiene 7 días para usarse.",
+  invitationRevoked: "La invitación quedó anulada.",
   mailUnavailable:
     "La invitación quedó creada, pero no pudimos enviar el correo. Probá reenviarla desde la lista de invitaciones pendientes.",
   lastAdmin: "No se puede desactivar al único administrador. Primero sumá otro administrador a la clínica.",
