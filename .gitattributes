@@ -5,6 +5,6 @@ prisma/migrations/**/*.sql text eol=lf
 prisma/migrations/migration_lock.toml text eol=lf
 
 # Los scripts y las plantillas de shell/systemd/nginx se ejecutan en Linux (EC2) y se prueban con bash.
-# Con CRLF fallan ( al final de cada linea) y los tests comparan bytes exactos. Fijar LF.
+# Con CRLF fallan (queda un retorno de carro al final de cada linea) y los tests comparan bytes exactos. Fijar LF.
 *.sh text eol=lf
 *.tftpl text eol=lf
