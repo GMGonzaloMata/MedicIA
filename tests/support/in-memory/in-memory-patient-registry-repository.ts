@@ -14,10 +14,13 @@ export interface PatientRow {
   documentType: DocumentType;
   documentNumber: string;
   fullName: string | null;
+  userId: string | null;
   status: PatientStatus;
 }
 
 export interface LinkCodeRow {
+  id: string;
+  failedAttempts: number;
   patientId: string;
   tenantId: string;
   codeHash: string;
@@ -40,7 +43,7 @@ type ClinicStore = ReturnType<typeof createInMemoryClinicStore>;
 // Padrón de pacientes en memoria. Comparte las asignaciones con `createInMemoryAssignmentRepository`, porque la
 // lista de pacientes muestra al médico asignado. Aplica las mismas reglas que el repositorio real: unicidad del
 // documento por clínica, un solo código activo por paciente y nada de otra clínica.
-export function createInMemoryPatientRegistry(clinic: ClinicStore) {
+export function createInMemoryPatientRegistry(clinic: ClinicStore, linkAttempts: Date[] = []) {
   const patients: PatientRow[] = [];
   const codes: LinkCodeRow[] = [];
   const assignments: AssignmentRow[] = [];
@@ -67,10 +70,13 @@ export function createInMemoryPatientRegistry(clinic: ClinicStore) {
         documentNumber: input.documentNumber,
         // Como en la base: un paciente pendiente no tiene nombre.
         fullName: null,
+        userId: null,
         status: "PENDING",
       };
       patients.push(patient);
       codes.push({
+        id: `code-${(sequence += 1)}`,
+        failedAttempts: 0,
         patientId: patient.id,
         tenantId: input.tenantId,
         codeHash: input.codeHash,
@@ -138,6 +144,8 @@ export function createInMemoryPatientRegistry(clinic: ClinicStore) {
       }
 
       codes.push({
+        id: `code-${(sequence += 1)}`,
+        failedAttempts: 0,
         patientId: patient.id,
         tenantId: input.tenantId,
         codeHash: input.codeHash,
@@ -147,6 +155,62 @@ export function createInMemoryPatientRegistry(clinic: ClinicStore) {
       });
 
       return { kind: "replaced" };
+    },
+
+    async findLinkCandidates({ documentType, documentNumber, now }) {
+      return codes
+        .filter((code) => code.status === "ACTIVE" && code.expiresAt.getTime() > now.getTime())
+        .flatMap((code) => {
+          const patient = patients.find((row) => row.id === code.patientId);
+
+          return patient &&
+            patient.status === "PENDING" &&
+            patient.userId === null &&
+            patient.documentType === documentType &&
+            patient.documentNumber === documentNumber
+            ? [{ patientId: patient.id, tenantId: patient.tenantId, codeId: code.id, codeHash: code.codeHash }]
+            : [];
+        });
+    },
+
+    async linkAccount({ candidate, user, now }) {
+      const code = codes.find((row) => row.id === candidate.codeId);
+      const patient = patients.find((row) => row.id === candidate.patientId && row.tenantId === candidate.tenantId);
+      const alreadyPatientHere = patients.some((row) => row.tenantId === candidate.tenantId && row.userId === user.id);
+
+      if (
+        !code ||
+        code.status !== "ACTIVE" ||
+        code.expiresAt.getTime() <= now.getTime() ||
+        !patient ||
+        patient.status !== "PENDING" ||
+        alreadyPatientHere
+      ) {
+        return { kind: "rejected" };
+      }
+
+      code.status = "USED";
+      patient.status = "LINKED";
+      patient.userId = user.id;
+      patient.fullName = user.fullName;
+      // Como en la base: la vinculación borra los intentos fallidos de la cuenta.
+      linkAttempts.length = 0;
+
+      return { kind: "linked" };
+    },
+
+    async recordCodeFailure({ codeIds, maxAttempts }) {
+      for (const code of codes) {
+        if (!codeIds.includes(code.id) || code.status !== "ACTIVE") {
+          continue;
+        }
+
+        code.failedAttempts = Math.min(code.failedAttempts + 1, maxAttempts);
+
+        if (code.failedAttempts >= maxAttempts) {
+          code.status = "LOCKED";
+        }
+      }
     },
   };
 

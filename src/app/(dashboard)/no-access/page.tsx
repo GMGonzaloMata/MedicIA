@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
+import { linkClassName } from "@/components/form/button-styles";
 import { getUsersModule } from "@/modules/users/composition";
 
 import { getAccessContext } from "../../_lib/access";
@@ -41,6 +43,17 @@ async function NoAccessContent() {
   return (
     <div className="flex flex-col gap-3 text-base">
       <p>Para usar MedicIA necesitás una invitación de una clínica. Pedísela a quien administra tu clínica.</p>
+      <p>
+        Si recibiste una invitación por correo, abrí el enlace del mensaje. Si todavía no tenés cuenta, registrate con
+        ese mismo correo y volvé a abrir el enlace.
+      </p>
+      <p>
+        Si sos paciente y tu clínica te dio un código,{" "}
+        <Link href="/link-patient" className={linkClassName}>
+          vinculá tu cuenta con tu documento y ese código
+        </Link>
+        .
+      </p>
       <p className="text-muted">
         Si ya tenías acceso y ahora no lo ves, puede que ya no esté vigente. Consultalo con tu clínica.
       </p>

@@ -3,6 +3,7 @@ import "server-only";
 import { createAcceptStaffInvitation } from "./application/use-cases/accept-staff-invitation";
 import { createAssignPatient } from "./application/use-cases/assign-patient";
 import { createInviteStaff } from "./application/use-cases/invite-staff";
+import { createLinkPatientAccount } from "./application/use-cases/link-patient-account";
 import { createListClinicPatients } from "./application/use-cases/list-clinic-patients";
 import { createListStaff } from "./application/use-cases/list-staff";
 import { createRegeneratePatientLinkCode } from "./application/use-cases/regenerate-patient-link-code";
@@ -13,6 +14,7 @@ import { createInvitationMailer } from "./infrastructure/adapters/create-invitat
 import { nodeSecretGenerator } from "./infrastructure/adapters/node-secret-generator";
 import { prismaAssignmentRepository } from "./infrastructure/repositories/prisma-assignment-repository";
 import { prismaInvitationRepository } from "./infrastructure/repositories/prisma-invitation-repository";
+import { prismaLinkAttemptRepository } from "./infrastructure/repositories/prisma-link-attempt-repository";
 import { prismaPatientRegistryRepository } from "./infrastructure/repositories/prisma-patient-registry-repository";
 import { prismaStaffRepository } from "./infrastructure/repositories/prisma-staff-repository";
 
@@ -57,6 +59,7 @@ function buildTenantsModule() {
     listClinicPatients: createListClinicPatients({ patients, now }),
     regeneratePatientLinkCode: createRegeneratePatientLinkCode({ patients, secrets, now }),
     assignPatient: createAssignPatient({ assignments }),
+    linkPatientAccount: createLinkPatientAccount({ patients, attempts: prismaLinkAttemptRepository, secrets, now }),
   };
 }
 
