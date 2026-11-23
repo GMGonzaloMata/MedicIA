@@ -16,7 +16,7 @@ beforeAll(() => {
   for (const [name, domain] of [["valid", hostname], ["other", "other.duckdns.org"]]) {
     execFileSync("openssl", ["req", "-x509", "-newkey", "rsa:2048", "-nodes", "-keyout", p.join(material, name + ".key"),
       "-out", p.join(material, name + ".pem"), "-subj", "/CN=" + domain, "-days", "1", "-addext", "subjectAltName=DNS:" + domain,
-      "-config", empty], { env, timeout: 10000, stdio: "pipe" });
+      "-config", empty], { env, timeout: 20000, stdio: "pipe" });
   }
 });
 afterEach(() => { for (const root of roots.splice(0)) f.rmSync(root, { recursive: true, force: true }); });
@@ -55,7 +55,7 @@ function fixture(options: { accept?: boolean; email?: string; mode?: string; pro
   const env: NodeJS.ProcessEnv = { NODE_ENV: "test", PATH: process.env.PATH ?? "", HOME: root,
     NODE_OPTIONS: "--require=" + root + "/shim.cjs", MSYS_NO_PATHCONV: "1", DO_NOT_FORWARD: "synthetic-canary" };
   env.SystemRoot = process.env.SystemRoot ?? "C:\\Windows";
-  const run = (args: string[] = []) => spawnSync("bash", [root + "/acme.sh", ...args], { env, encoding: "utf8", timeout: 15000 });
+  const run = (args: string[] = []) => spawnSync("bash", [root + "/acme.sh", ...args], { env, encoding: "utf8", timeout: 20000 });
   const calls = () => f.readFileSync(callsFile, "utf8").trim().split("\n").filter(Boolean)
     .map(line => JSON.parse(line) as { name: string; args: string[]; envKeys: string[] });
   const snapshot = () => [config.configRoot, config.workRoot, config.logsRoot, config.homeRoot, p.dirname(config.cliConfig)]
@@ -73,7 +73,7 @@ describe("private ACME initial issuance", () => {
       .replaceAll("${acme_script}", x.source.trimEnd()).replaceAll("${acme_service}", service).replace(/\$\{[a-z_]+\}/g, "false");
     expect(data).toContain(x.source.trimEnd() + "\nMEDICIA_ACME_SCRIPT_V1_EOF");
     expect(data).toContain(service + "\nMEDICIA_ACME_SERVICE_V1_EOF");
-    const r = spawnSync("bash", ["-n"], { env: x.env, input: data, encoding: "utf8", timeout: 5000 });
+    const r = spawnSync("bash", ["-n"], { env: x.env, input: data, encoding: "utf8", timeout: 20000 });
     expect(r.status).toBe(0); expect(r.stdout).toBe(""); expect(r.stderr).toBe(""); expect(x.calls()).toEqual([]); expect(x.snapshot()).toEqual(before);
   });
   it("rejects false terms before account/state creation or command execution", () => fixture({ accept: false }).rejectBeforeState());

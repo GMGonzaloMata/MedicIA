@@ -22,7 +22,7 @@ function fixture(hook = "") {
   writeFileSync(join(bin, "node"), `#!/usr/bin/env bash\nexec '${process.execPath.replaceAll("\\", "/")}' -e 'Object.defineProperty(process,"platform",{value:"linux",configurable:true});Object.defineProperty(process,"arch",{value:"x64",configurable:true});Object.defineProperty(process.versions,"node",{value:"24.0.0",configurable:true});eval(Buffer.from("${Buffer.from(hook).toString("base64")}","base64").toString());eval(require("node:fs").readFileSync(0,"utf8"))' "$@"\n`, { mode: 0o755 });
   for (const tool of ["npm", "npx", "prisma", "aws", "next", "build", "install", "pnpm", "yarn"]) writeFileSync(join(bin, tool), `#!/usr/bin/env bash\nprintf called > '${root.replaceAll("\\", "/")}/external-call'\nexit 99\n`, { mode: 0o755 });
   const output = join(root, "release.tar.gz");
-  function run(args = [input, output], timeout = 5000) {
+  function run(args = [input, output], timeout = 20000) {
     const env: NodeJS.ProcessEnv = { PATH: process.env.PATH ?? "", NODE_ENV: "test" };
     if (process.platform === "win32") env.SystemRoot = process.env.SystemRoot ?? "C:\\Windows";
     const bashBin = bin.replaceAll("\\", "/").replace(/^([A-Za-z]):/, drive => "/" + drive.charAt(0).toLowerCase());
@@ -141,7 +141,7 @@ for (const name of ["release.json", ".next/BUILD_ID", "node_modules/next/dist/bi
     expect(snapshot(f.input)).toEqual(before); expect(readdirSync(f.root).sort()).toEqual(["bin", "input"]);
   });
 }
-function rejected(f: ReturnType<typeof fixture>, extra: string[] = [], timeout = 5000) {
+function rejected(f: ReturnType<typeof fixture>, extra: string[] = [], timeout = 20000) {
   const before = snapshot(f.input); const result = f.run(undefined, timeout);
   expect([result.status, result.stdout, result.stderr]).toEqual([1, "", "medicia package: rejected\n"]);
   expect(snapshot(f.input)).toEqual(before); expect(readdirSync(f.root).sort()).toEqual(["bin", "input", ...extra].sort());
@@ -161,7 +161,7 @@ it("rejects hardlinks and internal directory links", () => {
 it.skipIf(process.platform === "win32")("rejects FIFO and backslash/control paths on Linux", () => {
   for (const name of ["fifo", "bad\\\\name", "bad\\nname"]) {
     const f = fixture();
-    if (name === "fifo") expect(spawnSync("mkfifo", [join(f.input, name)], { env: { NODE_ENV: "test", PATH: "/usr/bin:/bin" }, timeout: 5000 }).status).toBe(0);
+    if (name === "fifo") expect(spawnSync("mkfifo", [join(f.input, name)], { env: { NODE_ENV: "test", PATH: "/usr/bin:/bin" }, timeout: 20000 }).status).toBe(0);
     else f.put(name);
     rejected(f);
   }

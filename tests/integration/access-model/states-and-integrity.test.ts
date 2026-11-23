@@ -59,7 +59,7 @@ describe("Estados sin pérdida de información (historia 5)", () => {
 
     await prismaClient.staffMembership.update({
       where: { id: clinic.doctor.id },
-      data: { status: "DEACTIVATED" },
+      data: { status: "DEACTIVATED", deactivatedAt: new Date() },
     });
     await prismaClient.patient.update({
       where: { id: clinic.patient.id },

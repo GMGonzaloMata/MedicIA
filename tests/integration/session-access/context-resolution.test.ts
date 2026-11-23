@@ -76,7 +76,7 @@ describe("Revalidación del vínculo activo (SC-002)", () => {
 
     await prismaClient.staffMembership.update({
       where: { id: membership.id },
-      data: { status: "DEACTIVATED" },
+      data: { status: "DEACTIVATED", deactivatedAt: new Date() },
     });
 
     expect((await resolve(session.tokenHash)).clinic).toBeNull();

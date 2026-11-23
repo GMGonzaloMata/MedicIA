@@ -14,7 +14,7 @@ function nextSequence(): number {
   return sequence;
 }
 
-// Vacía las nueve tablas en una sola sentencia, porque PostgreSQL no vacía una tabla referenciada por otra
+// Vacía las doce tablas en una sola sentencia, porque PostgreSQL no vacía una tabla referenciada por otra
 // que quede afuera. Se niega a correr si la base no es local.
 export async function resetDatabase(): Promise<void> {
   assertLocalDatabaseUrl(process.env.DATABASE_URL);
@@ -24,6 +24,9 @@ export async function resetDatabase(): Promise<void> {
       "analyses",
       "studies",
       "study_counters",
+      "patient_link_codes",
+      "patient_link_attempts",
+      "staff_invitations",
       "sessions",
       "doctor_patient_assignments",
       "patients",
@@ -58,9 +61,14 @@ type MembershipInput = Pick<Prisma.StaffMembershipUncheckedCreateInput, "tenantI
   Partial<Prisma.StaffMembershipUncheckedCreateInput>;
 
 // Por defecto es un administrador de clínica sin datos de médico, que es una combinación válida.
+// Una membresía desactivada siempre lleva la fecha (restricción de la base).
+function deactivationFor(input: MembershipInput) {
+  return input.status === "DEACTIVATED" ? { deactivatedAt: new Date() } : {};
+}
+
 export function createStaffMembership(input: MembershipInput) {
   return prismaClient.staffMembership.create({
-    data: { isClinicAdmin: true, isDoctor: false, ...input },
+    data: { isClinicAdmin: true, isDoctor: false, ...deactivationFor(input), ...input },
   });
 }
 
@@ -73,6 +81,7 @@ export function createDoctorMembership(input: MembershipInput) {
       isDoctor: true,
       specialty: "Cardiología",
       licenseNumber: `MP-${number}`,
+      ...deactivationFor(input),
       ...input,
     },
   });
