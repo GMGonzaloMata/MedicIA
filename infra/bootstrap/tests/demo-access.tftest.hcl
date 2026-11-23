@@ -285,7 +285,7 @@ run "eip_en_eni_solo_asociar_y_desasociar" {
       for s in jsondecode(aws_iam_policy.operator_demo_network.policy).Statement :
       try(s.Condition.StringEquals["aws:ResourceTag/Deployment"], "") == "ec2-rds-demo"
       if s.Sid == "GestionarRedDemo" && contains(s.Action, "ec2:AssociateAddress") && contains(s.Action, "ec2:DisassociateAddress")
-      ]) && length([for s in jsondecode(aws_iam_policy.operator_demo_network.policy).Statement : s if s.Sid == "GestionarRedDemo" && contains(s.Action, "ec2:DisassociateAddress")]) == 1
+    ]) && length([for s in jsondecode(aws_iam_policy.operator_demo_network.policy).Statement : s if s.Sid == "GestionarRedDemo" && contains(s.Action, "ec2:DisassociateAddress")]) == 1
     error_message = "La EIP y demás recursos siguen exigiendo la etiqueta Deployment en GestionarRedDemo."
   }
 }

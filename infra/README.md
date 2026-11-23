@@ -283,6 +283,8 @@ EchoNext-Mini es un modelo de investigación que recibe un electrocardiograma de
 
 > Las probabilidades son un **indicador relativo de riesgo de un posible hallazgo**, de apoyo clínico. **Nunca son un diagnóstico.** No hay umbrales publicados y pueden no estar calibradas.
 
+> **Intento de SageMaker Serverless Inference (2026-11-23), sin éxito.** Se probó el modelo sin servidor (pago por uso) con 2048 y 3072 MB. `CreateEndpoint` aceptó la configuración pero el punto de inferencia pasó a `Failed` a los 5-6 minutos, con el mensaje genérico "Request to service failed", y **sin crear ningún log stream** (el contenedor nunca arrancó). Se descartaron la arquitectura de la imagen (amd64), los permisos del rol de ejecución y las cuotas (la cuenta tiene 5 puntos serverless, concurrencia total 10 y **3072 MB máximos de memoria por punto**; 4096 MB falla con `ResourceLimitExceeded`). La causa no se identificó. Se volvió al punto con instancia y aislamiento de red. Si se retoma, hace falta abrir un caso con AWS Support o probar la imagen de forma aislada. Request IDs de la creación fallida: `4bb42b78-b5c7-40d5-8cf6-ce12c8627255` (primer intento) y `e5fd540c-b0c2-4f76-981c-5e37d6344e64` (rechazo por cuota).
+
 ### Entrada y salida
 
 El contrato completo (formato de la solicitud, errores y códigos) está en `specs/005-echonext-mini-sagemaker/contracts/inference-api.md`. Lo esencial:
