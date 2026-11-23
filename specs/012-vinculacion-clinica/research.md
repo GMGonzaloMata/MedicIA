@@ -30,7 +30,7 @@ Resuelve las decisiones técnicas del plan. No quedan marcadores de clarificaci�
 
 ## D4. Código de vinculación del paciente
 
-- **Formato:** 10 caracteres de un alfabeto de 32 símbolos sin ambiguos (sin `0/O` ni `1/I/L`), unos 50 bits, mostrados como `XXXXX-XXXXX`. Se generan con `node:crypto`. Se guarda el hash SHA-256 del código normalizado (mayúsculas y sin guion).
+- **Formato:** 10 caracteres de un alfabeto de 31 símbolos sin ambiguos (sin `0/O` ni `1/I/L`: quedan 23 letras y 8 dígitos), unos 49,5 bits; se generan descartando bytes sesgados para que ningún símbolo sea más frecuente, mostrados como `XXXXX-XXXXX`. Se generan con `node:crypto`. Se guarda el hash SHA-256 del código normalizado (mayúsculas y sin guion).
 - **Entrega:** el código se muestra **una sola vez** al administrador al generarlo o regenerarlo. La clínica se lo entrega al paciente. Nunca se vuelve a mostrar ni se envía por correo (el registro del paciente no tiene correo).
 - **Verificación:** el paciente indica tipo y número de documento más el código. Se buscan los registros `PENDING` de **cualquier clínica** con ese documento que tengan un código `ACTIVE` y vigente; se compara el hash del código ingresado. Es la única lectura entre clínicas de la funcionalidad y es inevitable: la persona todavía no pertenece a ninguna. La clínica sale del registro que coincide, nunca de un dato del cliente.
 - **Respuesta uniforme:** documento inexistente, código incorrecto, código vencido, usado, reemplazado o bloqueado devuelven el mismo mensaje y el mismo código de resultado. No se revela cuál falló.

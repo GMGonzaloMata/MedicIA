@@ -12,6 +12,8 @@
 
 ### Session 2026-11-23
 
+- Q (al implementar): la base no permite un nombre en un paciente pendiente (`patients_state_fields`, spec 001); ¿el administrador carga el nombre al dar de alta? → A: No. El alta se hace solo con tipo y número de documento; el nombre se completa cuando el paciente vincula su cuenta.
+
 - Q: ¿Cómo se incorpora al personal? → A: invitación por correo con enlace de un solo uso y con vencimiento.
 - Q: ¿Quién puede crear una clínica? → A: solo el equipo de la plataforma; queda fuera de esta funcionalidad.
 - Q: ¿El paciente tiene cuenta propia y cómo se verifica? → A: cuenta propia, verificada por documento.

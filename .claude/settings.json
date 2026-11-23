@@ -82,7 +82,7 @@
             "type": "command",
             "command": "node \"${CLAUDE_PROJECT_DIR}/scripts/agent-hooks/stop-check.mjs\"",
             "timeout": 300,
-            "statusMessage": "Comprobando npm run check"
+            "statusMessage": "Comprobando tipos, lint y pruebas de lo cambiado"
           }
         ]
       }

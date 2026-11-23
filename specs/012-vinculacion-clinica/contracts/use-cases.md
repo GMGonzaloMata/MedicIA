@@ -33,8 +33,8 @@ Los casos de uso viven en `src/modules/tenants/application/use-cases/` y se obti
 
 | Caso de uso | Entrada | Resultado | Códigos de rechazo |
 |---|---|---|---|
-| `registerPatient` | `actor`, `documentType`, `documentNumber`, `fullName` | `{ ok, patientId, linkCode }` | `INVALID_INPUT`, `DUPLICATE_PATIENT` |
-| `listClinicPatients` | `actor` | pacientes (nombre, documento, estado, médico asignado y su estado) | — |
+| `registerPatient` | `actor`, `documentType`, `documentNumber` | `{ ok, patientId, linkCode }` | `INVALID_INPUT`, `DUPLICATE_PATIENT` |
+| `listClinicPatients` | `actor` | pacientes (documento, estado, médico asignado y su estado; el nombre solo si ya vinculó su cuenta) | — |
 | `regeneratePatientLinkCode` | `actor`, `patientId` | `{ ok, linkCode }` | `NOT_FOUND`, `ALREADY_LINKED` |
 | `assignPatient` | `actor`, `patientId`, `membershipId` | `{ ok, assignmentId }` | `NOT_FOUND`, `NOT_A_DOCTOR`, `DOCTOR_DEACTIVATED`, `ALREADY_ASSIGNED` |
 | `endAssignment` | `actor`, `assignmentId` | `{ ok }` | `NOT_FOUND`, `ALREADY_ENDED` |

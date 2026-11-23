@@ -49,6 +49,12 @@ async function ActiveClinic() {
             <span>Personal</span>
           </DashboardNavLink>
         ) : null}
+        {context.clinic.relationship.kind === "STAFF" && context.clinic.relationship.isClinicAdmin ? (
+          <DashboardNavLink href="/clinic/patients" className="clinical-nav-link">
+            <ClinicalIcon name="patients" />
+            <span>Pacientes de la clínica</span>
+          </DashboardNavLink>
+        ) : null}
         <DashboardNavLink href="/select-clinic" className="clinical-nav-link">
           <ClinicalIcon name="switch" />
           <span>Cambiar de clínica</span>

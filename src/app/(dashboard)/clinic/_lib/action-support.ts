@@ -13,6 +13,9 @@ import { CLINIC_MESSAGES } from "./clinic-messages";
 export interface ClinicActionState {
   status: "error" | "success";
   message: string;
+  // Código de vinculación en claro. Solo viaja en la respuesta de la acción que lo genera: no va en la URL, en una
+  // cookie ni en nada que sobreviva a un refresco.
+  linkCode?: string;
 }
 
 export function errorState(message: string): ClinicActionState {

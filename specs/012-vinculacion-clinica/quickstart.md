@@ -30,7 +30,7 @@ Recorridos para comprobar la funcionalidad de punta a punta. Cada uno referencia
 
 ### 3. Paciente: alta, asignación y vinculación (Historias 2 y 3)
 
-1. Como administrador de A, abrí «Pacientes de la clínica» y registrá un paciente con documento y nombre.
+1. Como administrador de A, abrí «Pacientes de la clínica» y registrá un paciente con su tipo y número de documento.
 2. **Esperado:** se muestra un código `XXXXX-XXXXX` una sola vez, con el aviso de que no se podrá volver a ver.
 3. Asigná el paciente a un médico de A. Ingresá como ese médico. **Esperado:** el paciente aparece en «Mis pacientes». Un segundo médico de A no lo ve.
 4. Con una cuenta sin clínica, abrí `/link-patient` e ingresá el documento y el código.

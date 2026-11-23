@@ -18,6 +18,11 @@ export const CLINIC_MESSAGES = {
     "La invitación quedó creada, pero no pudimos enviar el correo. Probá reenviarla desde la lista de invitaciones pendientes.",
   lastAdmin: "No se puede desactivar al único administrador. Primero sumá otro administrador a la clínica.",
 
+  patientRegistered:
+    "Registramos al paciente. Entregale el código de vinculación: se muestra una sola vez y después no se puede volver a ver.",
+  codeRegenerated:
+    "Generamos un código nuevo y el anterior dejó de servir. Entregáselo al paciente: se muestra una sola vez.",
+  patientAssigned: "Listo, el paciente quedó asignado al médico.",
   duplicatePatient: "Ya hay un paciente registrado con ese documento en la clínica.",
   alreadyLinked: "Ese paciente ya vinculó su cuenta, así que no necesita un código nuevo.",
   notADoctor: "Solo se puede asignar un paciente a un médico de la clínica.",

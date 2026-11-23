@@ -7,7 +7,7 @@ Las pantallas y las acciones viven en `src/app/`. No tienen lógica de negocio: 
 | Ruta | Quién | Contenido |
 |---|---|---|
 | `/clinic/staff` | administrador de la clínica activa | Miembros con rol y estado; formulario para invitar (correo y roles); invitaciones pendientes con reenviar y revocar; desactivar y reactivar |
-| `/clinic/patients` | administrador de la clínica activa | Alta de paciente (tipo y número de documento, nombre); lista con estado y médico asignado; generar código nuevo; asignar y terminar asignación |
+| `/clinic/patients` | administrador de la clínica activa | Alta de paciente (tipo y número de documento; el nombre se completa al vincular la cuenta); lista con estado y médico asignado; generar código nuevo; asignar y terminar asignación |
 | `/invitation/[token]` | cualquier persona con sesión | Muestra a qué clínica y con qué rol la invitan, y el botón «Aceptar». Sin sesión, el `proxy` redirige a `/sign-in?next=…` |
 | `/link-patient` | cualquier persona con sesión | Formulario: tipo y número de documento y código |
 | `/studies` (existente) | paciente | Se suma el aviso «Tu médico ya no está disponible» cuando corresponde |

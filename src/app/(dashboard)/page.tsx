@@ -38,7 +38,7 @@ async function ClinicWorkspace() {
           icon="studies"
           title="Estudios clínicos"
           description="Consultá tus estudios y revisá los análisis disponibles."
-          destination={{ href: "/studies", label: "Mis estudios" }}
+          destinations={[{ href: "/studies", label: "Mis estudios" }]}
         />
       ) : actor?.kind === "DOCTOR" ? (
         <DoctorOverview overview={overview} />
@@ -46,8 +46,11 @@ async function ClinicWorkspace() {
         <WorkspacePanel
           icon="clinic"
           title="Perfil administrativo"
-          description="Este perfil no tiene acceso a pacientes ni a estudios. Desde acá administrás el personal de la clínica."
-          destination={{ href: "/clinic/staff", label: "Personal de la clínica" }}
+          description="Este perfil no tiene acceso a estudios. Desde acá administrás el personal y los pacientes de la clínica."
+          destinations={[
+            { href: "/clinic/staff", label: "Personal de la clínica" },
+            { href: "/clinic/patients", label: "Pacientes de la clínica" },
+          ]}
         />
       )}
     </>
@@ -58,21 +61,21 @@ interface WorkspacePanelProps {
   icon: "clinic" | "studies";
   title: string;
   description: string;
-  destination?: { href: string; label: string };
+  destinations?: { href: string; label: string }[];
 }
 
-function WorkspacePanel({ icon, title, description, destination }: WorkspacePanelProps) {
+function WorkspacePanel({ icon, title, description, destinations = [] }: WorkspacePanelProps) {
   return (
     <section aria-labelledby="clinical-workspace-title" className="clinical-workspace">
       <div className="clinical-workspace-body">
         <h2 id="clinical-workspace-title">{title}</h2>
         <p>{description}</p>
-        {destination ? (
-          <Link href={destination.href} className="clinical-home-action">
+        {destinations.map((destination) => (
+          <Link key={destination.href} href={destination.href} className="clinical-home-action">
             {destination.label}
             <ClinicalIcon name="arrow" />
           </Link>
-        ) : null}
+        ))}
       </div>
       <div aria-hidden="true" className="clinical-workspace-plate">
         <ClinicalIcon name={icon} />
