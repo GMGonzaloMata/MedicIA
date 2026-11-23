@@ -1,3 +1,5 @@
+import { resolve } from "node:path";
+
 import { defineConfig, devices } from "@playwright/test";
 import { config as loadEnvFile } from "dotenv";
 import { isolatedUiTests } from "./tests/support/ui-test-environment.mts";
@@ -9,6 +11,10 @@ const BASE_URL = isolatedUiTests ? "http://127.0.0.1:3100" : "http://localhost:3
 const BUILD_TIMEOUT_MS = 180_000;
 
 const isContinuousIntegration = Boolean(process.env.CI);
+
+// El correo de invitación es el simulado: el servidor escribe cada mensaje en este archivo y las pruebas lo leen.
+// Se define antes de arrancar los procesos de prueba para que servidor y pruebas usen la misma ruta.
+process.env.FAKE_MAIL_OUTBOX_FILE = resolve(process.env.FAKE_MAIL_OUTBOX_FILE ?? ".tmp/e2e-outbox.jsonl");
 
 export default defineConfig({
   testDir: "tests/e2e",
@@ -42,6 +48,10 @@ export default defineConfig({
       // El modelo es el simulado y tarda 1,5 s: el estado «en curso» se ve siempre y ninguna prueba usa AWS.
       MODEL_INFERENCE: "fake",
       FAKE_MODEL_DELAY_MS: "1500",
+      // Ningún correo sale a la red: las invitaciones quedan en un archivo.
+      INVITATION_MAILER: "fake",
+      FAKE_MAIL_OUTBOX_FILE: process.env.FAKE_MAIL_OUTBOX_FILE,
+      APP_BASE_URL: BASE_URL,
       ...(process.env.DATABASE_URL ? { DATABASE_URL: process.env.DATABASE_URL } : {}),
     },
   },
