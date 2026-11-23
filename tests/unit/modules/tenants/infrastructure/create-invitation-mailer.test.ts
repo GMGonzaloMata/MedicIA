@@ -18,7 +18,25 @@ describe("elección del correo de invitaciones", () => {
     expect(() => createInvitationMailer({ INVITATION_MAILER: "paloma" })).toThrow(/INVITATION_MAILER/);
   });
 
-  it("smtp avisa que todavía no está disponible, sin sugerir que es un error de configuración", () => {
-    expect(() => createInvitationMailer({ INVITATION_MAILER: "smtp" })).toThrow(/todavía no está disponible/);
+  it("smtp con la configuración completa elige el correo real", () => {
+    const mailer = createInvitationMailer({
+      INVITATION_MAILER: "smtp",
+      SMTP_HOST: "smtp.example.com",
+      SMTP_PORT: "587",
+      SMTP_USER: "usuario",
+      SMTP_PASSWORD: "clave",
+      INVITATION_FROM_ADDRESS: "no-responder@example.com",
+    });
+
+    expect(mailer).toHaveProperty("send");
+  });
+
+  it("smtp con la configuración incompleta falla sin mostrar valores", () => {
+    expect(() => createInvitationMailer({ INVITATION_MAILER: "smtp", SMTP_PASSWORD: "clave-secreta" })).toThrow(
+      /SMTP_HOST/,
+    );
+    expect(() => createInvitationMailer({ INVITATION_MAILER: "smtp", SMTP_PASSWORD: "clave-secreta" })).not.toThrow(
+      /clave-secreta/,
+    );
   });
 });

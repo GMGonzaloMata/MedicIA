@@ -181,6 +181,53 @@ El grupo de usuarios conserva el correo por defecto de Cognito, que tiene un top
 
 Si antes usaste `IDENTITY_PROVIDER=fake`, tu base local puede tener cuentas creadas con el proveedor simulado. Al ingresar con Cognito con el mismo correo, el sistema detecta el conflicto y el ingreso falla con el mensaje de credenciales inválidas. Solución: borrá esas filas de sesión y usuario de la base local de desarrollo y registrate de nuevo contra Cognito. Si querés repetir la prueba con el mismo correo, borrá también el usuario del grupo en Cognito.
 
+## Vinculación de la clínica: variables y primera clínica
+
+### Variables de correo de las invitaciones
+
+La aplicación envía el correo de invitación al personal por SMTP (Gmail en desarrollo y demo). Estas variables van en `.env.local` y, en la demo, dentro del secreto `medicia-dev-demo/app`, cargadas por un canal privado. Nunca en el repositorio, en chats ni en capturas.
+
+- `APP_BASE_URL`: dirección pública de la aplicación, sin barra final. Arma el enlace `/invitation/<token>` (en local, `http://localhost:3000`).
+- `INVITATION_MAILER`: `smtp` o `fake`. No tiene valor por defecto. En la demo y en producción, siempre `smtp`: `fake` escribe los correos en un archivo y no envía nada.
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`: datos del servidor. Para Gmail, `smtp.gmail.com`, `465` (TLS desde el inicio) o `587` (STARTTLS), la cuenta y su contraseña de aplicación (sensible).
+- `INVITATION_FROM_ADDRESS`: remitente, por ejemplo `MedicIA <cuenta@gmail.com>`. Gmail lo reemplaza por la cuenta autenticada.
+- `FAKE_MAIL_OUTBOX_FILE`: solo con `INVITATION_MAILER=fake`; archivo donde se guardan los correos simulados.
+
+Si falta algo, invitar falla con un aviso genérico; el resto de la aplicación sigue funcionando.
+
+### Antes de desplegar
+
+1. Aplicar la migración de la funcionalidad 012 a la base de RDS con el procedimiento de siempre (`prisma migrate deploy` lo ejecuta el responsable, no un agente).
+2. Agregar las variables de arriba al secreto `medicia-dev-demo/app`.
+3. Crear la primera clínica y su administrador (siguiente sección).
+
+### Crear la primera clínica y su primer administrador
+
+Sin un administrador no se puede enviar ninguna invitación, y la aplicación no crea clínicas: cada clínica nueva la da de alta el responsable.
+
+1. La persona que va a administrar la clínica se registra e ingresa una vez por la interfaz (así existe su fila en `users`). Anotá su correo, en minúsculas.
+2. El responsable ejecuta este SQL contra la base de la demo, con su propio acceso, cambiando el nombre de la clínica y el correo:
+
+```sql
+BEGIN;
+
+WITH clinic AS (
+  INSERT INTO tenants (id, name, updated_at)
+  VALUES (gen_random_uuid(), 'Nombre de la clínica', now())
+  RETURNING id
+)
+INSERT INTO staff_memberships (id, tenant_id, user_id, is_clinic_admin, is_doctor, updated_at)
+SELECT gen_random_uuid(), clinic.id, users.id, true, false, now()
+FROM clinic, users
+WHERE users.email = 'admin@clinica.example';
+
+-- Debe informar 1 fila insertada en staff_memberships; si informa 0, el correo no existe: ROLLBACK.
+COMMIT;
+```
+
+3. La persona vuelve a ingresar y ve «Personal» y «Pacientes de la clínica». Desde ahí invita al resto del personal y registra pacientes. Un administrador que no es médico no accede a los estudios; si también debe atender pacientes, el responsable marca `is_doctor = true` y carga `specialty` y `license_number` (la base exige ambos).
+4. En una base local, `npm run seed:demo` crea clínicas de ejemplo; no se usa en la demo.
+
 ## Base de SageMaker
 
 Prepara el lugar donde van a vivir los modelos de IA, sin desplegar ninguno:

@@ -2,6 +2,7 @@ import "server-only";
 
 import type { InvitationMailer } from "../../application/ports/out/invitation-mailer";
 import { createFakeInvitationMailer } from "./fake-invitation-mailer";
+import { createSmtpInvitationMailer, createSmtpTransport, readSmtpConfig } from "./smtp-invitation-mailer";
 
 // Elige el correo según INVITATION_MAILER. No hay valor por defecto: si falta o es desconocido, invitar falla
 // (se arma recién al invitar), para que un entorno mal configurado no use el simulado por error.
@@ -16,9 +17,11 @@ export function createInvitationMailer(env: Record<string, string | undefined>):
 
       return createFakeInvitationMailer(outboxFile);
     }
-    case "smtp":
-      // El adaptador SMTP se conecta acá cuando se apruebe la enmienda del stack (tarea T027).
-      throw new Error("INVITATION_MAILER=smtp todavía no está disponible: usá fake.");
+    case "smtp": {
+      const config = readSmtpConfig(env);
+
+      return createSmtpInvitationMailer(createSmtpTransport(config), config.fromAddress);
+    }
     default:
       throw new Error('INVITATION_MAILER debe ser "smtp" o "fake".');
   }
