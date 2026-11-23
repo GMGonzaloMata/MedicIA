@@ -6,6 +6,7 @@ import { secondaryButtonClassName } from "@/components/form/button-styles";
 import { FormMessage } from "@/components/form/form-message";
 
 import { assignPatientAction } from "../_actions/assign-patient";
+import { endAssignmentAction } from "../_actions/end-assignment";
 import { regenerateLinkCodeAction } from "../_actions/regenerate-link-code";
 import type { ClinicActionState } from "../_lib/action-support";
 import { LinkCodeNotice } from "./link-code-notice";
@@ -27,6 +28,20 @@ export function RegenerateCodeForm({ patientId }: { patientId: string }) {
       </button>
       {state ? <FormMessage tone={state.status}>{state.message}</FormMessage> : null}
       {state?.linkCode ? <LinkCodeNotice code={state.linkCode} /> : null}
+    </form>
+  );
+}
+
+export function EndAssignmentForm({ assignmentId }: { assignmentId: string }) {
+  const [state, action, isPending] = useActionState(endAssignmentAction, undefined as ClinicActionState | undefined);
+
+  return (
+    <form action={action} className="flex flex-col gap-2">
+      <input type="hidden" name="assignmentId" value={assignmentId} />
+      <button type="submit" disabled={isPending} className={`${secondaryButtonClassName} self-start`}>
+        Terminar asignación
+      </button>
+      {state ? <FormMessage tone={state.status}>{state.message}</FormMessage> : null}
     </form>
   );
 }

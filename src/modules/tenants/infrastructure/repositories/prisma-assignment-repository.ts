@@ -41,4 +41,32 @@ export const prismaAssignmentRepository: AssignmentRepository = {
       throw error;
     }
   },
+
+  async end({ tenantId, assignmentId, endedByUserId, now }) {
+    // La condición `endedAt: null` evita terminar dos veces la misma asignación si dos pedidos llegan juntos.
+    const result = await prismaClient.doctorPatientAssignment.updateMany({
+      where: { id: assignmentId, tenantId, endedAt: null },
+      data: { endedAt: now, endedByUserId },
+    });
+
+    if (result.count === 1) {
+      return { kind: "ended" };
+    }
+
+    const existing = await prismaClient.doctorPatientAssignment.findFirst({
+      where: { id: assignmentId, tenantId },
+      select: { id: true },
+    });
+
+    return { kind: existing ? "already-ended" : "not-found" };
+  },
+
+  async listActiveDoctorStatuses({ tenantId, patientId }) {
+    const rows = await prismaClient.doctorPatientAssignment.findMany({
+      where: { tenantId, patientId, endedAt: null },
+      select: { membership: { select: { status: true } } },
+    });
+
+    return rows.map((row) => row.membership.status);
+  },
 };

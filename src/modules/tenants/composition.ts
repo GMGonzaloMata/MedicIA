@@ -2,10 +2,14 @@ import "server-only";
 
 import { createAcceptStaffInvitation } from "./application/use-cases/accept-staff-invitation";
 import { createAssignPatient } from "./application/use-cases/assign-patient";
+import { createDeactivateMember } from "./application/use-cases/deactivate-member";
+import { createEndAssignment } from "./application/use-cases/end-assignment";
+import { createGetAttendingDoctorAvailability } from "./application/use-cases/get-attending-doctor-availability";
 import { createInviteStaff } from "./application/use-cases/invite-staff";
 import { createLinkPatientAccount } from "./application/use-cases/link-patient-account";
 import { createListClinicPatients } from "./application/use-cases/list-clinic-patients";
 import { createListStaff } from "./application/use-cases/list-staff";
+import { createReactivateMember } from "./application/use-cases/reactivate-member";
 import { createRegeneratePatientLinkCode } from "./application/use-cases/regenerate-patient-link-code";
 import { createRegisterPatient } from "./application/use-cases/register-patient";
 import { createResendInvitation } from "./application/use-cases/resend-invitation";
@@ -59,6 +63,10 @@ function buildTenantsModule() {
     listClinicPatients: createListClinicPatients({ patients, now }),
     regeneratePatientLinkCode: createRegeneratePatientLinkCode({ patients, secrets, now }),
     assignPatient: createAssignPatient({ assignments }),
+    endAssignment: createEndAssignment({ assignments, now }),
+    deactivateMember: createDeactivateMember({ staff, now }),
+    reactivateMember: createReactivateMember({ staff }),
+    getAttendingDoctorAvailability: createGetAttendingDoctorAvailability({ assignments }),
     linkPatientAccount: createLinkPatientAccount({ patients, attempts: prismaLinkAttemptRepository, secrets, now }),
   };
 }

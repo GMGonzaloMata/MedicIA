@@ -3,6 +3,7 @@ import type {
   InvitationRepository,
 } from "@/modules/tenants/application/ports/out/invitation-repository";
 import type { StaffMember, StaffRepository, TenantSummary } from "@/modules/tenants/application/ports/out/staff-repository";
+import { decideDeactivation } from "@/modules/tenants/domain/member-lifecycle";
 import { normalizeEmail, type NormalizedEmail } from "@/modules/tenants/domain/normalized-values";
 import { decideAcceptance, type StaffInvitation } from "@/modules/tenants/domain/staff-invitation";
 import type { DoctorProfile } from "@/modules/tenants/domain/doctor-profile";
@@ -21,6 +22,8 @@ interface MembershipRow {
   roles: StaffRoles;
   doctor: DoctorProfile | null;
   status: "ACTIVE" | "DEACTIVATED";
+  deactivatedAt?: Date | null;
+  deactivatedByUserId?: string | null;
 }
 
 interface InvitationRow extends StaffInvitation {
@@ -102,6 +105,47 @@ export function createInMemoryClinicStore() {
       );
 
       return ofMember || ofInvitation;
+    },
+
+    async deactivate({ tenantId, membershipId, deactivatedByUserId, now }) {
+      const row = memberships.find((candidate) => candidate.id === membershipId && candidate.tenantId === tenantId);
+
+      if (!row) {
+        return { kind: "not-found" };
+      }
+
+      const activeAdminCount = memberships.filter(
+        (candidate) => candidate.tenantId === tenantId && candidate.roles.isClinicAdmin && candidate.status === "ACTIVE",
+      ).length;
+      const decision = decideDeactivation({ member: row, activeAdminCount });
+
+      if (decision !== "ok") {
+        return { kind: decision };
+      }
+
+      row.status = "DEACTIVATED";
+      row.deactivatedAt = now;
+      row.deactivatedByUserId = deactivatedByUserId;
+
+      return { kind: "deactivated" };
+    },
+
+    async reactivate({ tenantId, membershipId }) {
+      const row = memberships.find((candidate) => candidate.id === membershipId && candidate.tenantId === tenantId);
+
+      if (!row) {
+        return { kind: "not-found" };
+      }
+
+      if (row.status === "ACTIVE") {
+        return { kind: "already-active" };
+      }
+
+      row.status = "ACTIVE";
+      row.deactivatedAt = null;
+      row.deactivatedByUserId = null;
+
+      return { kind: "reactivated" };
     },
   };
 

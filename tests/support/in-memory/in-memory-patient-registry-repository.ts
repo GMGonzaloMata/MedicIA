@@ -36,6 +36,7 @@ export interface AssignmentRow {
   membershipId: string;
   createdByUserId: string;
   endedAt: Date | null;
+  endedByUserId?: string;
 }
 
 type ClinicStore = ReturnType<typeof createInMemoryClinicStore>;

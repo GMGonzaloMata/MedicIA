@@ -16,6 +16,13 @@ export const CLINIC_MESSAGES = {
   invitationRevoked: "La invitación quedó anulada.",
   mailUnavailable:
     "La invitación quedó creada, pero no pudimos enviar el correo. Probá reenviarla desde la lista de invitaciones pendientes.",
+  memberDeactivatedDone:
+    "Desactivamos a la persona: pierde el acceso en su próxima operación. Sus asignaciones siguen vigentes hasta que las termines.",
+  memberReactivatedDone: "Reactivamos a la persona: recupera el acceso y a los pacientes cuyas asignaciones siguen vigentes.",
+  alreadyDeactivated: "Esa persona ya estaba desactivada. Actualizá la lista para ver su estado.",
+  alreadyActive: "Esa persona ya estaba activa. Actualizá la lista para ver su estado.",
+  assignmentEnded: "Terminamos la asignación. El historial se conserva y podés asignar al paciente a otro médico.",
+  alreadyEnded: "Esa asignación ya estaba terminada. Actualizá la lista para ver su estado.",
   lastAdmin: "No se puede desactivar al único administrador. Primero sumá otro administrador a la clínica.",
 
   patientRegistered:

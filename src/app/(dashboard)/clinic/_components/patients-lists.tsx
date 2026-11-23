@@ -3,7 +3,7 @@ import "server-only";
 import type { ClinicPatientSummary } from "@/modules/tenants/application/use-cases/list-clinic-patients";
 import type { LinkCodeState } from "@/modules/tenants/domain/patient-link-code";
 
-import { AssignPatientForm, RegenerateCodeForm, type DoctorOption } from "./patient-row-actions";
+import { AssignPatientForm, EndAssignmentForm, RegenerateCodeForm, type DoctorOption } from "./patient-row-actions";
 
 const DOCUMENT_LABELS = { DNI: "DNI", PASSPORT: "Pasaporte", OTHER: "Documento" } as const;
 
@@ -46,16 +46,18 @@ export function ClinicPatientsList({
               {STATUS_LABELS[patient.status]}
               {patient.status === "PENDING" && patient.linkCodeState ? ` · ${CODE_LABELS[patient.linkCodeState]}` : ""}
             </p>
-            <p className="text-sm text-muted">
-              {patient.assignments.length === 0
-                ? "Sin médico asignado"
-                : `Médico: ${patient.assignments
-                    .map((assignment) =>
-                      assignment.doctorStatus === "DEACTIVATED" ? `${assignment.doctorName} (desactivado)` : assignment.doctorName,
-                    )
-                    .join(", ")}`}
-            </p>
+            {patient.assignments.length === 0 ? <p className="text-sm text-muted">Sin médico asignado</p> : null}
           </div>
+          {/* Un médico desactivado conserva la asignación vigente: se dice con texto y se puede terminar o reasignar. */}
+          {patient.assignments.map((assignment) => (
+            <div key={assignment.assignmentId} className="flex flex-col gap-2 rounded-control border border-border px-3 py-2">
+              <p className="text-sm">
+                Médico: {assignment.doctorName}
+                {assignment.doctorStatus === "DEACTIVATED" ? " · Desactivado: el paciente no tiene quién lo atienda" : ""}
+              </p>
+              <EndAssignmentForm assignmentId={assignment.assignmentId} />
+            </div>
+          ))}
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start">
             <AssignPatientForm patientId={patient.id} doctors={doctors} />
             {patient.status === "PENDING" ? <RegenerateCodeForm patientId={patient.id} /> : null}

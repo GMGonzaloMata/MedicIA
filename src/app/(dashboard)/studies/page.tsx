@@ -7,6 +7,7 @@ import { MAX_UPLOAD_BYTES } from "@/modules/studies/domain/ecg-study";
 
 import { requireClinicContext } from "../../_lib/access";
 import { toStudyActor } from "../../_lib/study-actor";
+import { AttendingDoctorNotice } from "../_studies/_components/attending-doctor-notice";
 import { Pagination } from "../_studies/_components/pagination";
 import { StudiesList } from "../_studies/_components/studies-list";
 import { UploadForm } from "../_studies/_components/upload-form";
@@ -48,6 +49,7 @@ async function StudiesContent({ searchParams }: { searchParams: PageProps<"/stud
 
   return (
     <div className="flex flex-col gap-6">
+      <AttendingDoctorNotice tenantId={actor.tenantId} patientId={actor.patientId} />
       <UploadForm maxBytes={MAX_UPLOAD_BYTES} />
       <StudiesList studies={result.items} />
       <Pagination page={result.page} totalPages={result.totalPages} basePath="/studies" />

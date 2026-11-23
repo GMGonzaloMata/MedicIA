@@ -7,6 +7,8 @@ export interface AssignmentTarget {
 
 export type CreateAssignmentResult = { kind: "created"; assignmentId: string } | { kind: "already-assigned" };
 
+export type EndAssignmentResult = { kind: "ended" } | { kind: "not-found" } | { kind: "already-ended" };
+
 // Asignaciones médico–paciente de una clínica. Toda consulta recibe el `tenantId` del actor.
 export interface AssignmentRepository {
   // Una sola consulta con el paciente y el médico, los dos acotados a la clínica.
@@ -19,4 +21,10 @@ export interface AssignmentRepository {
     membershipId: string;
     createdByUserId: string;
   }): Promise<CreateAssignmentResult>;
+
+  // Termina una asignación vigente y guarda cuándo y quién. La fila se conserva como historial.
+  end(input: { tenantId: string; assignmentId: string; endedByUserId: string; now: Date }): Promise<EndAssignmentResult>;
+
+  // Estado del médico de cada asignación vigente del paciente, sin nombres ni datos del médico.
+  listActiveDoctorStatuses(input: { tenantId: string; patientId: string }): Promise<("ACTIVE" | "DEACTIVATED")[]>;
 }

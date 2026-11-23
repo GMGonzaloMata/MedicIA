@@ -37,5 +37,32 @@ export function createInMemoryAssignmentRepository(
 
       return { kind: "created", assignmentId: id };
     },
+
+    async end({ tenantId, assignmentId, endedByUserId, now }) {
+      const row = registry.assignments.find((candidate) => candidate.id === assignmentId && candidate.tenantId === tenantId);
+
+      if (!row) {
+        return { kind: "not-found" };
+      }
+
+      if (row.endedAt !== null) {
+        return { kind: "already-ended" };
+      }
+
+      row.endedAt = now;
+      row.endedByUserId = endedByUserId;
+
+      return { kind: "ended" };
+    },
+
+    async listActiveDoctorStatuses({ tenantId, patientId }) {
+      return registry.assignments
+        .filter((row) => row.tenantId === tenantId && row.patientId === patientId && row.endedAt === null)
+        .flatMap((row) => {
+          const membership = clinic.memberships.find((candidate) => candidate.id === row.membershipId);
+
+          return membership ? [membership.status] : [];
+        });
+    },
   };
 }

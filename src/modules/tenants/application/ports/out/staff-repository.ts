@@ -15,6 +15,14 @@ export interface StaffMember {
   status: MembershipStatus;
 }
 
+export type DeactivateMemberResult =
+  | { kind: "deactivated" }
+  | { kind: "not-found" }
+  | { kind: "already-deactivated" }
+  | { kind: "last-admin" };
+
+export type ReactivateMemberResult = { kind: "reactivated" } | { kind: "not-found" } | { kind: "already-active" };
+
 export interface TenantSummary {
   name: string;
   status: "ACTIVE" | "SUSPENDED";
@@ -34,4 +42,17 @@ export interface StaffRepository {
   // rechazar al invitar y no al aceptar. `exceptEmail` deja afuera la invitación pendiente de ese mismo correo, que
   // la nueva va a reemplazar (reenviar).
   isLicenseTaken(input: { tenantId: string; licenseNumber: string; exceptEmail?: NormalizedEmail }): Promise<boolean>;
+
+  // Desactiva a un miembro de la clínica sin borrar nada. Bloquea la fila de la clínica, cuenta los administradores
+  // activos y rechaza si es el último (`decideDeactivation`), todo en una transacción. Guarda quién y cuándo. No toca
+  // las asignaciones.
+  deactivate(input: {
+    tenantId: string;
+    membershipId: string;
+    deactivatedByUserId: string;
+    now: Date;
+  }): Promise<DeactivateMemberResult>;
+
+  // Reactiva a un miembro desactivado y limpia quién y cuándo lo desactivó.
+  reactivate(input: { tenantId: string; membershipId: string }): Promise<ReactivateMemberResult>;
 }

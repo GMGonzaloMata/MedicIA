@@ -5,6 +5,7 @@ import type { StaffMember } from "@/modules/tenants/application/ports/out/staff-
 import { describeRoles } from "@/modules/tenants/domain/staff-roles";
 
 import { InvitationRowActions } from "./invitation-row-actions";
+import { MemberRowActions } from "./member-row-actions";
 
 const dateFormat = new Intl.DateTimeFormat("es-AR", { dateStyle: "medium" });
 
@@ -25,6 +26,7 @@ export function MembersList({ members }: { members: StaffMember[] }) {
             {" · "}
             {member.status === "ACTIVE" ? "Activo" : "Desactivado"}
           </p>
+          <MemberRowActions membershipId={member.membershipId} status={member.status} />
         </li>
       ))}
     </ul>
