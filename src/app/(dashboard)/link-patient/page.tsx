@@ -24,7 +24,7 @@ async function LinkPatientContent() {
   const context = await getAccessContext();
 
   if (context.status === "anonymous") {
-    redirect("/sign-in");
+    redirect("/sign-in?next=%2Flink-patient");
   }
 
   return (

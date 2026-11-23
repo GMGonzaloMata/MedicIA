@@ -17,13 +17,13 @@ export interface DoctorOption {
   label: string;
 }
 
-export function RegenerateCodeForm({ patientId }: { patientId: string }) {
+export function RegenerateCodeForm({ patientId, describedBy }: { patientId: string; describedBy: string }) {
   const [state, action, isPending] = useActionState(regenerateLinkCodeAction, undefined as ClinicActionState | undefined);
 
   return (
     <form action={action} className="flex flex-col gap-2">
       <input type="hidden" name="patientId" value={patientId} />
-      <button type="submit" disabled={isPending} className={secondaryButtonClassName}>
+      <button type="submit" disabled={isPending} aria-describedby={describedBy} className={secondaryButtonClassName}>
         Generar código nuevo
       </button>
       {state ? <FormMessage tone={state.status}>{state.message}</FormMessage> : null}
@@ -32,13 +32,13 @@ export function RegenerateCodeForm({ patientId }: { patientId: string }) {
   );
 }
 
-export function EndAssignmentForm({ assignmentId }: { assignmentId: string }) {
+export function EndAssignmentForm({ assignmentId, describedBy }: { assignmentId: string; describedBy: string }) {
   const [state, action, isPending] = useActionState(endAssignmentAction, undefined as ClinicActionState | undefined);
 
   return (
     <form action={action} className="flex flex-col gap-2">
       <input type="hidden" name="assignmentId" value={assignmentId} />
-      <button type="submit" disabled={isPending} className={`${secondaryButtonClassName} self-start`}>
+      <button type="submit" disabled={isPending} aria-describedby={describedBy} className={`${secondaryButtonClassName} self-start`}>
         Terminar asignación
       </button>
       {state ? <FormMessage tone={state.status}>{state.message}</FormMessage> : null}
@@ -46,7 +46,15 @@ export function EndAssignmentForm({ assignmentId }: { assignmentId: string }) {
   );
 }
 
-export function AssignPatientForm({ patientId, doctors }: { patientId: string; doctors: DoctorOption[] }) {
+export function AssignPatientForm({
+  patientId,
+  doctors,
+  describedBy,
+}: {
+  patientId: string;
+  doctors: DoctorOption[];
+  describedBy: string;
+}) {
   const [state, action, isPending] = useActionState(assignPatientAction, undefined as ClinicActionState | undefined);
   const selectId = `assign-${patientId}`;
 
@@ -68,7 +76,7 @@ export function AssignPatientForm({ patientId, doctors }: { patientId: string; d
             </option>
           ))}
         </select>
-        <button type="submit" disabled={isPending} className={secondaryButtonClassName}>
+        <button type="submit" disabled={isPending} aria-describedby={describedBy} className={secondaryButtonClassName}>
           Asignar
         </button>
       </div>

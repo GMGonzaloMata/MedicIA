@@ -394,7 +394,7 @@ model PatientLinkCode {
   @@map("patient_link_codes")
 }
 
-// Intentos fallidos de vincular un paciente, por cuenta, para limitar la frecuencia. No guarda documentos,
+// Intentos de vincular un paciente, por cuenta, para limitar la frecuencia (se reservan antes de evaluar). No guarda documentos,
 // códigos ni clínica.
 model PatientLinkAttempt {
   id          String   @id @default(uuid(7)) @db.Uuid

@@ -38,7 +38,7 @@ export function ClinicPatientsList({
       {patients.map((patient) => (
         <li key={patient.id} className="flex flex-col gap-3 px-4 py-4">
           <div className="flex flex-col gap-1">
-            <p className="font-semibold">
+            <p id={`patient-${patient.id}`} className="break-words font-semibold">
               {DOCUMENT_LABELS[patient.documentType]} {patient.documentNumber}
               {patient.fullName ? ` · ${patient.fullName}` : ""}
             </p>
@@ -55,12 +55,12 @@ export function ClinicPatientsList({
                 Médico: {assignment.doctorName}
                 {assignment.doctorStatus === "DEACTIVATED" ? " · Desactivado: el paciente no tiene quién lo atienda" : ""}
               </p>
-              <EndAssignmentForm assignmentId={assignment.assignmentId} />
+              <EndAssignmentForm assignmentId={assignment.assignmentId} describedBy={`patient-${patient.id}`} />
             </div>
           ))}
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start">
-            <AssignPatientForm patientId={patient.id} doctors={doctors} />
-            {patient.status === "PENDING" ? <RegenerateCodeForm patientId={patient.id} /> : null}
+            <AssignPatientForm patientId={patient.id} doctors={doctors} describedBy={`patient-${patient.id}`} />
+            {patient.status === "PENDING" ? <RegenerateCodeForm patientId={patient.id} describedBy={`patient-${patient.id}`} /> : null}
           </div>
         </li>
       ))}

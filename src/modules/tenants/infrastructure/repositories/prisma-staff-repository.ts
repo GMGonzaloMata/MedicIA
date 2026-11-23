@@ -68,7 +68,11 @@ export const prismaStaffRepository: StaffRepository = {
 
   async isLicenseTaken({ tenantId, licenseNumber, exceptEmail }) {
     const [membership, invitation] = await Promise.all([
-      prismaClient.staffMembership.findFirst({ where: { tenantId, licenseNumber }, select: { id: true } }),
+      // Con `exceptEmail` (reenviar o sumar un rol), la matrícula de ese mismo miembro no cuenta como ocupada.
+      prismaClient.staffMembership.findFirst({
+        where: { tenantId, licenseNumber, ...(exceptEmail ? { user: { email: { not: exceptEmail } } } : {}) },
+        select: { id: true },
+      }),
       prismaClient.staffInvitation.findFirst({
         where: {
           tenantId,

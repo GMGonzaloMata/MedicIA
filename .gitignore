@@ -96,3 +96,6 @@ EchoNext*.xml
 echonext*.zip
 EchoNext*.zip
 *.zip
+
+# Buzón del correo simulado de las pruebas E2E: lleva enlaces de invitación.
+/.tmp/

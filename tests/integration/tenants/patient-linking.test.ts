@@ -198,6 +198,50 @@ describe("límite por cuenta", () => {
     expect(await prismaClient.patientLinkAttempt.count({ where: { userId: other.id } })).toBe(1);
   });
 
+  it("una ráfaga de pedidos simultáneos de una misma cuenta no supera el límite", async () => {
+    const user = await createUser();
+
+    const results = await Promise.all(Array.from({ length: 25 }, () => link(user, WRONG_CODE, "99999999")));
+
+    expect(results.filter((result) => !result.ok && result.code === "TOO_MANY_ATTEMPTS")).toHaveLength(15);
+    expect(await prismaClient.patientLinkAttempt.count({ where: { userId: user.id } })).toBe(10);
+  });
+
+  it("una ráfaga de cuentas distintas no evalúa un código más de 5 veces", async () => {
+    const clinic = await createClinic();
+    const { patientId, linkCode } = await register(clinic.actor);
+    const attackers = await Promise.all(Array.from({ length: 20 }, () => createUser()));
+
+    await Promise.all(attackers.map((attacker) => link(attacker, WRONG_CODE)));
+
+    // Cinco intentos bastan para bloquearlo: los otros quince ya no lo encontraron.
+    expect(await prismaClient.patientLinkCode.findFirstOrThrow({ where: { patientId } })).toMatchObject({
+      status: "LOCKED",
+      failedAttempts: 5,
+    });
+    expect(await link(await createUser(), linkCode)).toEqual({ ok: false, code: "LINK_FAILED" });
+  });
+
+  it("un intento exitoso no gasta los intentos del código de otra clínica con el mismo documento", async () => {
+    const a = await createClinic();
+    const b = await createClinic();
+    await register(a.actor);
+    const inB = await register(b.actor);
+
+    await link(await createUser(), inB.linkCode);
+
+    expect((await prismaClient.patientLinkCode.findFirstOrThrow({ where: { tenantId: a.tenant.id } })).failedAttempts).toBe(0);
+  });
+
+  it("no vincula en una clínica suspendida", async () => {
+    const clinic = await createClinic();
+    const { patientId, linkCode } = await register(clinic.actor);
+    await prismaClient.tenant.update({ where: { id: clinic.tenant.id }, data: { status: "SUSPENDED" } });
+
+    expect(await link(await createUser(), linkCode)).toEqual({ ok: false, code: "LINK_FAILED" });
+    expect((await prismaClient.patient.findUniqueOrThrow({ where: { id: patientId } })).status).toBe("PENDING");
+  });
+
   it("no guarda documentos, códigos ni clínica en los intentos", async () => {
     const user = await createUser();
     await link(user, WRONG_CODE, "99999999");
@@ -223,6 +267,34 @@ describe("el mismo documento en dos clínicas", () => {
       status: "PENDING",
       userId: null,
     });
+  });
+
+  // Falla si se quita la unión entre el código y su paciente en el SQL de reserva.
+  it("el código de un paciente no sirve con el documento de otro de la misma clínica", async () => {
+    const clinic = await createClinic();
+    const x = await register(clinic.actor, "11111111");
+    await register(clinic.actor, "22222222");
+
+    expect(await link(await createUser(), x.linkCode, "22222222")).toEqual({ ok: false, code: "LINK_FAILED" });
+
+    expect((await prismaClient.patient.findUniqueOrThrow({ where: { id: x.patientId } })).status).toBe("PENDING");
+    expect(
+      (await prismaClient.patientLinkCode.findFirstOrThrow({ where: { patientId: x.patientId } })).failedAttempts,
+    ).toBe(0);
+  });
+
+  it("el código de un paciente de una clínica no sirve con el documento de otra clínica", async () => {
+    const a = await createClinic();
+    const b = await createClinic();
+    const x = await register(a.actor, "11111111");
+    await register(b.actor, "22222222");
+
+    expect(await link(await createUser(), x.linkCode, "22222222")).toEqual({ ok: false, code: "LINK_FAILED" });
+
+    expect((await prismaClient.patient.findUniqueOrThrow({ where: { id: x.patientId } })).status).toBe("PENDING");
+    expect(
+      (await prismaClient.patientLinkCode.findFirstOrThrow({ where: { patientId: x.patientId } })).failedAttempts,
+    ).toBe(0);
   });
 
   it("un fallo suma al código de ambas clínicas (costo aceptado y documentado)", async () => {

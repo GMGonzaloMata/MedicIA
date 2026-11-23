@@ -95,7 +95,12 @@ export function createInMemoryClinicStore() {
     },
 
     async isLicenseTaken({ tenantId, licenseNumber, exceptEmail }) {
-      const ofMember = memberships.some((row) => row.tenantId === tenantId && row.doctor?.licenseNumber === licenseNumber);
+      const ofMember = memberships.some(
+        (row) =>
+          row.tenantId === tenantId &&
+          row.doctor?.licenseNumber === licenseNumber &&
+          users.get(row.userId)?.email !== exceptEmail,
+      );
       const ofInvitation = invitationRows.some(
         (row) =>
           row.tenantId === tenantId &&

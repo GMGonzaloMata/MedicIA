@@ -38,6 +38,7 @@ export function InviteStaffForm() {
             type="checkbox"
             name="isDoctor"
             className={checkboxClassName}
+            checked={isDoctor}
             onChange={(event) => setIsDoctor(event.target.checked)}
           />
           Médico

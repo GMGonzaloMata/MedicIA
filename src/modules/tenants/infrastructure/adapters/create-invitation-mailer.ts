@@ -1,8 +1,10 @@
+import "server-only";
+
 import type { InvitationMailer } from "../../application/ports/out/invitation-mailer";
 import { createFakeInvitationMailer } from "./fake-invitation-mailer";
 
-// Elige el correo según INVITATION_MAILER. No hay valor por defecto: si falta o es desconocido la aplicación
-// no arranca, para que un entorno mal configurado no use el simulado por error.
+// Elige el correo según INVITATION_MAILER. No hay valor por defecto: si falta o es desconocido, invitar falla
+// (se arma recién al invitar), para que un entorno mal configurado no use el simulado por error.
 export function createInvitationMailer(env: Record<string, string | undefined>): InvitationMailer {
   switch (env.INVITATION_MAILER) {
     case "fake": {

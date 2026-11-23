@@ -70,12 +70,14 @@ function WorkspacePanel({ icon, title, description, destinations = [] }: Workspa
       <div className="clinical-workspace-body">
         <h2 id="clinical-workspace-title">{title}</h2>
         <p>{description}</p>
-        {destinations.map((destination) => (
-          <Link key={destination.href} href={destination.href} className="clinical-home-action">
-            {destination.label}
-            <ClinicalIcon name="arrow" />
-          </Link>
-        ))}
+        <div className="flex flex-wrap gap-x-4">
+          {destinations.map((destination) => (
+            <Link key={destination.href} href={destination.href} className="clinical-home-action">
+              {destination.label}
+              <ClinicalIcon name="arrow" />
+            </Link>
+          ))}
+        </div>
       </div>
       <div aria-hidden="true" className="clinical-workspace-plate">
         <ClinicalIcon name={icon} />

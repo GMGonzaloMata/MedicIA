@@ -91,16 +91,27 @@ export const prismaPatientRegistryRepository: PatientRegistryRepository = {
     }));
   },
 
-  async findLinkCandidates({ documentType, documentNumber, now }) {
-    // Única lectura sin `tenantId` del padrón (ver el puerto): busca por documento en todas las clínicas.
-    const rows = await prismaClient.patientLinkCode.findMany({
-      where: {
-        status: "ACTIVE",
-        expiresAt: { gt: now },
-        patient: { documentType, documentNumber, status: "PENDING", userId: null },
-      },
-      select: { id: true, tenantId: true, patientId: true, codeHash: true },
-    });
+  async reserveCodeAttempts({ documentType, documentNumber, now, maxAttempts }) {
+    // Única lectura sin `tenantId` del padrón (ver el puerto): busca por documento en todas las clínicas. Una sola
+    // sentencia suma el intento y devuelve los códigos evaluables: la fila se bloquea al actualizarla, así que dos
+    // pedidos simultáneos no pueden reservar el mismo cupo. Una clínica suspendida no incorpora personas.
+    const rows = await prismaClient.$queryRaw<{ id: string; tenantId: string; patientId: string; codeHash: string }[]>`
+      UPDATE patient_link_codes AS c
+      SET failed_attempts = c.failed_attempts + 1
+      FROM patients AS p, tenants AS t
+      WHERE p.id = c.patient_id
+        AND p.tenant_id = c.tenant_id
+        AND t.id = p.tenant_id
+        AND c.status = 'ACTIVE'
+        AND c.expires_at > ${now}::timestamptz
+        AND c.failed_attempts < ${maxAttempts}::int
+        AND p.document_type = ${documentType}::document_type
+        AND p.document_number = ${documentNumber}
+        AND p.status = 'PENDING'
+        AND p.user_id IS NULL
+        AND t.status = 'ACTIVE'
+      RETURNING c.id, c.tenant_id AS "tenantId", c.patient_id AS "patientId", c.code_hash AS "codeHash"
+    `;
 
     return rows.map((row) => ({
       patientId: row.patientId,
@@ -125,7 +136,13 @@ export const prismaPatientRegistryRepository: PatientRegistryRepository = {
         }
 
         const patient = await transaction.patient.updateMany({
-          where: { id: candidate.patientId, tenantId: candidate.tenantId, status: "PENDING", userId: null },
+          where: {
+            id: candidate.patientId,
+            tenantId: candidate.tenantId,
+            status: "PENDING",
+            userId: null,
+            tenant: { status: "ACTIVE" },
+          },
           data: { status: "LINKED", userId: user.id, fullName: user.fullName, linkedAt: now },
         });
 
@@ -148,17 +165,18 @@ export const prismaPatientRegistryRepository: PatientRegistryRepository = {
     }
   },
 
-  async recordCodeFailure({ codeIds, maxAttempts, now }) {
-    await prismaClient.$transaction([
-      prismaClient.patientLinkCode.updateMany({
-        where: { id: { in: codeIds }, status: "ACTIVE", failedAttempts: { lt: maxAttempts } },
-        data: { failedAttempts: { increment: 1 } },
-      }),
-      prismaClient.patientLinkCode.updateMany({
-        where: { id: { in: codeIds }, status: "ACTIVE", failedAttempts: { gte: maxAttempts } },
-        data: { status: "LOCKED", closedAt: now },
-      }),
-    ]);
+  async lockExhaustedCodes({ codeIds, maxAttempts, now }) {
+    await prismaClient.patientLinkCode.updateMany({
+      where: { id: { in: codeIds }, status: "ACTIVE", failedAttempts: { gte: maxAttempts } },
+      data: { status: "LOCKED", closedAt: now },
+    });
+  },
+
+  async releaseCodeAttempts({ codeIds }) {
+    await prismaClient.patientLinkCode.updateMany({
+      where: { id: { in: codeIds }, status: "ACTIVE", failedAttempts: { gt: 0 } },
+      data: { failedAttempts: { decrement: 1 } },
+    });
   },
 
   async replaceLinkCode(input) {

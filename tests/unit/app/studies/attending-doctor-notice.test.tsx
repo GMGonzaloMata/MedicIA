@@ -9,7 +9,9 @@ import { STUDY_MESSAGES } from "@/app/(dashboard)/_studies/_lib/study-messages";
 
 const tenantsModule = vi.hoisted(() => ({ getAttendingDoctorAvailability: vi.fn() }));
 
-vi.mock("@/modules/tenants/composition", () => ({ getTenantsModule: () => tenantsModule }));
+const getTenantsModule = vi.hoisted(() => vi.fn());
+
+vi.mock("@/modules/tenants/composition", () => ({ getTenantsModule }));
 
 async function renderNotice() {
   const stream = await renderToReadableStream(<AttendingDoctorNotice tenantId="tenant-1" patientId="patient-1" />);
@@ -21,6 +23,8 @@ async function renderNotice() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  getTenantsModule.mockReturnValue(tenantsModule);
+  vi.spyOn(console, "error").mockImplementation(() => undefined);
 });
 
 describe("aviso de médico no disponible", () => {
@@ -47,6 +51,17 @@ describe("aviso de médico no disponible", () => {
     await renderNotice();
 
     expect(screen.queryByRole("status")).toBeNull();
+  });
+
+  it("si armar el módulo falla (por ejemplo, falta configuración), la pantalla no se rompe y se registra solo el nombre", async () => {
+    getTenantsModule.mockImplementation(() => {
+      throw new TypeError("APP_BASE_URL con datos@personales.com");
+    });
+
+    await renderNotice();
+
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(console.error).toHaveBeenCalledWith("[estudios] no se pudo consultar la disponibilidad del médico: TypeError");
   });
 
   it("consulta con la clínica y el paciente que recibe del contexto, y no muestra datos del médico", async () => {

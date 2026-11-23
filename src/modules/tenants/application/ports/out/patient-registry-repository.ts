@@ -62,7 +62,16 @@ export interface PatientRegistryRepository {
   // Vinculación por la cuenta del paciente. Es una de las dos lecturas sin clínica previa de la funcionalidad: la
   // persona todavía no pertenece a ninguna, así que se busca por documento en todas y la clínica sale del registro
   // encontrado, nunca de un dato del cliente.
-  findLinkCandidates(input: { documentType: DocumentType; documentNumber: NormalizedDocument; now: Date }): Promise<LinkCandidate[]>;
+  //
+  // Reserva un intento en cada código antes de evaluarlo: en una sola sentencia atómica suma 1 a `failed_attempts` de
+  // cada código activo, vigente y con menos de `maxAttempts` intentos, y devuelve solo esos. Así una ráfaga de pedidos
+  // simultáneos no puede evaluar más de `maxAttempts` veces el mismo código.
+  reserveCodeAttempts(input: {
+    documentType: DocumentType;
+    documentNumber: NormalizedDocument;
+    now: Date;
+    maxAttempts: number;
+  }): Promise<LinkCandidate[]>;
 
   // Asocia la cuenta al paciente, pasa el código a usado y borra los intentos fallidos de la cuenta, todo en una
   // transacción. Falla (`rejected`) si otra vinculación ganó, si el código ya no sirve o si la cuenta ya es paciente
@@ -73,6 +82,10 @@ export interface PatientRegistryRepository {
     now: Date;
   }): Promise<{ kind: "linked" } | { kind: "rejected" }>;
 
-  // Suma un fallo a cada código y pasa a bloqueado el que llega al máximo.
-  recordCodeFailure(input: { codeIds: string[]; maxAttempts: number; now: Date }): Promise<void>;
+  // Pasa a bloqueado cada código que llegó al máximo de intentos (el intento ya se reservó al evaluarlo).
+  lockExhaustedCodes(input: { codeIds: string[]; maxAttempts: number; now: Date }): Promise<void>;
+
+  // Devuelve el intento reservado a los códigos que no eran los de la persona cuando la vinculación salió bien:
+  // un intento exitoso no debe gastar los intentos del código de otra clínica con el mismo documento.
+  releaseCodeAttempts(input: { codeIds: string[] }): Promise<void>;
 }

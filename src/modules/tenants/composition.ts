@@ -39,19 +39,26 @@ function readAppBaseUrl(env: Record<string, string | undefined>): string {
 function buildTenantsModule() {
   const now = () => new Date();
   const secrets = nodeSecretGenerator;
-  const mailer = createInvitationMailer(process.env);
   const staff = prismaStaffRepository;
   const invitations = prismaInvitationRepository;
   const patients = prismaPatientRegistryRepository;
   const assignments = prismaAssignmentRepository;
-  const inviteStaff = createInviteStaff({
-    staff,
-    invitations,
-    mailer,
-    secrets,
-    now,
-    appBaseUrl: readAppBaseUrl(process.env),
-  });
+  // El correo y el origen de los enlaces solo hacen falta al invitar. Se arman recién en el primer uso, para que
+  // el resto de los casos de uso (vincular, asignar, listar, desactivar, consultar la disponibilidad) no dependan de
+  // la configuración del correo: si falta, falla invitar y nada más.
+  let inviteStaffUseCase: ReturnType<typeof createInviteStaff> | undefined;
+  const inviteStaff: ReturnType<typeof createInviteStaff> = (input) => {
+    inviteStaffUseCase ??= createInviteStaff({
+      staff,
+      invitations,
+      mailer: createInvitationMailer(process.env),
+      secrets,
+      now,
+      appBaseUrl: readAppBaseUrl(process.env),
+    });
+
+    return inviteStaffUseCase(input);
+  };
 
   return {
     inviteStaff,

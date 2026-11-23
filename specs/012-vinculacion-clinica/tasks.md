@@ -176,16 +176,16 @@ description: "Lista de tareas de la funcionalidad 012: vinculación de personal 
 
 ## Phase 7: Polish y verificación transversal
 
-- [ ] T063 [P] Prueba de que ningún registro contiene datos personales en `tests/unit/modules/tenants/no-personal-data-in-logs.test.ts`: capturar `console` mientras se ejecutan los casos de uso, incluidos los de fallo, y comprobar que no aparecen correos, documentos, nombres, tokens ni códigos (SC-008).
-- [ ] T064 [P] Actualizar `memory/architecture.md` (módulo `tenants`, variables `INVITATION_MAILER`, `SMTP_*`, `INVITATION_FROM_ADDRESS`, `FAKE_MAIL_OUTBOX_FILE`, `APP_BASE_URL`, las dos lecturas sin clínica previa) y `memory/project-structure.md` (carpetas y rutas nuevas).
-- [ ] T065 Actualizar `scripts/seed-demo-clinic.ts` si hace falta para que la siembra deje al menos un administrador por clínica y no choque con los documentos normalizados; no cambiar su comportamiento actual.
-- [ ] T066 Ejecutar `npm run check` y corregir lo que falle, comprobando en el informe de cobertura que el código nuevo de `src/modules/tenants/` llega al 80 % de líneas por archivo. En Windows, con Git Bash en el `PATH`.
-- [ ] T067 Ejecutar `npm run test:e2e` completo y corregir regresiones en las pantallas existentes (encabezado, panel de inicio, `/no-access`, `/studies`).
-- [ ] T068 Revisar los cambios con la skill `review-changes` (arquitectura, seguridad e interfaz). Es obligatoria: toca autorización, aislamiento entre clínicas y datos personales.
+- [X] T063 [P] Prueba de que ningún registro contiene datos personales en `tests/unit/modules/tenants/no-personal-data-in-logs.test.ts`: capturar `console` mientras se ejecutan los casos de uso, incluidos los de fallo, y comprobar que no aparecen correos, documentos, nombres, tokens ni códigos (SC-008).
+- [X] T064 [P] Actualizar `memory/architecture.md` (módulo `tenants`, variables `INVITATION_MAILER`, `SMTP_*`, `INVITATION_FROM_ADDRESS`, `FAKE_MAIL_OUTBOX_FILE`, `APP_BASE_URL`, las dos lecturas sin clínica previa) y `memory/project-structure.md` (carpetas y rutas nuevas).
+- [X] T065 Actualizar `scripts/seed-demo-clinic.ts` si hace falta para que la siembra deje al menos un administrador por clínica y no choque con los documentos normalizados; no cambiar su comportamiento actual.
+- [X] T066 Ejecutar `npm run check` y corregir lo que falle, comprobando en el informe de cobertura que el código nuevo de `src/modules/tenants/` llega al 80 % de líneas por archivo. En Windows, con Git Bash en el `PATH`.
+- [X] T067 Ejecutar `npm run test:e2e` completo y corregir regresiones en las pantallas existentes (encabezado, panel de inicio, `/no-access`, `/studies`).
+- [X] T068 Revisar los cambios con la skill `review-changes` (arquitectura, seguridad e interfaz). Es obligatoria: toca autorización, aislamiento entre clínicas y datos personales.
 - [ ] T069 [Responsable] Recorrer a mano [quickstart.md](quickstart.md) con `INVITATION_MAILER=fake` y una vez con `smtp` hacia una dirección propia, y registrar el resultado, con los tiempos de invitar a un médico (SC-001, menos de 3 minutos) y de registrar y asignar un paciente (SC-002, menos de 2 minutos).
 - [ ] T070 [Responsable] Antes de desplegar: aplicar la migración a la base de RDS con el procedimiento de siempre y agregar `INVITATION_MAILER`, `SMTP_*`, `INVITATION_FROM_ADDRESS` y `APP_BASE_URL` al secreto `medicia-dev-demo/app` por un canal privado.
 - [ ] T071 [Responsable] Revisar el `diff` y hacer `git commit` en los puntos de cierre de cada fase.
-- [ ] T072 [P] Prueba E2E de interfaz en `tests/e2e/clinic-responsive.spec.ts`, siguiendo `tests/e2e/studies-responsive.spec.ts`: `/clinic/staff`, `/clinic/patients`, `/invitation/[token]` y `/link-patient` sin desbordes en móvil, tablet y escritorio, en modo claro y oscuro, con navegación por teclado y foco visible, y con los estados (activo, desactivado, pendiente, vencido) comunicados también por texto (constitución VII).
+- [X] T072 [P] Prueba E2E de interfaz en `tests/e2e/clinic-responsive.spec.ts`, siguiendo `tests/e2e/studies-responsive.spec.ts`: `/clinic/staff`, `/clinic/patients`, `/invitation/[token]` y `/link-patient` sin desbordes en móvil, tablet y escritorio, en modo claro y oscuro, con navegación por teclado y foco visible, y con los estados (activo, desactivado, pendiente, vencido) comunicados también por texto (constitución VII).
 - [ ] T073 [Responsable] Documentar en `infra/README.md` cómo se crea la primera clínica y su primer administrador en la base de la demo (con `scripts/seed-demo-clinic.ts` o con SQL a cargo del responsable), porque sin ese administrador no puede enviarse ninguna invitación (FR-017, supuesto de la spec). Hacerlo antes de T070.
 
 ---

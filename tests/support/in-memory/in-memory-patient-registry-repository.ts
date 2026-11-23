@@ -158,20 +158,34 @@ export function createInMemoryPatientRegistry(clinic: ClinicStore, linkAttempts:
       return { kind: "replaced" };
     },
 
-    async findLinkCandidates({ documentType, documentNumber, now }) {
-      return codes
-        .filter((code) => code.status === "ACTIVE" && code.expiresAt.getTime() > now.getTime())
-        .flatMap((code) => {
-          const patient = patients.find((row) => row.id === code.patientId);
+    async reserveCodeAttempts({ documentType, documentNumber, now, maxAttempts }) {
+      const reserved = [];
 
-          return patient &&
-            patient.status === "PENDING" &&
-            patient.userId === null &&
-            patient.documentType === documentType &&
-            patient.documentNumber === documentNumber
-            ? [{ patientId: patient.id, tenantId: patient.tenantId, codeId: code.id, codeHash: code.codeHash }]
-            : [];
-        });
+      for (const code of codes) {
+        if (code.status !== "ACTIVE" || code.expiresAt.getTime() <= now.getTime() || code.failedAttempts >= maxAttempts) {
+          continue;
+        }
+
+        const patient = patients.find((row) => row.id === code.patientId);
+        const tenant = patient ? await clinic.staff.findTenant(patient.tenantId) : null;
+
+        if (
+          !patient ||
+          patient.status !== "PENDING" ||
+          patient.userId !== null ||
+          patient.documentType !== documentType ||
+          patient.documentNumber !== documentNumber ||
+          tenant?.status !== "ACTIVE"
+        ) {
+          continue;
+        }
+
+        // Como en la base: el intento se reserva al elegir el código, antes de evaluarlo.
+        code.failedAttempts += 1;
+        reserved.push({ patientId: patient.id, tenantId: patient.tenantId, codeId: code.id, codeHash: code.codeHash });
+      }
+
+      return reserved;
     },
 
     async linkAccount({ candidate, user, now }) {
@@ -200,16 +214,18 @@ export function createInMemoryPatientRegistry(clinic: ClinicStore, linkAttempts:
       return { kind: "linked" };
     },
 
-    async recordCodeFailure({ codeIds, maxAttempts }) {
+    async lockExhaustedCodes({ codeIds, maxAttempts }) {
       for (const code of codes) {
-        if (!codeIds.includes(code.id) || code.status !== "ACTIVE") {
-          continue;
-        }
-
-        code.failedAttempts = Math.min(code.failedAttempts + 1, maxAttempts);
-
-        if (code.failedAttempts >= maxAttempts) {
+        if (codeIds.includes(code.id) && code.status === "ACTIVE" && code.failedAttempts >= maxAttempts) {
           code.status = "LOCKED";
+        }
+      }
+    },
+
+    async releaseCodeAttempts({ codeIds }) {
+      for (const code of codes) {
+        if (codeIds.includes(code.id) && code.status === "ACTIVE" && code.failedAttempts > 0) {
+          code.failedAttempts -= 1;
         }
       }
     },

@@ -39,8 +39,8 @@ export interface StaffRepository {
   listMembers(tenantId: string): Promise<StaffMember[]>;
 
   // Si una matrícula ya la tiene un miembro de la clínica, o una invitación pendiente de otra persona. Sirve para
-  // rechazar al invitar y no al aceptar. `exceptEmail` deja afuera la invitación pendiente de ese mismo correo, que
-  // la nueva va a reemplazar (reenviar).
+  // rechazar al invitar y no al aceptar. `exceptEmail` deja afuera la invitación pendiente y la membresía de ese mismo
+  // correo: la primera la va a reemplazar la nueva (reenviar) y la segunda es la misma persona.
   isLicenseTaken(input: { tenantId: string; licenseNumber: string; exceptEmail?: NormalizedEmail }): Promise<boolean>;
 
   // Desactiva a un miembro de la clínica sin borrar nada. Bloquea la fila de la clínica, cuenta los administradores

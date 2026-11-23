@@ -1,3 +1,5 @@
+import "server-only";
+
 import { createHash, randomBytes } from "node:crypto";
 
 import type { SecretGenerator } from "../../application/ports/out/secret-generator";

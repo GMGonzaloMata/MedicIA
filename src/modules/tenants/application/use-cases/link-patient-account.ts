@@ -1,4 +1,4 @@
-import { isOverAttemptLimit, linkAttemptRetentionStart, linkAttemptWindowStart } from "../../domain/link-attempt-policy";
+import { linkAttemptRetentionStart, linkAttemptWindowStart } from "../../domain/link-attempt-policy";
 import { isDocumentType, normalizeDocument } from "../../domain/normalized-values";
 import { LINK_CODE_MAX_FAILED_ATTEMPTS, normalizeLinkCode } from "../../domain/patient-link-code";
 import type { LinkAttemptRepository } from "../ports/out/link-attempt-repository";
@@ -32,7 +32,7 @@ interface LinkPatientAccountDependencies {
 }
 
 // Vincula la cuenta de una persona con el registro que la clínica le creó, con el documento y el código de un solo
-// uso que la clínica le entregó. Cada fallo suma al contador del código (al quinto queda bloqueado) y al de la
+// uso que la clínica le entregó. Cada intento suma al contador del código (al quinto queda bloqueado) y al de la
 // cuenta (con 10 en 15 minutos se frena sin mirar el código).
 export function createLinkPatientAccount({ patients, attempts, secrets, now }: LinkPatientAccountDependencies) {
   return async ({ user, documentType, documentNumber, code }: LinkPatientAccountInput): Promise<LinkPatientAccountResult> => {
@@ -44,16 +44,27 @@ export function createLinkPatientAccount({ patients, attempts, secrets, now }: L
     }
 
     const timestamp = now();
-    const recentFailures = await attempts.countFailuresSince({
+
+    // Los intentos se reservan ANTES de evaluar el código, de forma atómica: así una ráfaga de pedidos simultáneos
+    // no supera el límite por cuenta ni el de intentos por código. Sin candidatos igual cuenta contra la cuenta,
+    // así probar documentos al azar también se frena.
+    const allowed = await attempts.reserve({
       userId: user.id,
-      since: linkAttemptWindowStart(timestamp),
+      now: timestamp,
+      windowStart: linkAttemptWindowStart(timestamp),
+      purgeBefore: linkAttemptRetentionStart(timestamp),
     });
 
-    if (isOverAttemptLimit(recentFailures)) {
+    if (!allowed) {
       return { ok: false, code: "TOO_MANY_ATTEMPTS" };
     }
 
-    const candidates = await patients.findLinkCandidates({ documentType, documentNumber: document, now: timestamp });
+    const candidates = await patients.reserveCodeAttempts({
+      documentType,
+      documentNumber: document,
+      now: timestamp,
+      maxAttempts: LINK_CODE_MAX_FAILED_ATTEMPTS,
+    });
     const codeHash = secrets.hash(linkCode);
     const match = candidates.find((candidate) => candidate.codeHash === codeHash);
 
@@ -65,25 +76,24 @@ export function createLinkPatientAccount({ patients, attempts, secrets, now }: L
       });
 
       if (linked.kind === "linked") {
+        const others = candidates.filter((candidate) => candidate.codeId !== match.codeId);
+
+        if (others.length > 0) {
+          await patients.releaseCodeAttempts({ codeIds: others.map((candidate) => candidate.codeId) });
+        }
+
         return { ok: true, tenantId: match.tenantId, patientId: match.patientId };
       }
     }
 
-    // Fallo: suma a los códigos que se pudieron haber adivinado y a la cuenta. Sin candidatos igual cuenta contra la
-    // cuenta, así probar documentos al azar también se frena.
+    // Fallo: los intentos ya están reservados; solo se bloquean los códigos que llegaron al máximo.
     if (candidates.length > 0) {
-      await patients.recordCodeFailure({
+      await patients.lockExhaustedCodes({
         codeIds: candidates.map((candidate) => candidate.codeId),
         maxAttempts: LINK_CODE_MAX_FAILED_ATTEMPTS,
         now: timestamp,
       });
     }
-
-    await attempts.recordFailure({
-      userId: user.id,
-      now: timestamp,
-      purgeBefore: linkAttemptRetentionStart(timestamp),
-    });
 
     return { ok: false, code: "LINK_FAILED" };
   };
