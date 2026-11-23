@@ -306,7 +306,7 @@ run "tag_and_name_contract" {
   state_key = "tags"
   assert {
     condition = (aws_iam_role.web.name == "medicia-dev-demo-web" && aws_iam_instance_profile.web.name == "medicia-dev-demo-web" &&
-    alltrue([for t in [aws_instance.web.tags, aws_instance.web.root_block_device[0].tags, aws_eip.web.tags, aws_iam_role.web.tags, aws_iam_instance_profile.web.tags, aws_s3_bucket.releases.tags, aws_secretsmanager_secret.runtime["app"].tags, aws_secretsmanager_secret.runtime["duckdns"].tags] : t == tomap({ Project = "medicia", Environment = "dev", ManagedBy = "terraform", Deployment = "ec2-rds-demo" })]))
+    alltrue([for t in [aws_instance.web.tags, aws_instance.web.volume_tags, aws_eip.web.tags, aws_iam_role.web.tags, aws_iam_instance_profile.web.tags, aws_s3_bucket.releases.tags, aws_secretsmanager_secret.runtime["app"].tags, aws_secretsmanager_secret.runtime["duckdns"].tags] : t == tomap({ Project = "medicia", Environment = "dev", ManagedBy = "terraform", Deployment = "ec2-rds-demo" })]))
     error_message = "Tags/nombres deben satisfacer las condiciones existentes del operador/límite."
   }
 }

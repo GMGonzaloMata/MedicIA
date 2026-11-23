@@ -21,7 +21,7 @@ locals {
       Sid    = "MetadataEc2"
       Effect = "Allow"
       # APIs sin resource scope; región restringida, no user-data ni consolas/passwords.
-      Action    = ["ec2:DescribeInstances", "ec2:DescribeInstanceCreditSpecifications", "ec2:DescribeInstanceTypes", "ec2:DescribeImages", "ec2:DescribeVpcs", "ec2:DescribeSubnets", "ec2:DescribeAvailabilityZones", "ec2:DescribeRouteTables", "ec2:DescribeInternetGateways", "ec2:DescribeSecurityGroups", "ec2:DescribeSecurityGroupRules", "ec2:DescribeAddresses", "ec2:DescribeVolumes", "ec2:DescribeNetworkInterfaces", "ec2:DescribeTags"]
+      Action    = ["ec2:DescribeInstances", "ec2:DescribeInstanceCreditSpecifications", "ec2:DescribeInstanceTypes", "ec2:DescribeImages", "ec2:DescribeVpcs", "ec2:DescribeSubnets", "ec2:DescribeAvailabilityZones", "ec2:DescribeRouteTables", "ec2:DescribeInternetGateways", "ec2:DescribeSecurityGroups", "ec2:DescribeSecurityGroupRules", "ec2:DescribeAddresses", "ec2:DescribeAddressesAttribute", "ec2:DescribeVolumes", "ec2:DescribeNetworkInterfaces", "ec2:DescribeTags"]
       Resource  = ["*"]
       Condition = { StringEquals = { "ec2:Region" = var.region } }
     },
@@ -110,6 +110,37 @@ resource "aws_iam_policy" "operator_demo" {
           Resource = local.demo_rds_arns
         },
         {
+          # RDS cifra el almacenamiento y el secreto master con las claves administradas por AWS (aws/rds y
+          # aws/secretsmanager); quien crea la base necesita usarlas. IAM no permite nombrar una clave administrada,
+          # por eso el límite es kms:ViaService (solo a través de RDS y Secrets Manager de la región) y la cuenta.
+          # Sin Encrypt/Decrypt directos: no sirve para cifrar ni leer datos por fuera de esos servicios.
+          Sid      = "KmsAdministradoParaRds"
+          Effect   = "Allow"
+          Action   = ["kms:CreateGrant", "kms:DescribeKey", "kms:Decrypt", "kms:GenerateDataKey", "kms:GenerateDataKeyWithoutPlaintext"]
+          Resource = ["arn:aws:kms:${var.region}:${var.account_id}:key/*"]
+          Condition = { StringEquals = {
+            "kms:CallerAccount" = var.account_id
+            "kms:ViaService"    = ["rds.${var.region}.amazonaws.com", "secretsmanager.${var.region}.amazonaws.com"]
+          } }
+        },
+        {
+          # El proveedor espera la creación con DescribeDBInstances, que IAM autoriza contra db:* y no contra
+          # el nombre de la instancia. Solo lectura de metadatos; crear/modificar/borrar sigue limitado a medicia-dev-demo*.
+          Sid      = "LeerInstanciasRds"
+          Effect   = "Allow"
+          Action   = ["rds:DescribeDBInstances"]
+          Resource = ["arn:aws:rds:${var.region}:${var.account_id}:db:*"]
+        },
+        {
+          # manage_master_user_password: RDS crea el secreto master (rds!db-*) en nombre de quien crea la base,
+          # y exige que esa identidad pueda crearlo. Solo crear/etiquetar: sin leer ni escribir valores, y sin
+          # alcanzar los secretos de la app. Borrarlo lo hace RDS al eliminar la base.
+          Sid      = "SecretoMasterGestionadoPorRds"
+          Effect   = "Allow"
+          Action   = ["secretsmanager:CreateSecret", "secretsmanager:TagResource"]
+          Resource = ["arn:aws:secretsmanager:${var.region}:${var.account_id}:secret:rds!db-*"]
+        },
+        {
           # CreateSecret acepta valores en API: Terraform solo creará metadatos.
           # No UpdateSecret (también escribe valores), GetSecretValue ni PutSecretValue.
           Sid      = "CrearMetadatosSecretos"
@@ -159,11 +190,20 @@ resource "aws_iam_policy" "operator_demo_network" {
           Condition = local.demo_resource_tag
         },
         {
-          Sid       = "CrearDiscosYEniDemo"
+          Sid       = "CrearDiscosDemo"
           Effect    = "Allow"
           Action    = ["ec2:RunInstances"]
-          Resource  = [for t in ["volume", "network-interface"] : "${local.demo_ec2_prefix}:${t}/*"]
+          Resource  = ["${local.demo_ec2_prefix}:volume/*"]
           Condition = local.demo_request_tag
+        },
+        {
+          # aws_instance no etiqueta la interfaz de red primaria, así que no puede exigirse aws:RequestTag.
+          # Queda confinada igualmente: solo nace en la subred y el grupo con la etiqueta Deployment de UsarRedDemo.
+          Sid       = "CrearEniDemo"
+          Effect    = "Allow"
+          Action    = ["ec2:RunInstances"]
+          Resource  = ["${local.demo_ec2_prefix}:network-interface/*"]
+          Condition = { StringEquals = { "ec2:Region" = var.region } }
         },
         {
           Sid      = "CrearInstanciaDemo"
@@ -190,6 +230,16 @@ resource "aws_iam_policy" "operator_demo_network" {
           Action    = ["ec2:DeleteVpc", "ec2:DeleteSubnet", "ec2:DeleteRouteTable", "ec2:DeleteInternetGateway", "ec2:DeleteSecurityGroup", "ec2:ReleaseAddress", "ec2:AttachInternetGateway", "ec2:DetachInternetGateway", "ec2:CreateRoute", "ec2:DeleteRoute", "ec2:AssociateRouteTable", "ec2:DisassociateRouteTable", "ec2:AuthorizeSecurityGroupIngress", "ec2:AuthorizeSecurityGroupEgress", "ec2:RevokeSecurityGroupIngress", "ec2:RevokeSecurityGroupEgress", "ec2:ModifySecurityGroupRules", "ec2:ModifyVpcAttribute", "ec2:ModifySubnetAttribute", "ec2:AssociateAddress", "ec2:DisassociateAddress", "ec2:TerminateInstances", "ec2:ModifyInstanceAttribute", "ec2:ModifyInstanceMetadataOptions", "ec2:CreateTags", "ec2:DeleteTags"]
           Resource  = local.demo_ec2_arns
           Condition = local.demo_resource_tag
+        },
+        {
+          # La ENI primaria no lleva etiqueta (aws_instance no la etiqueta), así que GestionarRedDemo no la alcanza.
+          # AssociateAddress/DisassociateAddress autorizan cada recurso por separado: la misma llamada sigue
+          # exigiendo que la EIP lleve la etiqueta Deployment, por lo que solo opera con EIPs de la demo.
+          Sid       = "EipEnEniDemo"
+          Effect    = "Allow"
+          Action    = ["ec2:AssociateAddress", "ec2:DisassociateAddress"]
+          Resource  = ["${local.demo_ec2_prefix}:network-interface/*"]
+          Condition = { StringEquals = { "ec2:Region" = var.region } }
         },
         {
           Sid       = "CrearReglasDemo"
