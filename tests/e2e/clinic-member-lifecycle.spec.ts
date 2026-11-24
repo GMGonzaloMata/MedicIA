@@ -96,6 +96,7 @@ test("el paciente ve el aviso, la asignación se termina y se reasigna conservan
   await expect(adminPage.getByText("Sin médico asignado")).toBeVisible();
 
   // Reasigna: la lista solo ofrece médicos activos, así que queda el segundo.
+  await adminPage.getByRole("button", { name: "Asignar médico" }).click();
   await adminPage.getByRole("button", { name: "Asignar", exact: true }).click();
   await expect(adminPage.getByText(/^Médico: /)).toBeVisible();
 

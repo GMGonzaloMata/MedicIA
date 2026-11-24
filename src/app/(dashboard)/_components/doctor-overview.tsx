@@ -5,6 +5,7 @@ import Link from "next/link";
 import type { DoctorOverviewSummary, RecentDoctorStudy } from "@/modules/studies/domain/doctor-overview";
 
 import { formatUploadedAt, STUDY_MESSAGES } from "../_studies/_lib/study-messages";
+import { initialsOf } from "../_lib/initials";
 import { ClinicalIcon } from "./clinical-icon";
 
 const countFormat = new Intl.NumberFormat("es-AR");
@@ -20,10 +21,12 @@ export function DoctorOverview({ overview }: { overview: DoctorOverviewSummary |
         <>
           <dl className="clinical-overview-metrics">
             <div className="clinical-overview-metric">
+              <span aria-hidden="true" className="clinical-metric-icon"><ClinicalIcon name="patients" /></span>
               <dt>Pacientes asignados</dt>
               <dd>{countFormat.format(overview.assignedPatientCount)}</dd>
             </div>
             <div className="clinical-overview-metric">
+              <span aria-hidden="true" className="clinical-metric-icon"><ClinicalIcon name="studies" /></span>
               <dt>Estudios de esos pacientes</dt>
               <dd>{countFormat.format(overview.studyCount)}</dd>
             </div>
@@ -69,7 +72,10 @@ function RecentStudyRow({ study }: { study: RecentDoctorStudy }) {
   const patientName = study.patientName ?? STUDY_MESSAGES.patientWithoutName;
   return (
     <li className="clinical-overview-row">
-      <div>
+      <span aria-hidden="true" className="clinical-overview-avatar">
+        {study.patientName ? initialsOf(study.patientName) : <ClinicalIcon name="patients" />}
+      </span>
+      <div className="clinical-overview-who">
         <p className="clinical-overview-patient">{patientName}</p>
         <p className="clinical-overview-note">Estudio {study.number}</p>
       </div>
@@ -80,7 +86,7 @@ function RecentStudyRow({ study }: { study: RecentDoctorStudy }) {
         aria-label={`Ver estudio ${study.number} de ${patientName}`}
         className="clinical-overview-link"
       >
-        Ver estudio <ClinicalIcon name="arrow" />
+        <span>Ver estudio</span> <ClinicalIcon name="arrow" />
       </Link>
     </li>
   );

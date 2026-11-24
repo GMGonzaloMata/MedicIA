@@ -15,6 +15,13 @@ const icons = {
   ),
   switch: <path d="M4 8h15m-3-3 3 3-3 3M20 16H5m3-3-3 3 3 3" />,
   clinic: <path d="M4 20h16M6 20V5h12v15m-8 0v-4h4v4m-2-12v5m-2.5-2.5h5" />,
+  mail: (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="m4 7 8 6 8-6" />
+    </>
+  ),
+  check: <path d="m5 12.5 4.5 4.5L19 7.5" />,
   arrow: <path d="M4.5 12h14m-5-5 5 5-5 5" />,
 };
 

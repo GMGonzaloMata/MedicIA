@@ -19,6 +19,7 @@ test.afterAll(async () => {
 // Invita desde «Personal» a un médico con sus datos y espera el aviso de envío.
 async function inviteDoctor(page: Page, email: string) {
   await page.goto("/clinic/staff");
+  await page.getByRole("button", { name: "Invitar personal" }).click();
   await page.getByLabel("Correo electrónico").fill(email);
   await page.getByRole("checkbox", { name: "Médico" }).check();
   await page.getByLabel("Especialidad").fill("Cardiología");
@@ -26,6 +27,8 @@ async function inviteDoctor(page: Page, email: string) {
   await page.getByRole("button", { name: "Enviar invitación" }).click();
 
   await expect(page.getByText("Listo, enviamos la invitación.")).toBeVisible();
+  // El formulario está en un modal: se cierra para volver a la lista.
+  await page.getByRole("button", { name: "Cerrar ventana" }).click();
 }
 
 // Cierra la sesión actual y entra con otra cuenta que todavía no tiene clínica.
@@ -43,6 +46,8 @@ test("el administrador invita a un médico, que acepta con el enlace y queda en 
   await enterClinicAs(page, database, { role: "clinic-admin", tenantId: tenant.id });
 
   await inviteDoctor(page, invitee.email);
+  // La invitación aparece en su pestaña, con el contador actualizado.
+  await page.getByRole("link", { name: /Invitaciones pendientes/ }).click();
   await expect(page.getByRole("heading", { name: "Invitaciones pendientes" })).toBeVisible();
   await expect(page.getByText(invitee.email)).toBeVisible();
 
@@ -89,6 +94,8 @@ test("una invitación anulada deja de servir", async ({ page }) => {
   await inviteDoctor(page, invited.email);
   const link = await readInvitationPath(invited.email);
 
+  // Las invitaciones están en su propia pestaña.
+  await page.getByRole("link", { name: /Invitaciones pendientes/ }).click();
   await page.getByRole("button", { name: "Anular" }).click();
   // La invitación sale de la lista de pendientes.
   await expect(page.getByText(invited.email)).toHaveCount(0);

@@ -29,7 +29,11 @@ async function enterAsAdminOfClinicWithDoctor(page: Page) {
   return tenant;
 }
 
+// El formulario está en el modal «Nuevo paciente»; si ya quedó abierto de un registro anterior, se reusa.
 async function registerPatient(page: Page, number: string) {
+  if (!(await page.getByRole("button", { name: "Registrar paciente" }).isVisible())) {
+    await page.getByRole("button", { name: "Nuevo paciente" }).click();
+  }
   await page.getByLabel("Tipo de documento").selectOption("DNI");
   await page.getByLabel("Número de documento").fill(number);
   await page.getByRole("button", { name: "Registrar paciente" }).click();
@@ -77,6 +81,7 @@ test("generar un código nuevo muestra otro y el estado sigue vigente", async ({
   const first = (await page.getByText(CODE_PATTERN).textContent()) ?? "";
   await page.reload();
   await page.getByRole("button", { name: "Generar código nuevo" }).click();
+  await page.getByRole("button", { name: "Generar código", exact: true }).click();
 
   await expect(page.getByText(CODE_PATTERN)).toBeVisible();
   expect(await page.getByText(CODE_PATTERN).textContent()).not.toBe(first);
@@ -91,6 +96,7 @@ test("el administrador asigna el paciente a un médico de la clínica", async ({
   await page.reload();
 
   await expect(page.getByText("Sin médico asignado")).toBeVisible();
+  await page.getByRole("button", { name: "Asignar médico" }).click();
   await page.getByRole("button", { name: "Asignar", exact: true }).click();
 
   await expect(page.getByText(/^Médico: /)).toBeVisible();

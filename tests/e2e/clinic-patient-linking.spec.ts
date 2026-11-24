@@ -38,6 +38,7 @@ async function registerPatientAsAdmin(page: Page, tenantId: string) {
   const number = documentNumber();
 
   await page.goto("/clinic/patients");
+  await page.getByRole("button", { name: "Nuevo paciente" }).click();
   await page.getByLabel("Número de documento").fill(number);
   await page.getByRole("button", { name: "Registrar paciente" }).click();
   const code = (await page.getByText(CODE_PATTERN).textContent()) ?? "";
@@ -113,6 +114,7 @@ test("al quinto fallo el código se bloquea y la clínica genera uno nuevo", asy
   await page.goto("/clinic/patients");
   await expect(page.getByText(/Código bloqueado/)).toBeVisible();
   await page.getByRole("button", { name: "Generar código nuevo" }).click();
+  await page.getByRole("button", { name: "Generar código", exact: true }).click();
   const renewed = (await page.getByText(CODE_PATTERN).textContent()) ?? "";
   expect(renewed).not.toBe(code);
 

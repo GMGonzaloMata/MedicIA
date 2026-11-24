@@ -22,7 +22,7 @@ export function ClinicOptionsForm({ options }: { options: ClinicOption[] }) {
   return (
     <form action={action} className="flex flex-col gap-4">
       {state?.message ? <FormMessage tone="error">{state.message}</FormMessage> : null}
-      <ul className="flex flex-col gap-3">
+      <ul className="flex max-w-2xl flex-col gap-3">
         {options.map((option) => (
           <li key={option.value}>
             <button
@@ -31,7 +31,7 @@ export function ClinicOptionsForm({ options }: { options: ClinicOption[] }) {
               value={option.value}
               disabled={isPending}
               aria-current={option.isActive ? "true" : undefined}
-              className={`${secondaryButtonClassName} w-full flex-col items-start gap-0.5 py-3 text-left`}
+              className={`${secondaryButtonClassName} w-full flex-col items-start gap-0.5 rounded-panel py-4 text-left shadow-[0_1px_2px_rgb(15_23_42/0.05)] aria-[current=true]:border-primary aria-[current=true]:bg-primary/5`}
             >
               <span>{option.tenantName}</span>
               <span className="text-sm font-normal text-muted">

@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 
-import { secondaryButtonClassName } from "@/components/form/button-styles";
+import { compactDangerButtonClassName, primaryButtonClassName } from "@/components/form/button-styles";
 import { FormMessage } from "@/components/form/form-message";
 
 import { assignPatientAction } from "../_actions/assign-patient";
@@ -17,28 +17,35 @@ export interface DoctorOption {
   label: string;
 }
 
-export function RegenerateCodeForm({ patientId, describedBy }: { patientId: string; describedBy: string }) {
+// Contenido del modal «Generar código nuevo». El código se muestra una sola vez: al generarlo, el botón desaparece.
+export function RegenerateCodeForm({ patientId }: { patientId: string }) {
   const [state, action, isPending] = useActionState(regenerateLinkCodeAction, undefined as ClinicActionState | undefined);
 
   return (
-    <form action={action} className="flex flex-col gap-2">
+    <form action={action} className="flex flex-col gap-4">
       <input type="hidden" name="patientId" value={patientId} />
-      <button type="submit" disabled={isPending} aria-describedby={describedBy} className={secondaryButtonClassName}>
-        Generar código nuevo
-      </button>
       {state ? <FormMessage tone={state.status}>{state.message}</FormMessage> : null}
-      {state?.linkCode ? <LinkCodeNotice code={state.linkCode} /> : null}
+      {state?.linkCode ? (
+        <LinkCodeNotice code={state.linkCode} />
+      ) : (
+        <div className="flex justify-end border-t border-border pt-4">
+          <button type="submit" disabled={isPending} className={primaryButtonClassName}>
+            {isPending ? "Generando…" : "Generar código"}
+          </button>
+        </div>
+      )}
     </form>
   );
 }
 
+// Terminar no borra la asignación: queda en el historial con su fecha de fin.
 export function EndAssignmentForm({ assignmentId, describedBy }: { assignmentId: string; describedBy: string }) {
   const [state, action, isPending] = useActionState(endAssignmentAction, undefined as ClinicActionState | undefined);
 
   return (
-    <form action={action} className="flex flex-col gap-2">
+    <form action={action} className="flex flex-col items-start gap-2">
       <input type="hidden" name="assignmentId" value={assignmentId} />
-      <button type="submit" disabled={isPending} aria-describedby={describedBy} className={`${secondaryButtonClassName} self-start`}>
+      <button type="submit" disabled={isPending} aria-describedby={describedBy} className={compactDangerButtonClassName}>
         Terminar asignación
       </button>
       {state ? <FormMessage tone={state.status}>{state.message}</FormMessage> : null}
@@ -46,15 +53,8 @@ export function EndAssignmentForm({ assignmentId, describedBy }: { assignmentId:
   );
 }
 
-export function AssignPatientForm({
-  patientId,
-  doctors,
-  describedBy,
-}: {
-  patientId: string;
-  doctors: DoctorOption[];
-  describedBy: string;
-}) {
+// Contenido del modal «Asignar médico». Solo se ofrecen médicos activos de la clínica.
+export function AssignPatientForm({ patientId, doctors }: { patientId: string; doctors: DoctorOption[] }) {
   const [state, action, isPending] = useActionState(assignPatientAction, undefined as ClinicActionState | undefined);
   const selectId = `assign-${patientId}`;
 
@@ -63,24 +63,26 @@ export function AssignPatientForm({
   }
 
   return (
-    <form action={action} className="flex flex-col gap-2">
+    <form action={action} className="flex flex-col gap-4">
+      {state ? <FormMessage tone={state.status}>{state.message}</FormMessage> : null}
       <input type="hidden" name="patientId" value={patientId} />
-      <label htmlFor={selectId} className="font-label text-sm font-medium text-foreground">
-        Asignar a un médico
-      </label>
-      <div className="flex flex-wrap items-center gap-2">
-        <select id={selectId} name="membershipId" className={`${selectClassName} max-w-xs`} defaultValue={doctors[0]?.membershipId}>
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor={selectId} className="font-label text-sm font-medium text-foreground">
+          Médico
+        </label>
+        <select id={selectId} name="membershipId" className={selectClassName} defaultValue={doctors[0]?.membershipId}>
           {doctors.map((doctor) => (
             <option key={doctor.membershipId} value={doctor.membershipId}>
               {doctor.label}
             </option>
           ))}
         </select>
-        <button type="submit" disabled={isPending} aria-describedby={describedBy} className={secondaryButtonClassName}>
+      </div>
+      <div className="flex justify-end border-t border-border pt-4">
+        <button type="submit" disabled={isPending} className={primaryButtonClassName}>
           Asignar
         </button>
       </div>
-      {state ? <FormMessage tone={state.status}>{state.message}</FormMessage> : null}
     </form>
   );
 }

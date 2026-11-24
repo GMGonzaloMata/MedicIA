@@ -56,12 +56,15 @@ async function seedClinic(page: Page) {
   await enterClinicAs(page, database, { role: "clinic-admin", tenantId: tenant.id });
 
   await page.goto("/clinic/staff");
+  await page.getByRole("button", { name: "Invitar personal" }).click();
   await page.getByLabel("Correo electrónico").fill(LONG_EMAIL);
   await page.getByRole("checkbox", { name: "Administrador" }).check();
   await page.getByRole("button", { name: "Enviar invitación" }).click();
   await expect(page.getByText("Listo, enviamos la invitación.")).toBeVisible();
+  await page.getByRole("button", { name: "Cerrar ventana" }).click();
 
   await page.goto("/clinic/patients");
+  await page.getByRole("button", { name: "Nuevo paciente" }).click();
   await page.getByLabel("Número de documento").fill(`${Date.now()}`.slice(-9));
   await page.getByRole("button", { name: "Registrar paciente" }).click();
   await expect(page.getByText(/^[A-Z0-9]{5}-[A-Z0-9]{5}$/)).toBeVisible();
@@ -70,9 +73,13 @@ async function seedClinic(page: Page) {
 }
 
 test("las pantallas de administración se adaptan a tres anchos y a los dos esquemas de color", async ({ page }) => {
+  // Recorre 6 pantallas × 2 esquemas × 3 anchos: necesita más que el tiempo por defecto.
+  test.setTimeout(120_000);
   await seedClinic(page);
   const screens = [
     { name: "Personal", path: "/clinic/staff" },
+    // La pestaña de invitaciones muestra el correo largo de la siembra.
+    { name: "Personal de la clínica", path: "/clinic/staff?vista=invitaciones" },
     { name: "Pacientes de la clínica", path: "/clinic/patients" },
     { name: "Vincular mi cuenta", path: "/link-patient" },
     { name: "Invitación a una clínica", path: "/invitation/un-token-cualquiera" },
@@ -100,7 +107,9 @@ test("los estados se dicen con texto además de color", async ({ page }) => {
   await page.goto("/clinic/staff");
   const doctorRow = page.getByRole("listitem").filter({ hasText: "Cardiología" });
   await expect(doctorRow).toContainText("Activo");
+  await page.goto("/clinic/staff?vista=invitaciones");
   await expect(page.getByRole("listitem").filter({ hasText: LONG_EMAIL })).toContainText(/Vence el/);
+  await page.goto("/clinic/staff");
 
   await doctorRow.getByRole("button", { name: "Desactivar" }).click();
   await expect(doctorRow).toContainText("Desactivado");
@@ -118,9 +127,13 @@ test("invitar y vincular se completan con el teclado, con foco visible", async (
   await page.setViewportSize({ width: 1280, height: 900 });
 
   await page.goto("/clinic/staff");
-  // El formulario llega por streaming: se espera a que exista antes de usar el teclado.
-  await expect(page.getByRole("button", { name: "Enviar invitación" })).toBeVisible();
-  await tabTo(page, "#invite-email");
+  // La lista llega por streaming: se espera al botón que abre el formulario antes de usar el teclado.
+  await expect(page.getByRole("button", { name: "Invitar personal" })).toBeVisible();
+  await tabTo(page, "button[aria-haspopup='dialog']");
+  expect(await focusedOutlineIsVisible(page)).toBe(true);
+  await page.keyboard.press("Enter");
+  // El modal lleva el foco a su primer campo.
+  await expect(page.locator("#invite-email")).toBeFocused();
   expect(await focusedOutlineIsVisible(page)).toBe(true);
   await page.keyboard.type(`teclado.${Date.now()}@example.com`);
 

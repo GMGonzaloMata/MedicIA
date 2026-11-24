@@ -3,10 +3,14 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { getDoctorOverview } from "@/modules/studies/composition";
+import { getTenantsModule } from "@/modules/tenants/composition";
+import type { ClinicAdminActor } from "@/modules/tenants/domain/clinic-admin-actor";
 
 import { requireClinicContext } from "../_lib/access";
+import { toClinicAdminActor } from "../_lib/clinic-admin-actor";
 import { toStudyActor } from "../_lib/study-actor";
 import { ClinicalIcon } from "./_components/clinical-icon";
+import { AdminOverview, type AdminOverviewData } from "./_components/admin-overview";
 import { DoctorOverview } from "./_components/doctor-overview";
 
 export const metadata: Metadata = { title: "Inicio" };
@@ -28,6 +32,7 @@ async function ClinicWorkspace() {
   const context = await requireClinicContext();
   const { clinic } = context;
   const actor = toStudyActor(context);
+  const adminActor = toClinicAdminActor(context);
   const overview = actor?.kind === "DOCTOR" ? await getDoctorOverview({ actor }).catch(() => null) : null;
 
   return (
@@ -43,18 +48,41 @@ async function ClinicWorkspace() {
       ) : actor?.kind === "DOCTOR" ? (
         <DoctorOverview overview={overview} />
       ) : (
-        <WorkspacePanel
-          icon="clinic"
-          title="Perfil administrativo"
-          description="Este perfil no tiene acceso a estudios. Desde acá administrás el personal y los pacientes de la clínica."
-          destinations={[
-            { href: "/clinic/staff", label: "Personal de la clínica" },
-            { href: "/clinic/patients", label: "Pacientes de la clínica" },
-          ]}
-        />
+        <AdminOverview overview={adminActor ? await readAdminOverview(adminActor) : null} />
       )}
     </>
   );
+}
+
+// Conteos del Inicio del administrador. Si la lectura falla, el Inicio sigue mostrando los accesos sin cifras.
+async function readAdminOverview(actor: ClinicAdminActor): Promise<AdminOverviewData | null> {
+  try {
+    const tenants = getTenantsModule();
+    const [{ members, invitations }, patients] = await Promise.all([
+      tenants.listStaff({ actor }),
+      tenants.listClinicPatients({ actor }),
+    ]);
+    const active = members.filter((member) => member.status === "ACTIVE");
+
+    return {
+      activeMembers: active.length,
+      doctors: active.filter((member) => member.roles.isDoctor).length,
+      admins: active.filter((member) => member.roles.isClinicAdmin).length,
+      pendingInvitations: invitations.filter((invitation) => invitation.state !== "expired").length,
+      expiredInvitations: invitations.filter((invitation) => invitation.state === "expired").length,
+      deactivatedDoctors: members.filter((member) => member.status !== "ACTIVE" && member.roles.isDoctor).length,
+      patients: patients.length,
+      linkedPatients: patients.filter((patient) => patient.status === "LINKED").length,
+      pendingLinkPatients: patients.filter((patient) => patient.status === "PENDING").length,
+      patientsWithDoctor: patients.filter((patient) => patient.assignments.length > 0).length,
+      codesToRenew: patients.filter((patient) => patient.status === "PENDING" && patient.linkCodeState !== "active").length,
+    };
+  } catch (error) {
+    // Solo el nombre del error: el mensaje puede traer datos personales.
+    console.error(`[clínica] error inesperado: ${error instanceof Error ? error.name : "Error"}`);
+
+    return null;
+  }
 }
 
 interface WorkspacePanelProps {

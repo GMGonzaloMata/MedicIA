@@ -24,6 +24,10 @@
   --danger-surface: #fef2f2;
   --success: #047857;
   --success-surface: #ecfdf5;
+  --warning: #b45309;
+  --warning-surface: #fffbeb;
+  --info: #1d4ed8;
+  --info-surface: #eff6ff;
   --workspace-border: #e2e8f0;
   --workspace-accent: #0f766e;
   --workspace-accent-surface: #f0fdfa;
@@ -47,6 +51,10 @@
     --danger-surface: #2a1215;
     --success: #6ee7b7;
     --success-surface: #0f2a22;
+    --warning: #fcd34d;
+    --warning-surface: #2a2008;
+    --info: #93c5fd;
+    --info-surface: #0f1d3a;
     --workspace-border: rgba(38, 51, 70, 0.7);
     --workspace-accent: #5eead4;
     --workspace-accent-surface: rgba(4, 47, 46, 0.5);
@@ -70,6 +78,10 @@
   --color-danger-surface: var(--danger-surface);
   --color-success: var(--success);
   --color-success-surface: var(--success-surface);
+  --color-warning: var(--warning);
+  --color-warning-surface: var(--warning-surface);
+  --color-info: var(--info);
+  --color-info-surface: var(--info-surface);
   --font-sans: var(--font-plus-jakarta-sans);
   --font-label: var(--font-inter);
   --radius-control: 4px;

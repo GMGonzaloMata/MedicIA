@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 
-import { secondaryButtonClassName } from "@/components/form/button-styles";
+import { compactDangerButtonClassName, compactSecondaryButtonClassName } from "@/components/form/button-styles";
 import { FormMessage } from "@/components/form/form-message";
 
 import { resendInvitationAction } from "../_actions/resend-invitation";
@@ -16,18 +16,20 @@ function ActionButton({
   action,
   label,
   describedBy,
+  isDestructive = false,
 }: {
   invitationId: string;
   action: InvitationAction;
   label: string;
   describedBy: string;
+  isDestructive?: boolean;
 }) {
   const [state, formAction, isPending] = useActionState(action, undefined as ClinicActionState | undefined);
 
   return (
     <form action={formAction} className="flex flex-col gap-2">
       <input type="hidden" name="invitationId" value={invitationId} />
-      <button type="submit" disabled={isPending} aria-describedby={describedBy} className={secondaryButtonClassName}>
+      <button type="submit" disabled={isPending} aria-describedby={describedBy} className={isDestructive ? compactDangerButtonClassName : compactSecondaryButtonClassName}>
         {label}
       </button>
       {state ? <FormMessage tone={state.status}>{state.message}</FormMessage> : null}
@@ -39,9 +41,9 @@ function ActionButton({
 // sobre qué invitación actúa.
 export function InvitationRowActions({ invitationId, describedBy }: { invitationId: string; describedBy: string }) {
   return (
-    <div className="flex flex-wrap items-start gap-2">
+    <div className="flex flex-wrap items-start gap-2 lg:justify-end">
       <ActionButton invitationId={invitationId} action={resendInvitationAction} label="Reenviar" describedBy={describedBy} />
-      <ActionButton invitationId={invitationId} action={revokeInvitationAction} label="Anular" describedBy={describedBy} />
+      <ActionButton invitationId={invitationId} action={revokeInvitationAction} label="Anular" describedBy={describedBy} isDestructive />
     </div>
   );
 }
