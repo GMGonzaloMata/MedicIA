@@ -57,46 +57,126 @@
   gap: 1.25rem;
 }
 
+.medicia-login-form label {
+  font-weight: 600;
+}
+
 .medicia-login-form input {
   min-height: 3rem;
+  padding-inline: 0.875rem;
   border-color: var(--input-border);
-  border-radius: var(--radius-control);
+  border-radius: var(--radius-card);
   background: var(--card);
-  transition: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.medicia-login-form input:hover {
+  border-color: var(--foreground);
 }
 
 .medicia-login-form input:focus-visible {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 16%, transparent);
   outline: 2px solid var(--ring);
-  outline-offset: 3px;
+  outline-offset: 0;
+}
+
+.medicia-login-form input[aria-invalid="true"] {
+  border-color: var(--danger);
 }
 
 .medicia-login-form button[type="submit"] {
   min-height: 3rem;
   margin-top: 0.25rem;
+  border-radius: var(--radius-card);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.005em;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.14);
+  transition: background-color 0.15s, box-shadow 0.15s, transform 0.1s;
 }
 
-.medicia-login-support-links {
+.medicia-login-form button[type="submit"]:hover:not(:disabled) {
+  box-shadow: 0 2px 6px rgb(15 23 42 / 0.18);
+}
+
+.medicia-login-form button[type="submit"]:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.medicia-login-form button[type="submit"]:disabled {
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .medicia-login-form input,
+  .medicia-login-form button[type="submit"] {
+    transition: none;
+  }
+}
+
+.medicia-login-password {
   display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: 0 1.25rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border);
-  margin: 0;
-  font-family: var(--font-plus-jakarta-sans), system-ui, sans-serif;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.medicia-login-forgot {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  align-self: flex-end;
+  margin-block: -0.25rem -0.5rem;
   font-size: 0.875rem;
 }
 
-.medicia-login-support-links a {
-  display: inline-flex;
-  min-height: 2.75rem;
-  width: fit-content;
-  max-width: 100%;
-  align-items: center;
-  overflow-wrap: anywhere;
+.medicia-login-support {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.75rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
 }
 
-.medicia-login-support-links a:focus-visible {
+.medicia-login-support-lead {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.medicia-login-create {
+  min-height: 3rem;
+  justify-content: center;
+  border-radius: var(--radius-card);
+  font-weight: 600;
+  transition: border-color 0.15s, color 0.15s, background-color 0.15s;
+}
+
+.medicia-login-create:hover {
+  border-color: var(--primary);
+  background: var(--workspace-accent-surface);
+  color: var(--primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .medicia-login-create {
+    transition: none;
+  }
+}
+
+.medicia-login-verify {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+}
+
+.medicia-login-forgot:focus-visible,
+.medicia-login-create:focus-visible,
+.medicia-login-verify:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 3px;
 }
@@ -119,7 +199,8 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  padding: var(--start) clamp(1.5rem, 5vw, 5rem) 2rem;
+  justify-content: center;
+  padding: 6rem clamp(1.5rem, 5vw, 5rem) 3rem;
 }
 .medicia-login-brand {
   position: absolute;
@@ -141,10 +222,12 @@
   min-height: clamp(33rem, 76svh, 48rem);
   display: grid;
   grid-template-rows: auto auto auto;
-  align-content: start;
+  align-content: center;
   overflow: hidden;
-  padding: var(--start) clamp(1.5rem, 5vw, 5rem) 2rem;
-  background: var(--panel);
+  padding: 6rem clamp(1.5rem, 5vw, 5rem) 3rem;
+  background:
+    radial-gradient(ellipse 70% 55% at 70% 85%, color-mix(in srgb, var(--primary) 9%, transparent), transparent 70%),
+    var(--panel);
   color: var(--primary);
   border-inline-start: 1px solid var(--border);
 }
@@ -165,7 +248,7 @@
 }
 @media (max-width: 48rem) {
   .medicia-login-page { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
-  .medicia-login-access { padding: 7.5rem 1.5rem 2rem; }
+  .medicia-login-access { padding: 7.5rem 1.5rem 2rem; justify-content: flex-start; }
   .medicia-login-inner { padding-block: 0; }
   .medicia-login-plate { min-height: 0; display: block; padding: 0 1.5rem; border: 0; border-top: 1px solid var(--border); }
   .medicia-login-statement { display: none; }
