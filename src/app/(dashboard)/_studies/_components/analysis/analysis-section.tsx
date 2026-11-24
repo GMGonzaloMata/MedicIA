@@ -69,11 +69,24 @@ export async function AnalysisSection({ actor, studyId, analysisId }: AnalysisSe
     !result && latest?.status === "FAILED" && latest.failureCode ? ANALYSIS_FAILURE_MESSAGES[latest.failureCode] : null;
 
   return (
-    <section aria-labelledby="analysis-title" className="dashboard-context">
-      <h2 id="analysis-title" className="text-2xl font-semibold">
-        {ANALYSIS_MESSAGES.sectionTitle}
-      </h2>
-      {items.length === 0 ? <p className="text-base">{ANALYSIS_MESSAGES.empty}</p> : null}
+    <section
+      aria-labelledby="analysis-title"
+      className="flex flex-col gap-5 rounded-panel border border-border bg-card p-5 shadow-[0_1px_2px_rgb(15_23_42/0.05)] sm:p-6"
+    >
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex flex-col gap-1">
+          <h2 id="analysis-title" className="text-lg font-bold tracking-tight">
+            {ANALYSIS_MESSAGES.sectionTitle}
+          </h2>
+          <p className="max-w-xl text-sm text-muted">{ANALYSIS_MESSAGES.sectionLead}</p>
+        </div>
+        <RequestAnalysisButton studyId={studyId} inProgress={inProgress} />
+      </header>
+      {items.length === 0 ? (
+        <p className="rounded-card border border-dashed border-border px-4 py-6 text-center text-sm text-muted">
+          {ANALYSIS_MESSAGES.empty}
+        </p>
+      ) : null}
       {/* Región en vivo siempre montada: un lector de pantalla anuncia el paso de «Analizando…» a terminado o fallido. */}
       <div role="status" aria-live="polite">
         {inProgress ? (
@@ -86,15 +99,18 @@ export async function AnalysisSection({ actor, studyId, analysisId }: AnalysisSe
           </p>
         ) : null}
       </div>
-      <RequestAnalysisButton studyId={studyId} inProgress={inProgress} />
       {lastFailure ? (
-        <div className="rounded-control border border-border bg-elevated p-3 text-base">
-          <p className="font-medium">{ANALYSIS_MESSAGES.lastFailureTitle}</p>
-          <p>{lastFailure}</p>
+        <div className="flex flex-col gap-0.5 rounded-card border border-warning/40 bg-warning-surface px-4 py-3 text-sm">
+          <p className="font-semibold text-warning">{ANALYSIS_MESSAGES.lastFailureTitle}</p>
+          <p className="text-foreground">{lastFailure}</p>
         </div>
       ) : null}
-      {result ? <AnalysisResult result={result} /> : null}
-      {items.length > 0 ? <AnalysisHistory studyId={studyId} items={items} selectedId={result?.id ?? null} /> : null}
+      {result || items.length > 0 ? (
+        <div className={result && items.length > 0 ? "grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]" : "flex flex-col gap-6"}>
+          {result ? <AnalysisResult result={result} /> : null}
+          {items.length > 0 ? <AnalysisHistory studyId={studyId} items={items} selectedId={result?.id ?? null} /> : null}
+        </div>
+      ) : null}
     </section>
   );
 }

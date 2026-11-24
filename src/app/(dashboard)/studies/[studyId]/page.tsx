@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
 import { z } from "zod";
 
-import { linkClassName } from "@/components/form/button-styles";
 import { getStudiesModule } from "@/modules/studies/composition";
 import { isStudyAccessError } from "@/modules/studies/domain/study-errors";
 import type { StudyActor } from "@/modules/studies/domain/study-access";
 
 import { requireClinicContext } from "../../../_lib/access";
+import { ClinicalIcon } from "../../_components/clinical-icon";
 import { toStudyActor } from "../../../_lib/study-actor";
 import { AnalysisSection } from "../../_studies/_components/analysis/analysis-section";
 import { IntegratedAnalysisSection } from "../../_studies/_components/analysis/integrated-analysis-section";
@@ -35,6 +35,17 @@ export default function StudyPage({ params, searchParams }: StudyPageProps) {
     >
       <StudyContent params={params} searchParams={searchParams} />
     </Suspense>
+  );
+}
+
+const cardClassName = "rounded-panel border border-border bg-card shadow-[0_1px_2px_rgb(15_23_42/0.05)]";
+
+function MetaItem({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex min-w-0 flex-col gap-0.5">
+      <dt className="font-label text-xs font-semibold uppercase tracking-wider text-muted">{label}</dt>
+      <dd className="break-words font-medium">{children}</dd>
+    </div>
   );
 }
 
@@ -107,45 +118,73 @@ async function StudyContent({
     </Suspense>
   );
 
+  const uploadedBy = study.uploadedBy.kind === "PATIENT" ? "El propio paciente" : study.uploadedBy.fullName;
+
   return (
-    <>
-      <h1 className="text-[28px] font-semibold leading-tight tracking-tight sm:text-4xl">Estudio {study.number}</h1>
-      <dl className="dashboard-metadata grid grid-cols-1 gap-x-6 gap-y-1 text-base sm:grid-cols-[auto_1fr]">
-        {actor.kind === "DOCTOR" ? (
-          <>
-            <dt className="font-medium">Paciente</dt>
-            <dd>{study.patientName ?? STUDY_MESSAGES.patientWithoutName}</dd>
-          </>
-        ) : null}
-        <dt className="font-medium">Fecha y hora de carga</dt>
-        <dd>{formatUploadedAt(study.uploadedAt)}</dd>
-        <dt className="font-medium">Cargado por</dt>
-        <dd>{study.uploadedBy.kind === "PATIENT" ? "El propio paciente" : study.uploadedBy.fullName}</dd>
-      </dl>
+    <div className="flex flex-col gap-6">
+      <Link
+        href={back.href}
+        className="inline-flex w-fit items-center gap-1.5 rounded-control text-sm font-semibold text-muted outline-offset-2 hover:text-primary focus-visible:outline-2 focus-visible:outline-ring [&_svg]:rotate-180"
+      >
+        <ClinicalIcon name="arrow" />
+        {back.label}
+      </Link>
+
+      <header className={`${cardClassName} flex flex-col gap-5 p-5 sm:p-6`}>
+        <div className="flex flex-wrap items-center gap-4">
+          <span
+            aria-hidden="true"
+            className="grid size-14 shrink-0 place-items-center rounded-panel bg-primary/10 text-primary [&_svg]:!size-7"
+          >
+            <ClinicalIcon name="studies" />
+          </span>
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <h1 className="clinical-page-title">Estudio {study.number}</h1>
+            <p className="text-sm text-muted">{STUDY_MESSAGES.typeLabel}</p>
+          </div>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-success-surface px-2.5 py-1 font-label text-xs font-semibold text-success">
+            <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
+            {STUDY_MESSAGES.statusLabel}
+          </span>
+        </div>
+        <dl className="grid gap-x-6 gap-y-3 border-t border-border pt-4 sm:grid-cols-2 lg:grid-cols-3">
+          {actor.kind === "DOCTOR" ? (
+            <MetaItem label="Paciente">{study.patientName ?? STUDY_MESSAGES.patientWithoutName}</MetaItem>
+          ) : null}
+          <MetaItem label="Fecha y hora de carga">
+            <time dateTime={study.uploadedAt.toISOString()} className="tabular-nums">
+              {formatUploadedAt(study.uploadedAt)}
+            </time>
+          </MetaItem>
+          <MetaItem label="Cargado por">{uploadedBy}</MetaItem>
+        </dl>
+      </header>
 
       {result.status === "READY" || result.status === "PDF_READY" ? (
         <>
-          {result.status === "PDF_READY" ? (
-            <PdfStudyViewer leads={result.leads} />
-          ) : (
-            <>
-              <StudyViewer leads={result.leads} />
-              <WaveformSummary />
-            </>
-          )}
+          <section aria-labelledby="study-signal-title" className={`${cardClassName} flex flex-col gap-4 p-4 sm:p-6`}>
+            <h2 id="study-signal-title" className="text-lg font-bold tracking-tight">
+              Señal del electrocardiograma
+            </h2>
+            {result.status === "PDF_READY" ? (
+              <PdfStudyViewer leads={result.leads} />
+            ) : (
+              <>
+                <StudyViewer leads={result.leads} />
+                <div className="border-t border-border pt-4">
+                  <WaveformSummary />
+                </div>
+              </>
+            )}
+          </section>
           {analysis}
-          <p>
-            <Link href={back.href} className={`${linkClassName} inline-flex min-h-11 items-center`}>
-              {back.label}
-            </Link>
-          </p>
         </>
       ) : (
         <>
           {analysis}
-          <WaveformUnavailable back={back} />
+          <WaveformUnavailable />
         </>
       )}
-    </>
+    </div>
   );
 }

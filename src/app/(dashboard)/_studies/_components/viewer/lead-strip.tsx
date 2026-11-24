@@ -13,7 +13,7 @@ interface LeadStripProps {
   className: string;
 }
 
-// Una derivación: cuadrícula, trazo y nombre. El trazo y la cuadrícula usan solo tokens de color, así que se ven
+// Una derivación sobre papel milimetrado: cuadrícula, trazo y nombre. El trazo y la cuadrícula usan solo tokens de color, así que se ven
 // bien en claro y en oscuro, y el nombre está escrito, no codificado en el color. Es un componente sin estado.
 export function LeadStrip({ samples, name, window, scale, viewHeight, className }: LeadStripProps) {
   const horizontalStep = window.span > 1 ? VIEW_WIDTH / (window.span - 1) : 0;
@@ -28,7 +28,7 @@ export function LeadStrip({ samples, name, window, scale, viewHeight, className 
   const seconds = window.span / 250;
 
   return (
-    <div className={`relative overflow-hidden rounded-control border border-border bg-card ${className}`}>
+    <div className={`relative overflow-hidden rounded-control border border-primary/20 bg-primary/[0.03] ${className}`}>
       <svg
         role="img"
         aria-label={`Derivación ${name}, ${seconds.toLocaleString("es-AR", { maximumFractionDigits: 1 })} segundos`}
@@ -43,7 +43,7 @@ export function LeadStrip({ samples, name, window, scale, viewHeight, className 
             x2={VIEW_WIDTH}
             y1={viewHeight * fraction}
             y2={viewHeight * fraction}
-            className="stroke-border"
+            className="stroke-primary/15"
             strokeWidth={1}
             vectorEffect="non-scaling-stroke"
           />
@@ -58,7 +58,7 @@ export function LeadStrip({ samples, name, window, scale, viewHeight, className 
               x2={x}
               y1={0}
               y2={viewHeight}
-              className={line.major ? "stroke-muted/50" : "stroke-border"}
+              className={line.major ? "stroke-primary/35" : "stroke-primary/15"}
               strokeWidth={1}
               vectorEffect="non-scaling-stroke"
             />
@@ -75,7 +75,7 @@ export function LeadStrip({ samples, name, window, scale, viewHeight, className 
       </svg>
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute left-1 top-1 rounded-control bg-card/80 px-1.5 text-sm font-semibold font-label"
+        className="pointer-events-none absolute left-1 top-1 rounded-control bg-card/85 px-1.5 font-label text-xs font-bold text-primary"
       >
         {name}
       </span>

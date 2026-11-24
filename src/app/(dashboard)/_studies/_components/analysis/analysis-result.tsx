@@ -1,72 +1,73 @@
+import type { ReactNode } from "react";
+
 import type { AnalysisResult as AnalysisResultView } from "@/modules/analyses/domain/analysis";
 
 import { ANALYSIS_MESSAGES, formatAnalysisDate, formatPercent } from "../../_lib/analysis-messages";
-import { COMPOSITE_NOTE, findingLabel } from "../../_lib/findings-labels";
+import { COMPOSITE_DESCRIPTION, findingLabel } from "../../_lib/findings-labels";
 import { AnalysisDisclaimer } from "./analysis-disclaimer";
 
-// El modelo devuelve el compuesto en último lugar.
+// La pantalla muestra solo el compuesto «cardiopatía estructural». Los otros once valores se guardan con el análisis
+// (trazabilidad) pero no se muestran ni llegan al navegador: este componente se arma en el servidor.
 const COMPOSITE_KEY = "shd";
+
+function MetaItem({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex min-w-0 flex-col gap-0.5">
+      <dt className="font-label text-xs font-semibold uppercase tracking-wider text-muted">{label}</dt>
+      <dd className="break-words font-medium">{children}</dd>
+    </div>
+  );
+}
 
 function roundedPercent(probability: number): number {
   return Math.round(probability * 1000) / 10;
 }
 
-// Resultado de un análisis: 12 filas en el orden del contrato. Cada valor va escrito y con una barra, sin umbrales ni
-// colores que cambien según el valor.
+// Resultado de un análisis: el valor va escrito y con una barra, sin umbrales ni colores que cambien según el valor.
 export function AnalysisResult({ result }: { result: AnalysisResultView }) {
   const requestedBy =
     result.requestedBy.kind === "PATIENT" ? ANALYSIS_MESSAGES.requestedByPatient : result.requestedBy.fullName;
+  const composite = result.probabilities.find(({ key }) => key === COMPOSITE_KEY);
 
   return (
-    <section aria-labelledby="analysis-result-title" className="flex flex-col gap-4 border-t border-border pt-4">
-      <h3 id="analysis-result-title" className="text-xl font-semibold">
+    <section aria-labelledby="analysis-result-title" className="flex flex-col gap-4">
+      <h3 id="analysis-result-title" className="font-semibold">
         {ANALYSIS_MESSAGES.resultTitle}
       </h3>
       <AnalysisDisclaimer />
-      <dl className="dashboard-metadata grid grid-cols-1 gap-x-6 gap-y-1 text-base sm:grid-cols-[auto_1fr]">
-        <dt className="font-medium">Modelo</dt>
-        <dd>{result.modelName}</dd>
-        <dt className="font-medium">Versión</dt>
-        <dd>{result.modelVersion}</dd>
-        <dt className="font-medium">Fecha y hora</dt>
-        <dd>{formatAnalysisDate(result.finishedAt ?? result.requestedAt)}</dd>
-        <dt className="font-medium">Pedido por</dt>
-        <dd>{requestedBy}</dd>
+      {composite ? (
+        <div className="flex flex-col gap-4 rounded-panel border-2 border-primary bg-primary/[0.04] p-5">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+            <p className="font-label text-sm font-semibold uppercase tracking-wider text-muted">
+              {findingLabel(COMPOSITE_KEY)}
+            </p>
+            <p className="font-sans text-4xl font-extrabold leading-none tracking-tight tabular-nums">
+              {formatPercent(composite.value)}
+            </p>
+          </div>
+          <div
+            role="meter"
+            aria-label={`${findingLabel(COMPOSITE_KEY)}: ${formatPercent(composite.value)}`}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={roundedPercent(composite.value)}
+            className="h-3 w-full overflow-hidden rounded-full bg-elevated"
+          >
+            <div className="h-full bg-primary" style={{ width: `${roundedPercent(composite.value)}%` }} />
+          </div>
+          <p className="text-sm leading-relaxed text-muted">{COMPOSITE_DESCRIPTION}</p>
+        </div>
+      ) : (
+        <p role="alert" className="text-base">
+          {ANALYSIS_MESSAGES.notAvailable}
+        </p>
+      )}
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-3 rounded-card bg-elevated p-4 text-sm">
+        <MetaItem label="Modelo">{result.modelName}</MetaItem>
+        <MetaItem label="Versión">{result.modelVersion}</MetaItem>
+        <MetaItem label="Fecha y hora">{formatAnalysisDate(result.finishedAt ?? result.requestedAt)}</MetaItem>
+        <MetaItem label="Pedido por">{requestedBy}</MetaItem>
       </dl>
-      <ul className="flex flex-col gap-3">
-        {result.probabilities.map(({ key, value }) => {
-          const isComposite = key === COMPOSITE_KEY;
-          const percent = roundedPercent(value);
-          const label = findingLabel(key);
-
-          return (
-            <li
-              key={key}
-              className={`flex flex-col gap-2 rounded-control border p-3 ${
-                isComposite ? "border-2 border-primary bg-card" : "border-border"
-              }`}
-            >
-              <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
-                <span className={`break-words text-base ${isComposite ? "font-semibold" : ""}`}>
-                  {label}
-                  {isComposite ? <span className="font-normal text-muted"> ({COMPOSITE_NOTE})</span> : null}
-                </span>
-                <span className="shrink-0 text-base font-semibold tabular-nums">{formatPercent(value)}</span>
-              </div>
-              <div
-                role="meter"
-                aria-label={`${label}: ${formatPercent(value)}`}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={percent}
-                className="h-2 w-full overflow-hidden rounded-full bg-elevated"
-              >
-                <div className="h-full bg-primary" style={{ width: `${percent}%` }} />
-              </div>
-            </li>
-          );
-        })}
-      </ul>
     </section>
   );
 }
