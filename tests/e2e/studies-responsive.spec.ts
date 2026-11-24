@@ -3,7 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { enterClinicAs } from "../support/e2e-accounts";
 import { createE2eDatabase, uniqueName, type E2eDatabase } from "../support/e2e-database";
 import { buildNpz } from "../support/npz-builder";
-import { selectNpzEcg } from "./fixtures/npz-upload";
+import { closeUploadDialog, selectNpzEcg } from "./fixtures/npz-upload";
 
 // Las tres pantallas de estudios se prueban en los tres anchos y los dos esquemas de color dentro de una sola
 // ejecución (el viewport se fija acá), así que corre solo en el proyecto de escritorio.
@@ -154,6 +154,7 @@ test("el envío NPZ y la eliminación se completan con teclado, con foco visible
   expect(await focusedOutlineIsVisible(page)).toBe(true);
   await page.keyboard.press("Enter");
   await expect(page.getByText("Estudio 1 guardado.")).toBeVisible();
+  await closeUploadDialog(page);
 
   // Tabulación hasta «Eliminar», abrir con Enter, cerrar con Escape y recuperar el foco.
   await tabTo(page, "button[aria-label^='Eliminar el estudio']");
