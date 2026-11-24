@@ -74,10 +74,11 @@ test("las pantallas del paciente y del médico se adaptan a tres anchos y a los 
     createdByUserId: doctor.user.id,
   });
 
-  const screens: { name: string; page: Page; path: string }[] = [
-    { name: "Mis estudios", page: patientPage, path: "/studies" },
-    { name: "Mis pacientes", page, path: "/patients" },
-    { name: "Estudios del paciente", page, path: `/patients/${patient.relationshipId}` },
+  // «Mis pacientes» usa tarjetas en todos los anchos; las listas de estudios pasan de tarjetas a tabla.
+  const screens: { name: string; page: Page; path: string; hasTable: boolean }[] = [
+    { name: "Mis estudios", page: patientPage, path: "/studies", hasTable: true },
+    { name: "Mis pacientes", page, path: "/patients", hasTable: false },
+    { name: "Estudios del paciente", page, path: `/patients/${patient.relationshipId}`, hasTable: true },
   ];
 
   for (const screen of screens) {
@@ -93,7 +94,7 @@ test("las pantallas del paciente y del médico se adaptan a tres anchos y a los 
 
         // La lista pasa de tarjetas a tabla desde el ancho de tablet.
         const table = screen.page.getByRole("table");
-        if (width >= TABLE_BREAKPOINT) {
+        if (screen.hasTable && width >= TABLE_BREAKPOINT) {
           await expect(table, label).toBeVisible();
         } else {
           await expect(table, label).toBeHidden();

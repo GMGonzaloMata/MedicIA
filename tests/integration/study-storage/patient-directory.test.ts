@@ -34,8 +34,23 @@ async function linkedPatient(tenantId: string, fullName?: string) {
   return createLinkedPatient({ tenantId, userId: (await createUser()).id, ...(fullName ? { fullName } : {}) });
 }
 
+const RECENT_SINCE = new Date("2026-11-01T00:00:00Z");
+
 const list = (tenantId: string, membershipId: string, page = 1, pageSize = 20) =>
-  prismaPatientDirectory.listAssignedPatients({ tenantId, membershipId, page, pageSize });
+  prismaPatientDirectory.listAssignedPatients({ tenantId, membershipId, page, pageSize, sort: "name", recentSince: RECENT_SINCE });
+
+async function addStudies(tenantId: string, patientId: string, uploadedByUserId: string, dates: string[]) {
+  await prismaClient.study.createMany({
+    data: dates.map((date, index) => ({
+      tenantId,
+      patientId,
+      uploadedByUserId,
+      number: index + 1,
+      uploadedAt: new Date(date),
+      storageKey: `studies/${tenantId}/${patientId}-${index + 1}.ecg1`,
+    })),
+  });
+}
 
 describe("pacientes de un médico", () => {
   it("lista exactamente a los pacientes con asignación vigente, ordenados por nombre", async () => {
@@ -149,6 +164,75 @@ describe("pacientes de un médico", () => {
     expect((await list(tenant.id, doctor.id)).items[0]?.studyCount).toBe(2);
   });
 
+  it("muestra el último estudio y ordena por él, con los pacientes sin estudios al final", async () => {
+    const { tenant, doctor, admin, assign } = await setup();
+    const ana = await linkedPatient(tenant.id, "Ana");
+    const beto = await linkedPatient(tenant.id, "Beto");
+    const ciro = await linkedPatient(tenant.id, "Ciro");
+    for (const patient of [ana, beto, ciro]) {
+      await assign(doctor.id, patient.id);
+    }
+    await addStudies(tenant.id, ana.id, admin.id, ["2026-10-01T10:00:00Z", "2026-10-05T10:00:00Z"]);
+    await addStudies(tenant.id, ciro.id, admin.id, ["2026-11-20T10:00:00Z"]);
+
+    const result = await prismaPatientDirectory.listAssignedPatients({
+      tenantId: tenant.id,
+      membershipId: doctor.id,
+      page: 1,
+      pageSize: 20,
+      sort: "recent",
+      recentSince: RECENT_SINCE,
+    });
+
+    expect(result.items.map((patient) => patient.fullName)).toEqual(["Ciro", "Ana", "Beto"]);
+    expect(result.items[1]?.lastStudy).toEqual({ number: 2, uploadedAt: new Date("2026-10-05T10:00:00Z") });
+    expect(result.items[2]?.lastStudy).toBeNull();
+  });
+
+  it("busca por nombre o documento y filtra sobre todos los pacientes asignados, nunca los ajenos", async () => {
+    const { tenant, doctor, otherDoctor, admin, assign } = await setup();
+    const maria = await linkedPatient(tenant.id, "María González");
+    const carlos = await linkedPatient(tenant.id, "Carlos Méndez");
+    const ajena = await linkedPatient(tenant.id, "María Ajena");
+    await assign(doctor.id, maria.id);
+    await assign(doctor.id, carlos.id);
+    await assign(otherDoctor.id, ajena.id);
+    await addStudies(tenant.id, maria.id, admin.id, ["2026-11-20T10:00:00Z"]);
+    await addStudies(tenant.id, ajena.id, admin.id, ["2026-11-20T10:00:00Z"]);
+    const carlosDocument = (await prismaClient.patient.findUniqueOrThrow({ where: { id: carlos.id } })).documentNumber;
+    const query = (input: Partial<Parameters<typeof prismaPatientDirectory.listAssignedPatients>[0]>) =>
+      prismaPatientDirectory.listAssignedPatients({
+        tenantId: tenant.id,
+        membershipId: doctor.id,
+        page: 1,
+        pageSize: 20,
+        recentSince: RECENT_SINCE,
+        ...input,
+      });
+    const names = async (input: Partial<Parameters<typeof prismaPatientDirectory.listAssignedPatients>[0]>) =>
+      (await query(input)).items.map((patient) => patient.fullName);
+
+    expect(await names({ search: { name: "maría", document: "maría" } })).toEqual(["María González"]);
+    expect(await names({ search: { name: carlosDocument, document: carlosDocument } })).toEqual(["Carlos Méndez"]);
+    expect(await names({ filter: "recent" })).toEqual(["María González"]);
+    expect(await names({ filter: "without-studies" })).toEqual(["Carlos Méndez"]);
+    expect(await names({ search: { name: "zzz", document: "zzz" } })).toEqual([]);
+    expect(
+      await prismaPatientDirectory.countAssignedPatients({
+        tenantId: tenant.id,
+        membershipId: doctor.id,
+        recentSince: RECENT_SINCE,
+      }),
+    ).toEqual({ total: 2, recent: 1, withoutStudies: 1 });
+    expect(
+      await prismaPatientDirectory.countAssignedPatients({
+        tenantId: (await createTenant()).id,
+        membershipId: doctor.id,
+        recentSince: RECENT_SINCE,
+      }),
+    ).toEqual({ total: 0, recent: 0, withoutStudies: 0 });
+  });
+
   it("pagina y resuelve una página de 500 pacientes en menos de 200 ms", async () => {
     const { tenant, doctor, admin } = await setup();
     const users = Array.from({ length: 500 }, (value, index) => ({
@@ -197,5 +281,22 @@ describe("pacientes de un médico", () => {
     expect(result.items).toHaveLength(20);
     expect(result.items[0]?.fullName).toBe("Paciente 040");
     expect(durations[2]).toBeLessThan(200);
+
+    // El orden por último estudio lee todos los identificadores: también tiene que resolver a tiempo.
+    const recentDurations: number[] = [];
+    for (let run = 0; run < 5; run += 1) {
+      const start = performance.now();
+      await prismaPatientDirectory.listAssignedPatients({
+        tenantId: tenant.id,
+        membershipId: doctor.id,
+        page: 3,
+        pageSize: 20,
+        sort: "recent",
+        recentSince: RECENT_SINCE,
+      });
+      recentDurations.push(performance.now() - start);
+    }
+    recentDurations.sort((first, second) => first - second);
+    expect(recentDurations[2]).toBeLessThan(200);
   });
 });

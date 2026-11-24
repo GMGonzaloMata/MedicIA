@@ -153,10 +153,12 @@ export function createE2eDatabase() {
       tenantId,
       patientId,
       uploadedByUserId,
+      uploadedAt = new Date(),
     }: {
       tenantId: string;
       patientId: string;
       uploadedByUserId: string;
+      uploadedAt?: Date;
     }) {
       const id = randomUUID();
       const counter = await pool.query<{ lastNumber: number }>(
@@ -168,9 +170,9 @@ export function createE2eDatabase() {
       const number = counter.rows[0]?.lastNumber ?? 1;
 
       await pool.query(
-        `INSERT INTO studies (id, tenant_id, patient_id, uploaded_by_user_id, number, storage_key)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [id, tenantId, patientId, uploadedByUserId, number, `studies/${tenantId}/${id}.ecg1`],
+        `INSERT INTO studies (id, tenant_id, patient_id, uploaded_by_user_id, number, storage_key, uploaded_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [id, tenantId, patientId, uploadedByUserId, number, `studies/${tenantId}/${id}.ecg1`, uploadedAt],
       );
 
       return { id, number };

@@ -8,10 +8,17 @@ export interface Stat {
 
 const countFormat = new Intl.NumberFormat("es-AR");
 
-// Indicadores de la parte de arriba de una pantalla de administración.
-export function StatCards({ stats }: { stats: Stat[] }) {
+// Con tres indicadores cada uno ocupa un tercio del ancho; con cuatro, dos por fila en móvil y cuatro en escritorio.
+const COLUMNS = {
+  // En móvil van en una fila, sin ícono y con el número arriba, para no ocupar media pantalla.
+  3: "grid grid-cols-3 gap-2 sm:gap-3 max-sm:[&>div]:flex-col max-sm:[&>div]:items-start max-sm:[&>div]:p-3 max-sm:[&>div>span]:hidden",
+  4: "grid grid-cols-2 gap-3 lg:grid-cols-4",
+} as const;
+
+// Indicadores de la parte de arriba de una pantalla.
+export function StatCards({ stats, columns = 4 }: { stats: Stat[]; columns?: keyof typeof COLUMNS }) {
   return (
-    <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <dl className={COLUMNS[columns]}>
       {stats.map((stat) => (
         <div
           key={stat.label}
