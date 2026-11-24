@@ -16,12 +16,14 @@ interface UploadFormProps {
   // Solo lo envía un médico: el estudio queda a nombre de ese paciente. Un paciente no lo envía.
   patientId?: string;
   maxBytes: number;
+  // Dentro de un modal el formulario va sin su propio marco.
+  framed?: boolean;
 }
 
 type UploadFormat = "PDF" | "NPZ";
 const controlClassName = "min-h-11 w-full rounded-control border border-input-border bg-card px-3 py-2 text-base text-foreground outline-offset-2 focus-visible:outline-2 focus-visible:outline-ring";
 
-export function UploadForm({ patientId, maxBytes }: UploadFormProps) {
+export function UploadForm({ patientId, maxBytes, framed = true }: UploadFormProps) {
   const [format, setFormat] = useState<UploadFormat>("PDF");
 
   return (
@@ -34,12 +36,12 @@ export function UploadForm({ patientId, maxBytes }: UploadFormProps) {
         </select>
       </div>
       {/* Cambiar de formato descarta archivo y resultado previos, sin mezclar las acciones. */}
-      <UploadFileForm key={format} format={format} patientId={patientId} maxBytes={Math.min(maxBytes, MAX_UPLOAD_BYTES)} />
+      <UploadFileForm key={format} format={format} patientId={patientId} maxBytes={Math.min(maxBytes, MAX_UPLOAD_BYTES)} framed={framed} />
     </div>
   );
 }
 
-function UploadFileForm({ format, patientId, maxBytes }: UploadFormProps & { format: UploadFormat }) {
+function UploadFileForm({ format, patientId, maxBytes, framed }: UploadFormProps & { format: UploadFormat }) {
   const [studyType, setStudyType] = useState("");
   const [tooLarge, setTooLarge] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -80,7 +82,7 @@ function UploadFileForm({ format, patientId, maxBytes }: UploadFormProps & { for
       action={action}
       onSubmit={(event) => { if (isPending) event.preventDefault(); }}
       aria-busy={isPending}
-      className="dashboard-context min-w-0"
+      className={framed ? "dashboard-context min-w-0" : "flex min-w-0 flex-col gap-5"}
     >
       {patientId ? <input type="hidden" name="patientId" value={patientId} /> : null}
       <div className="flex flex-col gap-1.5">
@@ -113,7 +115,9 @@ function UploadFileForm({ format, patientId, maxBytes }: UploadFormProps & { for
         {!isPending && showResult && state?.ok === true ? <FormMessage tone="success">{savedMessage(state.number)}</FormMessage> : null}
         {!isPending && showResult && !selectionError && state?.ok === false ? <FormMessage tone="error">{state.message}</FormMessage> : null}
       </div>
-      <div><SubmitButton pendingLabel="Enviando estudio…">Subir estudio</SubmitButton></div>
+      <div className={framed ? undefined : "flex justify-end border-t border-border pt-4"}>
+        <SubmitButton pendingLabel="Enviando estudio…">Subir estudio</SubmitButton>
+      </div>
     </form>
   );
 }

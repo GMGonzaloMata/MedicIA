@@ -3,7 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { enterClinicAs } from "../support/e2e-accounts";
 import { createE2eDatabase, uniqueName, type E2eDatabase } from "../support/e2e-database";
 import { buildNpz } from "../support/npz-builder";
-import { selectNpzEcg } from "./fixtures/npz-upload";
+import { closeUploadDialog, selectNpzEcg } from "./fixtures/npz-upload";
 
 let database: E2eDatabase;
 
@@ -26,6 +26,7 @@ async function uploadValidStudy(page: Page) {
   });
   await page.getByRole("button", { name: "Subir estudio" }).click();
   await expect(page.getByText("Estudio 1 guardado.")).toBeVisible();
+  await closeUploadDialog(page);
 }
 
 // En pantallas anchas la lista es una tabla y en el móvil son tarjetas: solo uno de los dos vínculos es visible.

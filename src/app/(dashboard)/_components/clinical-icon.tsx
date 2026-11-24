@@ -29,6 +29,7 @@ const icons = {
     </>
   ),
   arrow: <path d="M4.5 12h14m-5-5 5 5-5 5" />,
+  trash: <path d="M4.5 7h15M9.5 7V4.5h5V7m-8 0 .8 12.5h9.4L17.5 7M10.25 10.5v6m3.5-6v6" />,
   search: (
     <>
       <circle cx="10.5" cy="10.5" r="6" />

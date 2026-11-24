@@ -3,7 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { enterClinicAs } from "../support/e2e-accounts";
 import { createE2eDatabase, uniqueName, type E2eDatabase } from "../support/e2e-database";
 import { buildNpz } from "../support/npz-builder";
-import { selectNpzEcg } from "./fixtures/npz-upload";
+import { closeUploadDialog, selectNpzEcg } from "./fixtures/npz-upload";
 
 let database: E2eDatabase;
 
@@ -81,6 +81,7 @@ test("el estudio que cargó el médico no tiene botón para el paciente, pero s�
   await expect(patientPage.getByRole("button", { name: /^Eliminar el estudio/ })).toHaveCount(0);
   await patientContext.close();
 
+  await closeUploadDialog(page);
   await deleteButton(page, 1).click();
   await page.getByRole("button", { name: "Eliminar estudio" }).click();
   await expect(page.getByText("Todavía no hay estudios cargados.")).toBeVisible();
