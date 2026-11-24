@@ -22,6 +22,12 @@ const icons = {
     </>
   ),
   check: <path d="m5 12.5 4.5 4.5L19 7.5" />,
+  info: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 11v5m0-8.25v.01" />
+    </>
+  ),
   arrow: <path d="M4.5 12h14m-5-5 5 5-5 5" />,
 };
 

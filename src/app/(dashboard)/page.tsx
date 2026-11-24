@@ -37,7 +37,10 @@ async function ClinicWorkspace() {
 
   return (
     <>
-      <p className="clinical-home-dateline">{clinic.tenantName}</p>
+      <p className="clinical-home-dateline flex items-center gap-2 [&_svg]:text-primary">
+        <ClinicalIcon name="clinic" />
+        Clínica actual: <strong className="font-semibold text-foreground">{clinic.tenantName}</strong>
+      </p>
       {clinic.relationship.kind === "PATIENT" ? (
         <WorkspacePanel
           icon="studies"

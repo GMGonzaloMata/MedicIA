@@ -72,9 +72,9 @@ describe("resumen de Inicio para el médico", () => {
     expect(recent.getAllByRole("link").map((link) => link.getAttribute("href")))
       .toEqual(["/studies/estudio-7", "/studies/estudio-6", "/studies/estudio-5", "/studies/estudio-4", "/studies/estudio-3"]);
     expect(within(rows[0]).getByRole("link", { name: "Ver estudio 7 de Ana Ejemplo" })).toBeTruthy();
-    const secondary = overview.getByRole("link", { name: "Mis pacientes" });
+    const secondary = overview.getByRole("link", { name: "Ir a Mis pacientes" });
     expect(secondary.getAttribute("href")).toBe("/patients");
-    expect(overview.getAllByRole("link").at(-1)).toBe(secondary);
+    expect(overview.getAllByRole("link")[0]).toBe(secondary);
     expect(screen.queryByRole("heading", { name: "Pacientes de la clínica" })).toBeNull();
   });
 
@@ -96,7 +96,7 @@ describe("resumen de Inicio para el médico", () => {
     const recent = within(overview.getByRole("region", { name: "Estudios recientes" }));
     expect(recent.getByText(testCase.message)).toBeTruthy();
     expect(recent.queryByRole("list")).toBeNull();
-    expect(overview.getAllByRole("link")).toEqual([overview.getByRole("link", { name: "Mis pacientes" })]);
+    expect(overview.getAllByRole("link")).toEqual([overview.getByRole("link", { name: "Ir a Mis pacientes" })]);
   });
 
   it("no presenta una falla de lectura como cifras reales ni imprime detalles internos", async () => {
@@ -110,6 +110,6 @@ describe("resumen de Inicio para el médico", () => {
     expect(overview.queryByRole("definition")).toBeNull();
     expect(overview.queryByRole("list")).toBeNull();
     expect(overview.queryByText("detalle interno de la consulta")).toBeNull();
-    expect(overview.getByRole("link", { name: "Mis pacientes" }).getAttribute("href")).toBe("/patients");
+    expect(overview.getByRole("link", { name: "Ir a Mis pacientes" }).getAttribute("href")).toBe("/patients");
   });
 });
