@@ -11,7 +11,7 @@ import { FormMessage } from "@/components/form/form-message";
 import { ClinicalIcon } from "../../_components/clinical-icon";
 import { deleteStudyAction, type DeleteStudyState } from "../_actions/delete-study";
 
-// Acción de fila con el mismo formato que «Ver onda»: sin borde, en rojo y con ícono. El área táctil llega a 44 px.
+// Acción de fila con el mismo formato que «Ver estudio»: sin borde, en rojo y con ícono. El área táctil llega a 44 px.
 const rowDeleteClassName =
   "relative inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-control px-3 text-sm font-semibold text-danger outline-offset-2 transition-colors after:absolute after:inset-x-0 after:-inset-y-1 after:content-[''] hover:bg-danger-surface focus-visible:outline-2 focus-visible:outline-ring [&_svg]:!size-4";
 

@@ -32,7 +32,7 @@ async function uploadStudy(page: Page, number: number, bytes: Buffer = buildNpz(
 
 // En pantallas anchas la lista es una tabla y en el móvil son tarjetas: solo uno de los dos vínculos es visible.
 async function openStudy(page: Page, number: number) {
-  await page.getByRole("link", { name: `Ver onda del estudio ${number}` }).filter({ visible: true }).click();
+  await page.getByRole("link", { name: `Ver estudio ${number}`, exact: true }).filter({ visible: true }).click();
   await expect(page.getByRole("heading", { name: `Estudio ${number}`, level: 1 })).toBeVisible();
 }
 

@@ -18,10 +18,10 @@ function ViewWaveformLink({ study }: { study: StudySummary }) {
   return (
     <Link
       href={`/studies/${study.id}`}
-      aria-label={`Ver onda del estudio ${study.number}`}
+      aria-label={`Ver estudio ${study.number}`}
       className="relative inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-control px-3 text-sm font-semibold text-primary outline-offset-2 transition-colors after:absolute after:inset-x-0 after:-inset-y-1 after:content-[''] hover:bg-primary/10 focus-visible:outline-2 focus-visible:outline-ring"
     >
-      Ver onda
+      Ver estudio
       <ClinicalIcon name="arrow" />
     </Link>
   );
