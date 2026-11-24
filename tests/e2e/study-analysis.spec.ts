@@ -83,8 +83,7 @@ test("el paciente pide el análisis, ve que está en curso y luego el resultado 
   await expect(resultTitle(page)).toBeVisible({ timeout: RESULT_TIMEOUT });
   await expect(meters(page)).toHaveCount(1);
   await expect(page.getByText(/Son probabilidades estimadas por un modelo de investigación/)).toBeVisible();
-  await expect(page.locator("dd", { hasText: "echonext-mini-fake" })).toBeVisible();
-  await expect(page.locator("dd", { hasText: "0.0.0-fake" })).toBeVisible();
+  await expect(page.getByText("echonext-mini-fake")).toHaveCount(0);
   await expect(page.getByText(/al menos un posible hallazgo estructural del corazón/)).toBeVisible();
 
   // El progreso desaparece y se puede pedir otro.

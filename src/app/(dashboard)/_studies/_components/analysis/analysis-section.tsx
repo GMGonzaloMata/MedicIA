@@ -70,8 +70,9 @@ export async function AnalysisSection({ actor, studyId, analysisId }: AnalysisSe
 
   return (
     <section
+      id="analisis"
       aria-labelledby="analysis-title"
-      className="flex flex-col gap-5 rounded-panel border border-border bg-card p-5 shadow-[0_1px_2px_rgb(15_23_42/0.05)] sm:p-6"
+      className="scroll-mt-6 flex flex-col gap-5 rounded-panel border border-border bg-card p-5 shadow-[0_1px_2px_rgb(15_23_42/0.05)] sm:p-6"
     >
       <header className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex flex-col gap-1">

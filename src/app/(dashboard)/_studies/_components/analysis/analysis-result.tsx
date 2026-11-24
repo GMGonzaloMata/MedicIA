@@ -1,8 +1,6 @@
-import type { ReactNode } from "react";
-
 import type { AnalysisResult as AnalysisResultView } from "@/modules/analyses/domain/analysis";
 
-import { ANALYSIS_MESSAGES, formatAnalysisDate, formatPercent } from "../../_lib/analysis-messages";
+import { ANALYSIS_MESSAGES, formatPercent } from "../../_lib/analysis-messages";
 import { COMPOSITE_DESCRIPTION, findingLabel } from "../../_lib/findings-labels";
 import { AnalysisDisclaimer } from "./analysis-disclaimer";
 import { AnalysisHeart } from "./analysis-heart";
@@ -11,23 +9,12 @@ import { AnalysisHeart } from "./analysis-heart";
 // (trazabilidad) pero no se muestran ni llegan al navegador: este componente se arma en el servidor.
 const COMPOSITE_KEY = "shd";
 
-function MetaItem({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="flex min-w-0 flex-col gap-0.5">
-      <dt className="font-label text-xs font-semibold uppercase tracking-wider text-muted">{label}</dt>
-      <dd className="break-words font-medium">{children}</dd>
-    </div>
-  );
-}
-
 function roundedPercent(probability: number): number {
   return Math.round(probability * 1000) / 10;
 }
 
 // Resultado de un análisis: el valor va escrito y con una barra, sin umbrales ni colores que cambien según el valor.
 export function AnalysisResult({ result }: { result: AnalysisResultView }) {
-  const requestedBy =
-    result.requestedBy.kind === "PATIENT" ? ANALYSIS_MESSAGES.requestedByPatient : result.requestedBy.fullName;
   const composite = result.probabilities.find(({ key }) => key === COMPOSITE_KEY);
 
   return (
@@ -84,12 +71,6 @@ export function AnalysisResult({ result }: { result: AnalysisResultView }) {
           {ANALYSIS_MESSAGES.notAvailable}
         </p>
       )}
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-3 rounded-card bg-elevated p-4 text-sm">
-        <MetaItem label="Modelo">{result.modelName}</MetaItem>
-        <MetaItem label="Versión">{result.modelVersion}</MetaItem>
-        <MetaItem label="Fecha y hora">{formatAnalysisDate(result.finishedAt ?? result.requestedAt)}</MetaItem>
-        <MetaItem label="Pedido por">{requestedBy}</MetaItem>
-      </dl>
     </section>
   );
 }

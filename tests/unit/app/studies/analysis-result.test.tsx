@@ -68,14 +68,15 @@ describe("resultado del análisis", () => {
     expect((meters[0]?.firstElementChild as HTMLElement).style.width).toBe("61.7%");
   });
 
-  it("incluye la advertencia permanente, el modelo, la versión y quién lo pidió", () => {
+  it("incluye la advertencia permanente y no repite el modelo, la versión ni quién lo pidió", () => {
     const { container } = render(<AnalysisResult result={RESULT} />);
 
     expect(screen.getByText(ANALYSIS_MESSAGES.disclaimer)).toBeTruthy();
     expect(screen.getByRole("heading", { name: ANALYSIS_MESSAGES.resultTitle })).toBeTruthy();
-    expect(container.textContent).toContain("echonext-mini-fake");
-    expect(container.textContent).toContain("0.0.0-fake");
-    expect(container.textContent).toContain("Dra. Pérez");
+    expect(container.textContent).not.toContain("echonext-mini-fake");
+    expect(container.textContent).not.toContain("0.0.0-fake");
+    expect(container.textContent).not.toContain("Dra. Pérez");
+    expect(container.querySelector("dl")).toBeNull();
   });
 
   it("no usa umbrales ni lenguaje de diagnóstico", () => {
@@ -137,7 +138,7 @@ describe("historial de análisis", () => {
     const rows = screen.getAllByRole("listitem");
 
     expect(links).toHaveLength(1);
-    expect(links[0]?.getAttribute("href")).toBe("/studies/study-1?analysisId=a1");
+    expect(links[0]?.getAttribute("href")).toBe("/studies/study-1?analysisId=a1#analisis");
     expect(links[0]?.getAttribute("aria-label")).toMatch(/^Ver resultado del análisis del /);
     expect(rows[2]?.getAttribute("aria-current")).toBe("true");
     expect(rows[0]?.getAttribute("aria-current")).toBeNull();
