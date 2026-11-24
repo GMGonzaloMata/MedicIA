@@ -43,11 +43,11 @@ export function AnalysisResult({ result }: { result: AnalysisResultView }) {
             {/* Línea que sale del corazón hacia el valor. */}
             <svg
               aria-hidden="true"
-              viewBox="0 0 64 96"
-              className="-ml-6 hidden h-24 w-16 shrink-0 overflow-visible sm:block"
+              viewBox="0 0 96 96"
+              className="-ml-16 hidden h-24 w-24 shrink-0 overflow-visible sm:block"
             >
               <path
-                d="M 0 34 C 30 34, 34 48, 64 48"
+                d="M 0 34 C 44 34, 52 48, 96 48"
                 pathLength={1}
                 fill="none"
                 stroke="var(--primary)"
@@ -57,7 +57,7 @@ export function AnalysisResult({ result }: { result: AnalysisResultView }) {
               />
               <circle cx={0} cy={34} r={6} fill="var(--primary)" fillOpacity={0.35} className="origin-center animate-ping [transform-box:fill-box] motion-reduce:animate-none" />
               <circle cx={0} cy={34} r={3.5} fill="var(--primary)" />
-              <circle cx={64} cy={48} r={3} fill="var(--primary)" />
+              <circle cx={96} cy={48} r={3} fill="var(--primary)" />
             </svg>
             <div className="flex animate-callout-in items-center gap-4 rounded-full border border-primary/40 bg-card py-3 pl-6 pr-6 shadow-[0_10px_30px_-14px_var(--primary)] motion-reduce:animate-none">
               <p className="max-w-[8.5rem] text-sm font-semibold leading-snug">{findingLabel(COMPOSITE_KEY)}</p>
