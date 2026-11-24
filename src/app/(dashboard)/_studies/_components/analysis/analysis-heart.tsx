@@ -7,7 +7,6 @@ import type { ReactNode } from "react";
 // mismos. Con «reducir movimiento» queda quieta.
 
 const BODY_GRADIENT = "heart-body-gradient";
-const ATRIUM_GRADIENT = "heart-atrium-gradient";
 const GLOSS_GRADIENT = "heart-gloss-gradient";
 const TRUNK_FADE = "heart-trunk-fade";
 const TRUNK_MASK = "heart-trunk-mask";
@@ -17,11 +16,10 @@ const SOFT_FILTER = "heart-soft-filter";
 const primary = { stopColor: "var(--primary)" };
 const light = { stopColor: "white" };
 
+// Un solo trazado para todo el corazón: los ventrículos y, a la izquierda del dibujo, el lóbulo de la aurícula derecha.
 const VENTRICLES =
-  "M 70 128 C 52 150, 44 178, 50 200 C 58 230, 88 258, 120 276 C 130 282, 142 285, 150 280 C 172 266, 194 234, 204 196 C 212 166, 210 136, 194 116 C 176 100, 120 100, 70 128 Z";
+  "M 194 116 C 176 100, 122 100, 86 116 C 78 108, 64 104, 53 112 C 43 120, 37 136, 40 152 C 42 166, 45 178, 49 190 C 54 220, 84 254, 120 276 C 130 282, 142 285, 150 280 C 172 266, 194 234, 204 196 C 212 166, 210 136, 194 116 Z";
 const LEFT_VENTRICLE = "M 136 96 C 134 160, 138 200, 141 290 L 230 290 L 230 96 Z";
-const RIGHT_ATRIUM =
-  "M 78 112 C 60 96, 36 104, 30 128 C 25 150, 34 172, 50 182 C 62 188, 74 176, 78 160 C 82 144, 84 126, 78 112 Z";
 const LEFT_AURICLE =
   "M 146 126 C 154 114, 176 112, 188 122 C 196 130, 194 146, 184 152 C 174 156, 164 148, 156 150 C 148 150, 142 138, 146 126 Z";
 
@@ -74,7 +72,7 @@ function Coronary({ d, width }: { d: string; width: number }) {
   );
 }
 
-type Depth = "back" | "middle" | "front" | "leftLobe" | "rightLobe";
+type Depth = "back" | "middle" | "front";
 
 function Layer({ depth, children }: { depth: Depth; children: ReactNode }) {
   // La perspectiva agranda lo que está adelante: la escala lo compensa para que las capas coincidan en reposo.
@@ -82,10 +80,6 @@ function Layer({ depth, children }: { depth: Depth; children: ReactNode }) {
     back: "[transform:translateZ(-28px)_scale(1.035)]",
     middle: "",
     front: "[transform:translateZ(28px)_scale(0.965)]",
-    // Los lóbulos van en planos inclinados que envuelven el costado: al girar, el del lado que se acerca se ensancha
-    // y el otro se angosta, como en un cuerpo con volumen. La escala horizontal compensa la inclinación en reposo.
-    leftLobe: "origin-[34%_50%] [transform:translateZ(20px)_rotateY(-32deg)_scale(1.18,0.975)]",
-    rightLobe: "origin-[60%_50%] [transform:translateZ(24px)_rotateY(24deg)_scale(1.09,0.97)]",
   }[depth];
 
   return (
@@ -97,7 +91,7 @@ function Layer({ depth, children }: { depth: Depth; children: ReactNode }) {
 
 export function AnalysisHeart() {
   return (
-    <div aria-hidden="true" className="relative h-58 w-48 shrink-0 [perspective:800px] sm:h-68 sm:w-56">
+    <div aria-hidden="true" className="relative h-58 w-48 shrink-0 [perspective:800px] @min-[33rem]:h-68 @min-[33rem]:w-56">
       <div className="absolute inset-8 animate-heart-glow rounded-full bg-primary/30 blur-2xl motion-reduce:animate-none" />
       <div className="absolute inset-x-12 -bottom-1 h-3 rounded-full bg-primary/25 blur-md" />
       <div className="relative size-full animate-heart-sway [transform-style:preserve-3d] motion-reduce:animate-none">
@@ -129,11 +123,6 @@ export function AnalysisHeart() {
                 <stop offset="0.72" style={primary} stopOpacity={0.68} />
                 <stop offset="1" style={primary} stopOpacity={0.95} />
               </radialGradient>
-              <radialGradient id={ATRIUM_GRADIENT} cx="36%" cy="30%" r="85%">
-                <stop offset="0" style={light} stopOpacity={0.8} />
-                <stop offset="0.4" style={primary} stopOpacity={0.45} />
-                <stop offset="1" style={primary} stopOpacity={0.9} />
-              </radialGradient>
               <clipPath id={BODY_CLIP}>
                 <path d={VENTRICLES} />
               </clipPath>
@@ -149,17 +138,26 @@ export function AnalysisHeart() {
                 <path d="M 176 124 C 184 166, 178 216, 158 256" />
                 <path d="M 194 144 C 198 180, 190 218, 172 246" />
               </g>
+              {/* Surco que separa la aurícula y relieve de la orejuela izquierda, dibujados sobre el mismo cuerpo. */}
+              <path
+                d="M 86 118 C 86 142, 78 168, 50 190"
+                fill="none"
+                stroke="var(--primary)"
+                strokeOpacity={0.35}
+                strokeWidth={1.4}
+                strokeLinecap="round"
+              />
+              <path
+                d={LEFT_AURICLE}
+                fill="var(--primary)"
+                fillOpacity={0.1}
+                stroke="var(--primary)"
+                strokeOpacity={0.35}
+                strokeWidth={1}
+              />
             </g>
           </Layer>
 
-          <Layer depth="leftLobe">
-            <Chamber d={RIGHT_ATRIUM} gradient={ATRIUM_GRADIENT} />
-            <ellipse cx={46} cy={132} rx={7} ry={15} transform="rotate(10 46 132)" fill={`url(#${GLOSS_GRADIENT})`} />
-          </Layer>
-
-          <Layer depth="rightLobe">
-            <Chamber d={LEFT_AURICLE} gradient={ATRIUM_GRADIENT} />
-          </Layer>
 
           <Layer depth="front">
             <defs>
