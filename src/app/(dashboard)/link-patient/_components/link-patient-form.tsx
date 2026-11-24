@@ -16,7 +16,7 @@ export function LinkPatientForm() {
   const [state, action] = useActionState(linkPatientAction, undefined as ClinicActionState | undefined);
 
   return (
-    <form action={action} className="flex max-w-md flex-col gap-4">
+    <form action={action} className="flex flex-col gap-4">
       {state?.status === "error" ? <FormMessage tone="error">{state.message}</FormMessage> : null}
       <div className="flex flex-col gap-1.5">
         <label htmlFor="link-document-type" className="font-label text-sm font-medium text-foreground">
