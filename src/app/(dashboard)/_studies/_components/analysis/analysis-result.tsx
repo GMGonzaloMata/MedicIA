@@ -5,6 +5,7 @@ import type { AnalysisResult as AnalysisResultView } from "@/modules/analyses/do
 import { ANALYSIS_MESSAGES, formatAnalysisDate, formatPercent } from "../../_lib/analysis-messages";
 import { COMPOSITE_DESCRIPTION, findingLabel } from "../../_lib/findings-labels";
 import { AnalysisDisclaimer } from "./analysis-disclaimer";
+import { AnalysisHeart } from "./analysis-heart";
 
 // La pantalla muestra solo el compuesto «cardiopatía estructural». Los otros once valores se guardan con el análisis
 // (trazabilidad) pero no se muestran ni llegan al navegador: este componente se arma en el servidor.
@@ -36,14 +37,35 @@ export function AnalysisResult({ result }: { result: AnalysisResultView }) {
       </h3>
       <AnalysisDisclaimer />
       {composite ? (
-        <div className="flex flex-col gap-4 rounded-panel border-2 border-primary bg-primary/[0.04] p-5">
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
-            <p className="font-label text-sm font-semibold uppercase tracking-wider text-muted">
-              {findingLabel(COMPOSITE_KEY)}
-            </p>
-            <p className="font-sans text-4xl font-extrabold leading-none tracking-tight tabular-nums">
-              {formatPercent(composite.value)}
-            </p>
+        <div className="flex flex-col gap-5 rounded-panel border border-primary/30 bg-primary/[0.04] p-5">
+          <div className="flex flex-col items-center gap-5 py-2 sm:flex-row sm:justify-center sm:gap-0">
+            <AnalysisHeart />
+            {/* Línea que sale del corazón hacia el valor. */}
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 64 96"
+              className="-ml-6 hidden h-24 w-16 shrink-0 overflow-visible sm:block"
+            >
+              <path
+                d="M 0 34 C 30 34, 34 48, 64 48"
+                pathLength={1}
+                fill="none"
+                stroke="var(--primary)"
+                strokeWidth={1.75}
+                strokeDasharray={1}
+                className="animate-draw-line motion-reduce:animate-none"
+              />
+              <circle cx={0} cy={34} r={6} fill="var(--primary)" fillOpacity={0.35} className="origin-center animate-ping [transform-box:fill-box] motion-reduce:animate-none" />
+              <circle cx={0} cy={34} r={3.5} fill="var(--primary)" />
+              <circle cx={64} cy={48} r={3} fill="var(--primary)" />
+            </svg>
+            <div className="flex animate-callout-in items-center gap-4 rounded-full border border-primary/40 bg-card py-3 pl-6 pr-6 shadow-[0_10px_30px_-14px_var(--primary)] motion-reduce:animate-none">
+              <p className="max-w-[8.5rem] text-sm font-semibold leading-snug">{findingLabel(COMPOSITE_KEY)}</p>
+              <span aria-hidden="true" className="w-px self-stretch bg-primary/30" />
+              <p className="whitespace-nowrap font-sans text-3xl font-extrabold leading-none tracking-tight tabular-nums">
+                {formatPercent(composite.value)}
+              </p>
+            </div>
           </div>
           <div
             role="meter"

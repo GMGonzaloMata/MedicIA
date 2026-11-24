@@ -15,20 +15,23 @@ interface ViewerControlsProps {
   onAction: (action: ViewerAction) => void;
 }
 
-// Grupo de botones pegados, como una barra de herramientas.
-const groupClassName = "flex flex-wrap gap-1 rounded-card bg-elevated p-1";
-const groupButtonClassName = `${compactSecondaryButtonClassName} border-transparent bg-card disabled:bg-transparent`;
+// Todo mide 36 px de alto: el selector, los botones sueltos y cada grupo con su relleno. Los botones amplían su área
+// táctil con un pseudo-elemento.
+const buttonClassName = compactSecondaryButtonClassName.replace("border-border", "border-input-border");
+const groupClassName = "flex flex-wrap gap-0.5 rounded-control bg-elevated p-0.5";
+const groupButtonClassName =
+  "relative inline-flex h-8 items-center whitespace-nowrap rounded-[calc(var(--radius-control)-2px)] px-3 text-sm font-semibold text-foreground outline-offset-2 transition-colors after:absolute after:inset-x-0 after:-inset-y-1.5 after:content-[''] hover:bg-card focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent";
 
 // Controles del visor. Todo lo que se hace con el teclado o con gestos también se puede hacer con estos botones.
 export function ViewerControls({ view, lead, window, onSelectLead, onShowAll, onAction }: ViewerControlsProps) {
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-wrap items-center gap-2">
       <label className="flex items-center gap-2 text-sm">
         <span className="font-label font-semibold text-muted">Derivación</span>
         <select
           value={lead}
           onChange={(event) => onSelectLead(Number(event.target.value))}
-          className="min-h-11 rounded-control border border-input-border bg-card px-3 text-base font-semibold text-foreground outline-offset-2 focus-visible:outline-2 focus-visible:outline-ring"
+          className="h-9 rounded-control border border-input-border bg-card px-2.5 text-sm font-semibold text-foreground outline-offset-2 focus-visible:outline-2 focus-visible:outline-ring"
         >
           {ECG_LEAD_NAMES.map((name, index) => (
             <option key={name} value={index}>
@@ -39,12 +42,12 @@ export function ViewerControls({ view, lead, window, onSelectLead, onShowAll, on
       </label>
 
       {view === "ALL" ? (
-        <button type="button" onClick={() => onSelectLead(lead)} className={compactSecondaryButtonClassName}>
+        <button type="button" onClick={() => onSelectLead(lead)} className={buttonClassName}>
           Ampliar derivación
         </button>
       ) : (
         <>
-          <button type="button" onClick={onShowAll} className={compactSecondaryButtonClassName}>
+          <button type="button" onClick={onShowAll} className={buttonClassName}>
             Ver las 12 derivaciones
           </button>
           <div className="flex flex-wrap gap-2 sm:ml-auto">
