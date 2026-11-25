@@ -135,7 +135,10 @@ function readableDirectories(directory) {
 readableDirectories(release);
 fs.writeFileSync(path.join(release, '.medicia-sha256'), config.release_sha256, { mode: 0o644 });
 fs.chmodSync(path.join(release, '.medicia-sha256'), 0o644);
-const environment = { ...config.environment, DATABASE_URL: app.DATABASE_URL, COGNITO_CLIENT_SECRET: app.COGNITO_CLIENT_SECRET };
+// Correo de invitaciones: claves opcionales del mismo secreto (la app falla al invitar si falta alguna).
+const mail = {};
+for (const key of ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASSWORD', 'INVITATION_FROM_ADDRESS']) if (app[key] !== undefined) mail[key] = text(app[key]);
+const environment = { ...config.environment, ...mail, DATABASE_URL: app.DATABASE_URL, COGNITO_CLIENT_SECRET: app.COGNITO_CLIENT_SECRET };
 const lines = Object.entries(environment).map(([key, value]) => {
   if (!/^[A-Z][A-Z0-9_]*$/.test(key)) throw Error('environment-key');
   return key + '="' + text(value).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';

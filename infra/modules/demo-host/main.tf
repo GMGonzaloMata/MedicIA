@@ -24,6 +24,8 @@ locals {
       IDENTITY_PROVIDER       = "cognito"
       STUDY_STORAGE           = "s3"
       MODEL_INFERENCE         = "sagemaker"
+      INVITATION_MAILER       = "smtp"
+      APP_BASE_URL            = "https://${var.public_hostname}"
       AWS_REGION              = var.region
       COGNITO_REGION          = var.region
       COGNITO_USER_POOL_ID    = split("/", var.runtime_references.user_pool_arn)[1]

@@ -262,6 +262,18 @@ describe("runtime público renderizado, sin AWS ni escrituras globales", () => {
       expect(f.reason()).toBe(options.expectedReason); expect(f.calls()).toHaveLength(3);
     }
   });
+  it("pasa al servicio las claves de correo del secreto, y rechaza una inválida", () => {
+    const database = "postgresql://medicia_app:synthetic-password@" + DB + ":5432/medicia?sslmode=verify-full&sslrootcert=/etc/pki/rds/global-bundle.pem";
+    const mail = { SMTP_HOST: "smtp.example.invalid", SMTP_PORT: "587", SMTP_USER: "synthetic-user", SMTP_PASSWORD: "synthetic-smtp-password", INVITATION_FROM_ADDRESS: "MedicIA <no-reply@example.invalid>" };
+    const f = fixture({ app: { DATABASE_URL: database, COGNITO_CLIENT_SECRET: APP_SECRET, ...mail } });
+    const result = f.run();
+    expect(result.status, result.stderr).toBe(0);
+    const env = readFileSync(f.runtimeRoot + "/current/runtime.env", "utf8");
+    for (const [key, value] of Object.entries(mail)) expect(env).toContain(key + '="' + value + '"');
+    const invalid = fixture({ app: { DATABASE_URL: database, COGNITO_CLIENT_SECRET: APP_SECRET, SMTP_PASSWORD: "line1\nINJECT=bad" } });
+    const rejected = invalid.run();
+    expect(rejected.status).toBe(1); expect(rejected.stderr).toBe("medicia runtime: rejected\n");
+  });
   it("activa juntos configuración y release verificado, conserva el anterior y permite reaplicar", () => {
     const f = fixture();
     const tools = f.probeTools();

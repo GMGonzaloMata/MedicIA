@@ -98,13 +98,19 @@ it("documents help and rejects malformed CLI", () => {
   expect([f.run(["--help"]).status, f.run(["--help"]).stdout, f.run(["--help"]).stderr]).toEqual([0, "Usage: package-demo.sh INPUT OUTPUT.tar.gz\n", ""]);
   const result = f.run([]); expect([result.status, result.stdout, result.stderr]).toEqual([2, "", "Usage: package-demo.sh INPUT OUTPUT.tar.gz\n"]);
 });
-for (const name of [".env", ".env.production", ".aws/config", ".git/config", "credentials", "tests/data", "x.tfstate", "x.tfvars", "patients/a", "studies/a", "secrets/a", ".next/cache/a", "a".repeat(101)]) {
+for (const name of [".env", ".env.production", ".aws/config", ".git/config", "credentials", "tests/data", "x.tfstate", "x.tfvars", "patients/a", "studies/a", "node_modules/patients/a", "generated/studies/a", "secrets/a", ".next/cache/a", "a".repeat(101)]) {
   it(`rejects contamination/unsupported path ${name} without mutation`, () => {
     const f = fixture(); f.put(name); const before = snapshot(f.input); const result = f.run();
     expect([result.status, result.stdout, result.stderr]).toEqual([1, "", "medicia package: rejected\n"]);
     expect(snapshot(f.input)).toEqual(before); expect(readdirSync(f.root).sort()).toEqual(["bin", "input"]);
   });
 }
+it("acepta las rutas patients y studies del build de Next, pero solo dentro de .next", () => {
+  const f = fixture();
+  for (const name of [".next/server/app/studies/page.js", ".next/server/app/(dashboard)/clinic/patients/page.js"]) f.put(name);
+  const result = f.run();
+  expect([result.status, result.stdout, result.stderr]).toEqual([0, "medicia package: created\n", ""]);
+});
 for (const body of ["", "{}", "not-json", '{"platform":"win32","arch":"x64","node":24}', '{"platform":"linux","arch":"arm64","node":24}', '{"platform":"linux","arch":"x64","node":22}']) {
   it(`rejects metadata ${body}`, () => {
     const f = fixture(); f.put("release.json", body); const before = snapshot(f.input); const result = f.run();

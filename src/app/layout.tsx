@@ -17,6 +17,16 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: { default: "MedicIA", template: "%s · MedicIA" },
   description: "Plataforma de apoyo clínico para analizar estudios médicos con IA.",
+  // Íconos generados con RealFaviconGenerator, servidos desde public/favicon.
+  icons: {
+    icon: [
+      { url: "/favicon/favicon.ico", sizes: "48x48" },
+      { url: "/favicon/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon/favicon-96x96.png", sizes: "96x96", type: "image/png" },
+    ],
+    apple: { url: "/favicon/apple-touch-icon.png", sizes: "180x180" },
+  },
+  manifest: "/favicon/site.webmanifest",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
