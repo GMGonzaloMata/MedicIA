@@ -104,7 +104,7 @@ variable "models" {
       model_data_key = "echonext-mini/0.1.0/model.tar.gz"
       model_version  = "0.1.0"
       instance_type  = "ml.t2.medium"
-      enabled        = false
+      enabled        = true
     }
   }
 }

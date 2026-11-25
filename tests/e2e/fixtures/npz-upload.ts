@@ -1,7 +1,7 @@
 import { expect, type Page } from "@playwright/test";
 
-// En «Estudios de…» (médico) el formulario está en un modal que abre «Cargar estudio»; en «Mis estudios»
-// (paciente) está en la página. Se espera a cualquiera de los dos y se abre el modal si hace falta.
+// El formulario puede estar en un modal que abre «Cargar estudio» o directamente en la página. Se espera a
+// cualquiera de los dos y se abre el modal si hace falta.
 export async function openUploadForm(page: Page): Promise<void> {
   const format = page.getByLabel("Formato del archivo", { exact: true });
   const opener = page.getByRole("button", { name: "Cargar estudio" });

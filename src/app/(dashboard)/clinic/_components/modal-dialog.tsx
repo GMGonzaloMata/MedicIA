@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
 import { compactPrimaryButtonClassName, compactSecondaryButtonClassName } from "@/components/form/button-styles";
 
@@ -38,6 +38,13 @@ export function ModalDialog({
       dialogRef.current?.showModal();
     }
   }, [openCount]);
+
+  // Next oculta la página al navegar (<Activity>) sin desmontarla: si el diálogo sigue abierto, al volver queda su
+  // fondo oscuro sobre la página. La limpieza corre al ocultarse y al desmontarse (guía preserving-ui-state).
+  useLayoutEffect(() => {
+    const dialog = dialogRef.current;
+    return () => dialog?.close();
+  }, []);
 
   const close = () => dialogRef.current?.close();
 

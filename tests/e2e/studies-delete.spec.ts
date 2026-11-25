@@ -36,6 +36,7 @@ test("el paciente elimina un estudio propio con confirmación y el número no se
 
   await uploadValidStudy(page);
   await expect(page.getByText("Estudio 1 guardado.")).toBeVisible();
+  await closeUploadDialog(page);
   await expect(visibleRows(page)).toHaveCount(1);
 
   // Escape cierra el diálogo sin borrar nada.

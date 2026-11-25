@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef } from "react";
+import { useActionState, useLayoutEffect, useRef } from "react";
 
 import {
   compactDangerButtonClassName,
@@ -20,6 +20,13 @@ const rowDeleteClassName =
 export function DeleteStudyDialog({ studyId, number }: { studyId: string; number: number }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [state, action, isPending] = useActionState<DeleteStudyState, FormData>(deleteStudyAction, undefined);
+
+  // Next oculta la página al navegar (<Activity>) sin desmontarla: cerrar el diálogo evita que su fondo quede
+  // sobre la página al volver atrás.
+  useLayoutEffect(() => {
+    const element = dialog.current;
+    return () => element?.close();
+  }, []);
 
   return (
     <>
