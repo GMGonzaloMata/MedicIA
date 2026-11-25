@@ -35,7 +35,7 @@ describe("listar los pacientes de un médico", () => {
   it("devuelve solo sus asignaciones vigentes, ordenadas por nombre, con la cantidad de estudios", async () => {
     const { list } = setup(3);
 
-    const result = await list({ actor: doctor });
+    const result = await list({ actor: doctor, sort: "name" });
 
     expect(result.items.map((patient) => patient.fullName)).toEqual(["Paciente 001", "Paciente 002", "Paciente 003"]);
     expect(result.items[2]?.studyCount).toBe(3);
@@ -56,6 +56,34 @@ describe("listar los pacientes de un médico", () => {
     directory.end({ tenantId: TENANT, membershipId: "membership-1", patientId: "patient-1" });
 
     expect((await list({ actor: doctor })).items.map((patient) => patient.id)).toEqual(["patient-2"]);
+  });
+
+  it("ordena por último estudio por defecto, cuenta y aplica búsqueda y filtro normalizados", async () => {
+    const directory = new InMemoryPatientDirectory();
+    const now = new Date("2026-11-24T12:00:00Z");
+    const patients = [
+      { ...summary(1), fullName: "Ana", lastStudy: { number: 1, uploadedAt: new Date("2026-09-01T00:00:00Z") } },
+      { ...summary(2), fullName: "Beto", studyCount: 0 },
+      { ...summary(3), fullName: "Ciro", documentNumber: "28412903", lastStudy: { number: 3, uploadedAt: new Date("2026-11-20T00:00:00Z") } },
+    ];
+    for (const patient of patients) {
+      directory.assign({ tenantId: TENANT, membershipId: "membership-1", patient });
+    }
+    const list = createListDoctorPatients({ directory, now: () => now });
+
+    const all = await list({ actor: doctor });
+    expect(all.items.map((patient) => patient.fullName)).toEqual(["Ciro", "Ana", "Beto"]);
+    expect(all).toMatchObject({ counts: { total: 3, recent: 1, withoutStudies: 1 }, sort: "recent", filter: "all", search: null });
+
+    expect((await list({ actor: doctor, sort: "name" })).items.map((patient) => patient.fullName)).toEqual(["Ana", "Beto", "Ciro"]);
+    const byDocument = await list({ actor: doctor, search: "  28.412.903 " });
+    expect(byDocument.items.map((patient) => patient.fullName)).toEqual(["Ciro"]);
+    expect(byDocument.search).toBe("28.412.903");
+    expect((await list({ actor: doctor, filter: "without-studies" })).items.map((patient) => patient.fullName)).toEqual(["Beto"]);
+    expect((await list({ actor: doctor, filter: "recent" })).items.map((patient) => patient.fullName)).toEqual(["Ciro"]);
+
+    const unknown = await list({ actor: doctor, sort: "otro", filter: "otro", search: "   " });
+    expect(unknown).toMatchObject({ sort: "recent", filter: "all", search: null, totalItems: 3 });
   });
 
   it("un paciente no tiene esta lista", async () => {

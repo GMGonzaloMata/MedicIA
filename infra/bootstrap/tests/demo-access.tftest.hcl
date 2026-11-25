@@ -163,6 +163,133 @@ run "operador_demo_contenido" {
   }
 }
 
+run "kms_solo_a_traves_de_rds_y_secretos" {
+  command = plan
+
+  assert {
+    condition = length([for s in jsondecode(aws_iam_policy.operator_demo.policy).Statement : s if s.Sid == "KmsAdministradoParaRds"]) == 1 && alltrue([
+      for s in jsondecode(aws_iam_policy.operator_demo.policy).Statement :
+      s.Effect == "Allow"
+      && toset(s.Action) == toset(["kms:CreateGrant", "kms:DescribeKey", "kms:Decrypt", "kms:GenerateDataKey", "kms:GenerateDataKeyWithoutPlaintext"])
+      && toset(s.Resource) == toset(["arn:aws:kms:sa-east-1:896618135592:key/*"])
+      && try(s.Condition.StringEquals["kms:CallerAccount"], "") == "896618135592"
+      && toset(s.Condition.StringEquals["kms:ViaService"]) == toset(["rds.sa-east-1.amazonaws.com", "secretsmanager.sa-east-1.amazonaws.com"])
+      if s.Sid == "KmsAdministradoParaRds"
+    ])
+    error_message = "KMS solo debe poder usarse a través de RDS/Secrets Manager de la región y de la cuenta, con acciones enumeradas."
+  }
+
+  assert {
+    condition = length([
+      for s in concat(jsondecode(aws_iam_policy.operator_demo_network.policy).Statement, jsondecode(aws_iam_policy.operator.policy).Statement) :
+      s if anytrue([for a in s.Action : startswith(a, "kms:")])
+    ]) == 0
+    error_message = "KMS se concede únicamente en la política demo, no en la red ni en la del operador previo."
+  }
+}
+
+run "secreto_master_de_rds_solo_crear_y_etiquetar" {
+  command = plan
+
+  assert {
+    condition = length([for s in jsondecode(aws_iam_policy.operator_demo.policy).Statement : s if s.Sid == "SecretoMasterGestionadoPorRds"]) == 1 && alltrue([
+      for s in jsondecode(aws_iam_policy.operator_demo.policy).Statement :
+      s.Effect == "Allow"
+      && toset(s.Action) == toset(["secretsmanager:CreateSecret", "secretsmanager:TagResource"])
+      && toset(s.Resource) == toset(["arn:aws:secretsmanager:sa-east-1:896618135592:secret:rds!db-*"])
+      if s.Sid == "SecretoMasterGestionadoPorRds"
+    ])
+    error_message = "El secreto master de RDS solo puede crearse y etiquetarse, con ARN limitado a rds!db-* de la cuenta y región."
+  }
+
+  assert {
+    condition = alltrue([
+      for s in jsondecode(aws_iam_policy.operator_demo.policy).Statement :
+      !contains(s.Resource, "arn:aws:secretsmanager:sa-east-1:896618135592:secret:rds!db-*") || !anytrue([for a in s.Action : contains(["secretsmanager:GetSecretValue", "secretsmanager:PutSecretValue", "secretsmanager:UpdateSecret", "secretsmanager:BatchGetSecretValue"], a)])
+    ])
+    error_message = "El operador nunca debe leer ni escribir el valor del secreto master de RDS."
+  }
+}
+
+run "rds_lectura_de_instancias_sin_escrituras_amplias" {
+  command = plan
+
+  assert {
+    condition = length([for s in jsondecode(aws_iam_policy.operator_demo.policy).Statement : s if s.Sid == "LeerInstanciasRds"]) == 1 && alltrue([
+      for s in jsondecode(aws_iam_policy.operator_demo.policy).Statement :
+      s.Effect == "Allow" && toset(s.Action) == toset(["rds:DescribeDBInstances"])
+      && toset(s.Resource) == toset(["arn:aws:rds:sa-east-1:896618135592:db:*"])
+      if s.Sid == "LeerInstanciasRds"
+    ])
+    error_message = "Solo DescribeDBInstances puede alcanzar db:*."
+  }
+
+  assert {
+    condition = alltrue([
+      for s in jsondecode(aws_iam_policy.operator_demo.policy).Statement :
+      alltrue([for a in s.Action : !contains(["rds:CreateDBInstance", "rds:ModifyDBInstance", "rds:DeleteDBInstance"], a)])
+      if contains(s.Resource, "arn:aws:rds:sa-east-1:896618135592:db:*")
+    ])
+    error_message = "Crear, modificar y borrar instancias RDS debe seguir limitado a medicia-dev-demo*."
+  }
+}
+
+run "lanzamiento_ec2_eni_sin_etiqueta_y_disco_con_etiqueta" {
+  command = plan
+
+  variables {
+    demo_ami_arn = "arn:aws:ec2:sa-east-1::image/ami-0123456789abcdef0"
+  }
+
+  assert {
+    condition = anytrue([
+      for s in jsondecode(aws_iam_policy.operator_demo_network.policy).Statement :
+      s.Sid == "CrearDiscosDemo" && s.Effect == "Allow" && toset(s.Action) == toset(["ec2:RunInstances"])
+      && toset(s.Resource) == toset(["arn:aws:ec2:sa-east-1:896618135592:volume/*"])
+      && try(s.Condition.StringEquals["aws:RequestTag/Deployment"], "") == "ec2-rds-demo"
+      ]) && anytrue([
+      for s in jsondecode(aws_iam_policy.operator_demo_network.policy).Statement :
+      s.Sid == "CrearEniDemo" && s.Effect == "Allow" && toset(s.Action) == toset(["ec2:RunInstances"])
+      && toset(s.Resource) == toset(["arn:aws:ec2:sa-east-1:896618135592:network-interface/*"])
+      && try(s.Condition.StringEquals["ec2:Region"], "") == "sa-east-1"
+    ])
+    error_message = "El disco exige etiqueta de pedido; la ENI primaria (sin etiqueta en aws_instance) solo se limita por región."
+  }
+
+  assert {
+    condition = alltrue([
+      for s in jsondecode(aws_iam_policy.operator_demo_network.policy).Statement :
+      !contains(s.Resource, "arn:aws:ec2:sa-east-1:896618135592:network-interface/*") || !anytrue([for a in s.Action : contains(["ec2:DeleteNetworkInterface", "ec2:ModifyNetworkInterfaceAttribute", "ec2:AttachNetworkInterface"], a)])
+      if s.Sid == "CrearEniDemo"
+    ]) && length([for s in jsondecode(aws_iam_policy.operator_demo_network.policy).Statement : s if s.Sid == "UsarRedDemo" && contains(s.Action, "ec2:RunInstances") && try(s.Condition.StringEquals["aws:ResourceTag/Deployment"], "") == "ec2-rds-demo"]) == 1
+    error_message = "La ENI solo puede crearse al lanzar y la subred/grupo siguen exigiendo la etiqueta Deployment."
+  }
+}
+
+run "eip_en_eni_solo_asociar_y_desasociar" {
+  command = plan
+
+  assert {
+    condition = length([for s in jsondecode(aws_iam_policy.operator_demo_network.policy).Statement : s if s.Sid == "EipEnEniDemo"]) == 1 && alltrue([
+      for s in jsondecode(aws_iam_policy.operator_demo_network.policy).Statement :
+      s.Effect == "Allow" && toset(s.Action) == toset(["ec2:AssociateAddress", "ec2:DisassociateAddress"])
+      && toset(s.Resource) == toset(["arn:aws:ec2:sa-east-1:896618135592:network-interface/*"])
+      && try(s.Condition.StringEquals["ec2:Region"], "") == "sa-east-1"
+      if s.Sid == "EipEnEniDemo"
+    ])
+    error_message = "Sobre ENIs solo puede asociarse/desasociarse EIP, limitado por región."
+  }
+
+  assert {
+    condition = alltrue([
+      for s in jsondecode(aws_iam_policy.operator_demo_network.policy).Statement :
+      try(s.Condition.StringEquals["aws:ResourceTag/Deployment"], "") == "ec2-rds-demo"
+      if s.Sid == "GestionarRedDemo" && contains(s.Action, "ec2:AssociateAddress") && contains(s.Action, "ec2:DisassociateAddress")
+    ]) && length([for s in jsondecode(aws_iam_policy.operator_demo_network.policy).Statement : s if s.Sid == "GestionarRedDemo" && contains(s.Action, "ec2:DisassociateAddress")]) == 1
+    error_message = "La EIP y demás recursos siguen exigiendo la etiqueta Deployment en GestionarRedDemo."
+  }
+}
+
 run "rechazar_master_como_runtime" {
   command = plan
   variables {

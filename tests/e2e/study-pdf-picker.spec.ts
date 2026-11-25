@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { enterClinicAs } from "../support/e2e-accounts";
 import { createE2eDatabase, uniqueName, type E2eDatabase } from "../support/e2e-database";
+import { openUploadForm } from "./fixtures/npz-upload";
 
 const PDF_FILE = {
   name: `estudio-sintetico-${"onda".repeat(32)}.PDF`,
@@ -24,6 +25,7 @@ test.beforeEach(async ({ page }) => {
   await enterClinicAs(page, database, { role: "patient", tenantId });
   await page.goto("/studies");
   await expect(page.getByText("Todavía no hay estudios cargados.")).toBeVisible();
+  await openUploadForm(page);
 });
 
 test("el selector PDF se alcanza y abre por teclado, y quitar el archivo devuelve el foco", async ({ page }) => {

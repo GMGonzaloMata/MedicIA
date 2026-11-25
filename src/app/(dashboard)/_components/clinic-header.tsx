@@ -24,6 +24,9 @@ async function ActiveClinic() {
   const context = await getAccessContext();
   if (context.status !== "ready") return null;
 
+  const { relationship } = context.clinic;
+  const isClinicAdmin = relationship.kind === "STAFF" && relationship.isClinicAdmin;
+
   return (
     <>
       <nav aria-label="Navegación principal" className="clinical-nav">
@@ -42,6 +45,18 @@ async function ActiveClinic() {
             <ClinicalIcon name="patients" />
             <span>Mis pacientes</span>
           </DashboardNavLink>
+        ) : null}
+        {isClinicAdmin ? (
+          <>
+            <DashboardNavLink href="/clinic/staff" className="clinical-nav-link">
+              <ClinicalIcon name="clinic" />
+              <span>Personal</span>
+            </DashboardNavLink>
+            <DashboardNavLink href="/clinic/patients" className="clinical-nav-link">
+              <ClinicalIcon name="patients" />
+              <span>Pacientes de la clínica</span>
+            </DashboardNavLink>
+          </>
         ) : null}
         <DashboardNavLink href="/select-clinic" className="clinical-nav-link">
           <ClinicalIcon name="switch" />

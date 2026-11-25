@@ -8,15 +8,18 @@ import HomePage from "@/app/(dashboard)/page";
 import type { ReadyAccessContext } from "@/app/_lib/access";
 import type { AccessContext, ClinicRelationship } from "@/modules/users/domain/access-context";
 
-const { getAccessContext, requireClinicContext, usePathname, getDoctorOverview } = vi.hoisted(() => ({
+const { getAccessContext, requireClinicContext, usePathname, getDoctorOverview, listStaff, listClinicPatients } = vi.hoisted(() => ({
   getAccessContext: vi.fn<() => Promise<AccessContext>>(),
   requireClinicContext: vi.fn<() => Promise<ReadyAccessContext>>(),
   usePathname: vi.fn<() => string>(),
   getDoctorOverview: vi.fn(),
+  listStaff: vi.fn(),
+  listClinicPatients: vi.fn(),
 }));
 
 vi.mock("@/app/_lib/access", () => ({ getAccessContext, requireClinicContext }));
 vi.mock("@/modules/studies/composition", () => ({ getDoctorOverview }));
+vi.mock("@/modules/tenants/composition", () => ({ getTenantsModule: () => ({ listStaff, listClinicPatients }) }));
 vi.mock("next/navigation", () => ({ usePathname }));
 vi.mock("@/app/(dashboard)/_components/sign-out-button", () => Object.fromEntries([
   ["SignOutButton", () => <button>Salir</button>],
@@ -47,6 +50,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   usePathname.mockReturnValue("/");
   getAccessContext.mockResolvedValue(readyContext({ kind: "PATIENT", patientId: "test-patient" }));
+  listStaff.mockResolvedValue({ members: [], invitations: [] });
+  listClinicPatients.mockResolvedValue([]);
 });
 
 describe("estado actual de la navegación del encabezado", () => {
@@ -90,12 +95,12 @@ describe("visibilidad y destinos conservados por vínculo", () => {
     },
     {
       relationship: { kind: "STAFF", membershipId: "test-member", isClinicAdmin: true, isDoctor: true },
-      links: [["Inicio", "/"], ["Mis pacientes", "/patients"], ["Cambiar de clínica", "/select-clinic"]],
+      links: [["Inicio", "/"], ["Mis pacientes", "/patients"], ["Personal", "/clinic/staff"], ["Pacientes de la clínica", "/clinic/patients"], ["Cambiar de clínica", "/select-clinic"]],
       label: "Administrador de la clínica y médico",
     },
     {
       relationship: { kind: "STAFF", membershipId: "test-member", isClinicAdmin: true, isDoctor: false },
-      links: [["Inicio", "/"], ["Cambiar de clínica", "/select-clinic"]],
+      links: [["Inicio", "/"], ["Personal", "/clinic/staff"], ["Pacientes de la clínica", "/clinic/patients"], ["Cambiar de clínica", "/select-clinic"]],
       label: "Administrador de la clínica",
     },
   ])("conserva los enlaces de $label", async ({ relationship, links, label }) => {
@@ -121,17 +126,18 @@ describe("visibilidad y destinos conservados por vínculo", () => {
 });
 
 describe("Inicio para vínculos no médicos", () => {
-  it.each<{ relationship: ClinicRelationship; title: string; destination?: [string, string] }>([
+  it.each<{ relationship: ClinicRelationship; title: string; destinations: [string, string][] }>([
     {
       relationship: { kind: "PATIENT", patientId: "test-patient" },
       title: "Estudios clínicos",
-      destination: ["Mis estudios", "/studies"],
+      destinations: [["Mis estudios", "/studies"]],
     },
     {
       relationship: { kind: "STAFF", membershipId: "test-member", isClinicAdmin: true, isDoctor: false },
       title: "Perfil administrativo",
+      destinations: [["Gestionar personal", "/clinic/staff"], ["Gestionar pacientes", "/clinic/patients"]],
     },
-  ])("organiza el acceso como $title", async ({ relationship, title, destination }) => {
+  ])("organiza el acceso como $title", async ({ relationship, title, destinations }) => {
     requireClinicContext.mockResolvedValue(readyContext(relationship));
     await renderServerView(<HomePage />);
 
@@ -142,14 +148,71 @@ describe("Inicio para vínculos no médicos", () => {
     expect(getDoctorOverview).not.toHaveBeenCalled();
     const area = within(screen.getByRole("region", { name: title }));
     expect(area.getByRole("heading", { level: 2, name: title })).toBeTruthy();
-    if (destination) {
-      const [label, href] = destination;
-      expect(area.getByText("Consultá tus estudios y revisá los análisis disponibles.")).toBeTruthy();
+    for (const [label, href] of destinations) {
       expect(area.getByRole("link", { name: label }).getAttribute("href")).toBe(href);
-      expect(screen.getAllByRole("link")).toHaveLength(1);
-    } else {
-      expect(area.getByText("Este perfil no tiene acceso a pacientes ni a estudios.")).toBeTruthy();
-      expect(screen.queryByRole("link")).toBeNull();
     }
+    expect(screen.getAllByRole("link")).toHaveLength(destinations.length);
+  });
+});
+
+describe("Inicio del administrador con datos de la clínica", () => {
+  const admin: ClinicRelationship = { kind: "STAFF", membershipId: "test-member", isClinicAdmin: true, isDoctor: false };
+
+  beforeEach(() => {
+    requireClinicContext.mockResolvedValue(readyContext(admin));
+  });
+
+  it("muestra los conteos reales y los primeros pasos mientras falte alguno", async () => {
+    listStaff.mockResolvedValue({
+      members: [
+        { membershipId: "a", status: "ACTIVE", roles: { isClinicAdmin: true, isDoctor: false } },
+        { membershipId: "b", status: "ACTIVE", roles: { isClinicAdmin: false, isDoctor: true } },
+        { membershipId: "c", status: "DEACTIVATED", roles: { isClinicAdmin: false, isDoctor: true } },
+      ],
+      invitations: [{ id: "i" }],
+    });
+    listClinicPatients.mockResolvedValue([
+      { id: "p1", status: "LINKED", assignments: [] },
+      { id: "p2", status: "PENDING", assignments: [] },
+    ]);
+
+    await renderServerView(<HomePage />);
+
+    expect(screen.getByText("Miembros activos").nextElementSibling?.textContent).toBe("2");
+    expect(screen.getByText("1 médico · 1 administrador")).toBeTruthy();
+    expect(screen.getByText("Invitaciones pendientes").nextElementSibling?.textContent).toBe("1");
+    expect(screen.getByText("Registrados").nextElementSibling?.textContent).toBe("2");
+    expect(screen.getByText("Por vincular").nextElementSibling?.textContent).toBe("1");
+    const summary = within(screen.getByRole("region", { name: "Resumen operativo" }));
+    expect(summary.getByText("Sin médico asignado").nextElementSibling?.textContent).toBe("2");
+    expect(summary.getByText("Códigos por renovar").nextElementSibling?.textContent).toBe("1");
+    expect(summary.getAllByText("Acción")).toHaveLength(2);
+    const steps = within(screen.getByRole("region", { name: "Primeros pasos en la clínica" }));
+    expect(steps.getAllByText("Hecho")).toHaveLength(2);
+    expect(steps.getAllByText("Pendiente")).toHaveLength(1);
+  });
+
+  it("oculta los primeros pasos cuando ya están todos hechos", async () => {
+    listStaff.mockResolvedValue({
+      members: [{ membershipId: "b", status: "ACTIVE", roles: { isClinicAdmin: false, isDoctor: true } }],
+      invitations: [],
+    });
+    listClinicPatients.mockResolvedValue([{ id: "p1", status: "LINKED", assignments: [{ assignmentId: "x" }] }]);
+
+    await renderServerView(<HomePage />);
+
+    expect(screen.queryByRole("region", { name: "Primeros pasos en la clínica" })).toBeNull();
+  });
+
+  it("si la lectura falla, conserva los accesos sin cifras y registra solo el nombre del error", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    listStaff.mockRejectedValue(new TypeError("detalle interno con ana@example.com"));
+
+    await renderServerView(<HomePage />);
+
+    expect(screen.getByRole("link", { name: "Gestionar personal" }).getAttribute("href")).toBe("/clinic/staff");
+    expect(screen.queryByText("Miembros activos")).toBeNull();
+    expect(error).toHaveBeenCalledExactlyOnceWith("[clínica] error inesperado: TypeError");
+    error.mockRestore();
   });
 });

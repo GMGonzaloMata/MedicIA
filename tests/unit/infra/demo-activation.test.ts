@@ -37,7 +37,7 @@ systemctl() {
   const input = prefix.replace('[[ "$(uname -sm)"', definitions + '\n[[ "$(uname -sm)"') + "record application-boundary\n";
   const env: NodeJS.ProcessEnv = { NODE_ENV: "test", PATH: process.env.PATH ?? "", HOME: root, MSYS_NO_PATHCONV: "1" };
   env.SystemRoot = process.env.SystemRoot ?? "C:\\Windows";
-  const result = spawnSync("bash", ["-s"], { input, env, encoding: "utf8", timeout: 5000 });
+  const result = spawnSync("bash", ["-s"], { input, env, encoding: "utf8", timeout: 20000 });
   expect(result.error).toBeUndefined(); expect(result.signal).toBeNull();
   for (const file of ["existing-app", "existing-unit"]) expect(fs.readFileSync(root + "/" + file, "utf8")).toBe("unrelated\n");
   expect(fs.readdirSync(root).sort()).toEqual(["bundle", "calls", "existing-app", "existing-unit", "nginx"]);

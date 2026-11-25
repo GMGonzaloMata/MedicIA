@@ -7,6 +7,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { enterClinicAs } from "../support/e2e-accounts";
 import { createE2eDatabase, uniqueName } from "../support/e2e-database";
+import { openUploadForm } from "../e2e/fixtures/npz-upload";
 
 const MAX_PDF_BYTES = 2 * 1024 * 1024;
 const FIXTURE_NAME = "ecg-sintetico-e022.pdf";
@@ -108,6 +109,7 @@ test("PDF sintético: visor, pedido explícito a E022, informe persistido y rech
     await enterClinicAs(page, database, { role: "patient", tenantId });
     await page.goto("/studies");
     await expect(page.getByText("Todavía no hay estudios cargados.", { exact: true })).toBeVisible();
+    await openUploadForm(page);
     await expect(page.getByLabel("Formato del archivo", { exact: true })).toHaveValue("PDF");
     await page.getByLabel("Tipo de estudio", { exact: true }).selectOption({ label: "Electrocardiograma (ECG)" });
     await page.getByLabel("Archivo del electrocardiograma", { exact: true }).setInputFiles({

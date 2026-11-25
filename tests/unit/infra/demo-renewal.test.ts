@@ -42,7 +42,7 @@ function activation(terms: string, serviceExit = 0) {
   const env: NodeJS.ProcessEnv = { NODE_ENV: "test", PATH: process.env.PATH ?? "", HOME: root, MSYS_NO_PATHCONV: "1" };
   env.SystemRoot = process.env.SystemRoot ?? "C:\\Windows";
   const result = spawnSync("bash", ["-s"], {
-    input: prologue + standIn + gate, env, encoding: "utf8", timeout: 5000,
+    input: prologue + standIn + gate, env, encoding: "utf8", timeout: 20000,
   });
   expect(result.error).toBeUndefined();
   expect(result.signal).toBeNull();

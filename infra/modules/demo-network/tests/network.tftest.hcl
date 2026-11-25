@@ -197,7 +197,7 @@ run "dedicated_network_and_private_routes" {
   assert {
     condition = (aws_vpc.demo.cidr_block == "10.42.0.0/16" && aws_vpc.demo.enable_dns_support && aws_vpc.demo.enable_dns_hostnames &&
       aws_subnet.app.vpc_id == "vpc-demo" && aws_subnet.app.cidr_block == "10.42.1.0/24" && aws_subnet.app.availability_zone == "sa-east-1a" &&
-      aws_subnet.app.map_public_ip_on_launch && length(aws_subnet.database) == 2 &&
+      !aws_subnet.app.map_public_ip_on_launch && length(aws_subnet.database) == 2 &&
       toset([for s in aws_subnet.database : s.availability_zone]) == toset(["sa-east-1a", "sa-east-1c"]) &&
       toset([for s in aws_subnet.database : s.cidr_block]) == toset(["10.42.10.0/24", "10.42.11.0/24"]) &&
     alltrue([for s in aws_subnet.database : s.vpc_id == "vpc-demo" && !s.map_public_ip_on_launch]))

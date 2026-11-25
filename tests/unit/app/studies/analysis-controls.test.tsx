@@ -30,10 +30,13 @@ describe("botón de pedir el análisis", () => {
     expect(screen.queryByRole("button", { name: ANALYSIS_MESSAGES.requestButton })).toBeNull();
   });
 
-  it("el área táctil es de al menos 44 px", () => {
+  it("el área táctil es de al menos 44 px: 36 px de alto más 4 px arriba y abajo del pseudo-elemento", () => {
     render(<RequestAnalysisButton studyId="study-1" inProgress={false} />);
 
-    expect(screen.getByRole("button").className).toContain("min-h-11");
+    const { className } = screen.getByRole("button");
+
+    expect(className).toContain("h-9");
+    expect(className).toContain("after:-inset-y-1");
   });
 });
 

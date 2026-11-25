@@ -47,5 +47,10 @@ export function AnalysisProgress() {
     };
   }, [router]);
 
-  return <p className="text-base">{ANALYSIS_MESSAGES.progress}</p>;
+  return (
+    <p className="flex items-center gap-3 rounded-card bg-info-surface px-4 py-3 text-sm font-medium text-info">
+      <span aria-hidden="true" className="size-4 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent motion-reduce:animate-none" />
+      {ANALYSIS_MESSAGES.progress}
+    </p>
+  );
 }

@@ -24,11 +24,13 @@ resource "aws_internet_gateway" "demo" {
   tags   = merge(local.tags, { Name = "${local.name}-igw" })
 }
 
+# map_public_ip_on_launch = false: la única IP pública de la EC2 es su EIP. Con true, AWS asigna una IP efímera
+# al lanzar aunque aws_instance pida associate_public_ip_address = false (el proveedor lo trata como "según la subred").
 resource "aws_subnet" "app" {
   vpc_id                  = aws_vpc.demo.id
   cidr_block              = var.public_subnet_cidr
   availability_zone       = var.availability_zones[0]
-  map_public_ip_on_launch = true
+  map_public_ip_on_launch = false
   tags                    = merge(local.tags, { Name = "${local.name}-app" })
 }
 

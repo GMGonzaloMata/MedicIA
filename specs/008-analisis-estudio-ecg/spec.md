@@ -12,19 +12,19 @@
 
 ### User Story 1 - Solicitar un análisis y ver el resultado (Priority: P1)
 
-Desde la pantalla de un estudio, el paciente dueño o un médico con asignación vigente toca «Analizar estudio». El análisis queda registrado, se ejecuta con el modelo y, al completarse, la misma pantalla muestra las 12 probabilidades de posibles hallazgos con su nombre en español, el modelo y su versión, y la fecha del análisis.
+Desde la pantalla de un estudio, el paciente dueño o un médico con asignación vigente toca «Analizar estudio». El análisis queda registrado, se ejecuta con el modelo y, al completarse, la misma pantalla muestra la probabilidad del compuesto «cardiopatía estructural», el modelo y su versión, y la fecha del análisis. Las 12 probabilidades se guardan con el análisis.
 
 **Why this priority**: es el objetivo del producto. Sin esto la plataforma guarda y muestra la onda, pero no la analiza, y no hay nada que mostrar a quien decide.
 
-**Independent Test**: con un estudio sintético y un modelo simulado, se pide el análisis y se comprueba que pasa de pendiente a completado y que el resultado muestra las 12 probabilidades en el orden fijo del contrato.
+**Independent Test**: con un estudio sintético y un modelo simulado, se pide el análisis y se comprueba que pasa de pendiente a completado, que se guardan las 12 probabilidades en el orden fijo del contrato y que la pantalla muestra solo la de cardiopatía estructural.
 
 **Acceptance Scenarios**:
 
 1. **Given** una persona con acceso a un estudio sin análisis, **When** toca «Analizar estudio», **Then** el análisis queda registrado a su nombre con el estado pendiente o en proceso y la pantalla indica que está en curso.
-2. **Given** un análisis en curso, **When** el modelo responde, **Then** el análisis pasa a completado y la pantalla muestra las 12 probabilidades en el orden fijo, cada una como porcentaje y con una barra, con el compuesto «cardiopatía estructural (al menos uno de los otros once)» destacado.
+2. **Given** un análisis en curso, **When** el modelo responde, **Then** el análisis pasa a completado y la pantalla muestra la probabilidad de cardiopatía estructural como porcentaje y con una barra, con una explicación de qué hallazgos abarca. Los otros once valores no se muestran ni llegan al navegador.
 3. **Given** un resultado completado, **When** se lo lee, **Then** muestra el nombre del modelo, su versión y la fecha del análisis, y no muestra umbrales ni etiquetas de sí o no.
 4. **Given** un resultado completado, **When** se lo lee, **Then** hay siempre una advertencia visible: son probabilidades estimadas por un modelo de investigación, pueden no estar calibradas, se leen como un indicador relativo de riesgo, son posibles hallazgos de apoyo clínico y no un diagnóstico, y requieren la evaluación de un profesional.
-5. **Given** un resultado, **When** se lo mira sin distinguir colores, **Then** cada valor se entiende por su nombre, su porcentaje escrito y su barra.
+5. **Given** un resultado, **When** se lo mira sin distinguir colores, **Then** el valor se entiende por su nombre, su porcentaje escrito y su barra.
 
 ---
 
@@ -102,7 +102,7 @@ Un estudio con un análisis en curso no se puede eliminar. Al eliminar un estudi
 - La persona cierra la pantalla mientras el análisis está en curso: el análisis termina igual y su resultado está al volver a abrir el estudio.
 - Una persona sin acceso adivina el identificador de un análisis: no se distingue de uno inexistente.
 - El modelo devuelve su nombre o versión distintos de los esperados: se registran los que el modelo informó, para que la trazabilidad refleje lo que realmente produjo el resultado.
-- Pantalla muy angosta: las 12 filas de probabilidades siguen siendo legibles, una debajo de otra.
+- Pantalla muy angosta: la probabilidad de cardiopatía estructural, su barra y su explicación siguen siendo legibles.
 
 ## Requirements *(mandatory)*
 
@@ -111,8 +111,8 @@ Un estudio con un análisis en curso no se puede eliminar. Al eliminar un estudi
 - **FR-001**: La pantalla de un estudio MUST ofrecer «Analizar estudio» solo a las personas con acceso al estudio (paciente dueño o médico con asignación vigente) y solo cuando no hay un análisis en curso.
 - **FR-002**: Cada pedido MUST registrar un análisis propio sobre el estudio con su estado (pendiente, en proceso, completado o fallido), quién lo solicitó, cuándo, y el modelo y la versión que lo produjeron. Un estudio MUST poder tener varios análisis y pedir uno nuevo NO MUST borrar los anteriores.
 - **FR-003**: La plataforma MUST enviar al modelo la onda y las siete variables del estudio guardado, leídas en el servidor. El navegador NO MUST recibir las siete variables ni la clave del archivo.
-- **FR-004**: Un análisis completado MUST mostrar las 12 probabilidades con su nombre en español, en el orden fijo del contrato (fracción del ventrículo izquierdo reducida, hipertrofia del ventrículo izquierdo, estenosis aórtica, insuficiencia aórtica, insuficiencia mitral, insuficiencia tricuspídea, insuficiencia pulmonar, disfunción sistólica del ventrículo derecho, derrame pericárdico, presión pulmonar elevada, velocidad de regurgitación tricuspídea elevada y el compuesto de cardiopatía estructural), destacando el compuesto.
-- **FR-005**: Cada valor MUST mostrarse como porcentaje escrito y con una barra, de modo que no dependa solo del color. NO MUST haber umbrales, etiquetas de sí o no ni clasificación.
+- **FR-004**: Un análisis completado MUST guardar las 12 probabilidades en el orden fijo del contrato (fracción del ventrículo izquierdo reducida, hipertrofia del ventrículo izquierdo, estenosis aórtica, insuficiencia aórtica, insuficiencia mitral, insuficiencia tricuspídea, insuficiencia pulmonar, disfunción sistólica del ventrículo derecho, derrame pericárdico, presión pulmonar elevada, velocidad de regurgitación tricuspídea elevada y el compuesto de cardiopatía estructural). La pantalla MUST mostrar solo el compuesto «cardiopatía estructural», con su nombre en español y una explicación de qué hallazgos abarca; los otros once valores NO MUST mostrarse ni enviarse al navegador. *(Enmienda 2026-11-24: antes se mostraban las 12; decisión del responsable del producto.)*
+- **FR-005**: El valor mostrado MUST presentarse como porcentaje escrito y con una barra, de modo que no dependa solo del color. NO MUST haber umbrales, etiquetas de sí o no ni clasificación.
 - **FR-006**: Todo resultado MUST ir acompañado de una advertencia permanente que diga que son probabilidades estimadas por un modelo de investigación, que pueden no estar calibradas, que se leen como un indicador relativo de riesgo y que son posibles hallazgos de apoyo clínico y no un diagnóstico, y MUST mostrar el modelo, su versión y la fecha del análisis.
 - **FR-007**: La pantalla del estudio MUST listar sus análisis del más reciente al más antiguo, con estado y fecha, y MUST permitir abrir el resultado de cada uno.
 - **FR-008**: MUST existir como máximo un análisis en curso por estudio. Un segundo pedido (incluso simultáneo) MUST rechazarse sin crear otro análisis.

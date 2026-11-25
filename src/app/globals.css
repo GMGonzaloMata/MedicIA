@@ -24,6 +24,10 @@
   --danger-surface: #fef2f2;
   --success: #047857;
   --success-surface: #ecfdf5;
+  --warning: #b45309;
+  --warning-surface: #fffbeb;
+  --info: #1d4ed8;
+  --info-surface: #eff6ff;
   --workspace-border: #e2e8f0;
   --workspace-accent: #0f766e;
   --workspace-accent-surface: #f0fdfa;
@@ -47,6 +51,10 @@
     --danger-surface: #2a1215;
     --success: #6ee7b7;
     --success-surface: #0f2a22;
+    --warning: #fcd34d;
+    --warning-surface: #2a2008;
+    --info: #93c5fd;
+    --info-surface: #0f1d3a;
     --workspace-border: rgba(38, 51, 70, 0.7);
     --workspace-accent: #5eead4;
     --workspace-accent-surface: rgba(4, 47, 46, 0.5);
@@ -70,11 +78,71 @@
   --color-danger-surface: var(--danger-surface);
   --color-success: var(--success);
   --color-success-surface: var(--success-surface);
+  --color-warning: var(--warning);
+  --color-warning-surface: var(--warning-surface);
+  --color-info: var(--info);
+  --color-info-surface: var(--info-surface);
   --font-sans: var(--font-plus-jakarta-sans);
   --font-label: var(--font-inter);
   --radius-control: 4px;
   --radius-card: 8px;
   --radius-panel: 12px;
+}
+
+/* Movimiento del resultado del análisis. Cada uso lleva `motion-reduce:animate-none`. */
+@theme {
+  --animate-heart-beat: heart-beat 1.8s ease-in-out infinite;
+  --animate-heart-sway: heart-sway 9s ease-in-out infinite alternate;
+  --animate-heart-glow: heart-glow 1.8s ease-in-out infinite;
+  --animate-draw-line: draw-line 0.9s ease-out 0.4s both;
+  --animate-callout-in: callout-in 0.5s ease-out 1s both;
+
+  @keyframes heart-beat {
+    0%,
+    30%,
+    100% {
+      transform: scale(1);
+    }
+    10% {
+      transform: scale(1.035);
+    }
+    20% {
+      transform: scale(1.015);
+    }
+  }
+
+  @keyframes heart-sway {
+    from {
+      transform: rotateY(-18deg) rotateX(4deg);
+    }
+    to {
+      transform: rotateY(18deg) rotateX(-2deg);
+    }
+  }
+
+  @keyframes heart-glow {
+    0%,
+    30%,
+    100% {
+      opacity: 0.7;
+    }
+    10% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes draw-line {
+    from {
+      stroke-dashoffset: 1;
+    }
+  }
+
+  @keyframes callout-in {
+    from {
+      opacity: 0;
+      transform: translateX(-0.5rem);
+    }
+  }
 }
 
 body {

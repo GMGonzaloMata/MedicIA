@@ -1,0 +1,10 @@
+# Prisma guarda el SHA-256 de cada migration.sql tal cual, sin normalizar saltos de línea.
+# Si un checkout en Windows convierte LF a CRLF, el checksum difiere del registrado en otra base
+# y Prisma marca la migración como modificada. Fijar LF deja un único checksum para todos los entornos.
+prisma/migrations/**/*.sql text eol=lf
+prisma/migrations/migration_lock.toml text eol=lf
+
+# Los scripts y las plantillas de shell/systemd/nginx se ejecutan en Linux (EC2) y se prueban con bash.
+# Con CRLF fallan (queda un retorno de carro al final de cada linea) y los tests comparan bytes exactos. Fijar LF.
+*.sh text eol=lf
+*.tftpl text eol=lf

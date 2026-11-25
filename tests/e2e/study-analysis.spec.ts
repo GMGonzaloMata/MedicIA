@@ -3,7 +3,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { enterClinicAs } from "../support/e2e-accounts";
 import { createE2eDatabase, uniqueName, type E2eDatabase } from "../support/e2e-database";
 import { buildNpz, buildNpzWithTabular } from "../support/npz-builder";
-import { selectNpzEcg } from "./fixtures/npz-upload";
+import { closeUploadDialog, selectNpzEcg } from "./fixtures/npz-upload";
 
 let database: E2eDatabase;
 
@@ -27,11 +27,12 @@ async function uploadStudy(page: Page, number: number, bytes: Buffer = buildNpz(
   });
   await page.getByRole("button", { name: "Subir estudio" }).click();
   await expect(page.getByText(`Estudio ${number} guardado.`)).toBeVisible();
+  await closeUploadDialog(page);
 }
 
 // En pantallas anchas la lista es una tabla y en el móvil son tarjetas: solo uno de los dos vínculos es visible.
 async function openStudy(page: Page, number: number) {
-  await page.getByRole("link", { name: `Ver onda del estudio ${number}` }).filter({ visible: true }).click();
+  await page.getByRole("link", { name: `Ver estudio ${number}`, exact: true }).filter({ visible: true }).click();
   await expect(page.getByRole("heading", { name: `Estudio ${number}`, level: 1 })).toBeVisible();
 }
 
@@ -80,11 +81,10 @@ test("el paciente pide el análisis, ve que está en curso y luego el resultado 
   await expect(page.getByText("Analizando el estudio…")).toBeVisible();
 
   await expect(resultTitle(page)).toBeVisible({ timeout: RESULT_TIMEOUT });
-  await expect(meters(page)).toHaveCount(12);
+  await expect(meters(page)).toHaveCount(1);
   await expect(page.getByText(/Son probabilidades estimadas por un modelo de investigación/)).toBeVisible();
-  await expect(page.locator("dd", { hasText: "echonext-mini-fake" })).toBeVisible();
-  await expect(page.locator("dd", { hasText: "0.0.0-fake" })).toBeVisible();
-  await expect(page.getByText("al menos uno de los otros once")).toBeVisible();
+  await expect(page.getByText("echonext-mini-fake")).toHaveCount(0);
+  await expect(page.getByText(/al menos un posible hallazgo estructural del corazón/)).toBeVisible();
 
   // El progreso desaparece y se puede pedir otro.
   await expect(page.getByText("Analizando el estudio…")).toHaveCount(0);
@@ -129,7 +129,7 @@ test("el médico con un paciente asignado pide el análisis y la clave del archi
 
   await requestAnalysis(page);
   await expect(resultTitle(page)).toBeVisible({ timeout: RESULT_TIMEOUT });
-  await expect(meters(page)).toHaveCount(12);
+  await expect(meters(page)).toHaveCount(1);
   // El médico figura como quien lo pidió.
   await expect(page.getByRole("region", { name: "Historial de análisis" }).getByRole("listitem")).toHaveCount(1);
   expect(await page.getByRole("region", { name: "Historial de análisis" }).textContent()).not.toContain(
@@ -221,7 +221,7 @@ test("una falla del modelo queda en el historial con un motivo claro, se puede r
   await openStudy(page, 3);
   await requestAnalysis(page);
   await expect(resultTitle(page)).toBeVisible({ timeout: RESULT_TIMEOUT });
-  await expect(meters(page)).toHaveCount(12);
+  await expect(meters(page)).toHaveCount(1);
 });
 
 test("un estudio sin archivo deja un análisis fallido con el motivo y la sección sigue disponible", async ({ page }) => {
@@ -268,7 +268,7 @@ test("el resultado se adapta a tres anchos y a los dos esquemas de color y se op
       await page.goto(studyPath);
 
       await expect(resultTitle(page), label).toBeVisible();
-      await expect(meters(page), label).toHaveCount(12);
+      await expect(meters(page), label).toHaveCount(1);
       for (const meter of await meters(page).all()) {
         await expect(meter, label).toBeVisible();
       }

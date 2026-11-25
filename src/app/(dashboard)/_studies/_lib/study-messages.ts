@@ -13,6 +13,8 @@ export const STUDY_MESSAGES = {
   fileTooLarge: "El archivo supera el tamaño máximo de 2 MB.",
   fileMissing: "Elegí un archivo para subir.",
   adminWithoutStudies: "Tu vínculo con la clínica no incluye estudios.",
+  doctorUnavailable:
+    "Tu médico ya no está disponible. Tus estudios se conservan. Pedile a tu clínica que te asigne a otro profesional.",
   typeLabel: "Electrocardiograma",
   statusLabel: "Cargado",
   noPatients: "Todavía no tenés pacientes asignados.",

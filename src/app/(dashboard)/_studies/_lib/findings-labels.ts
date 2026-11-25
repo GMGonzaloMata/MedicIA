@@ -24,5 +24,10 @@ export function findingLabel(key: FindingKey): string {
   return FINDING_LABELS.get(key) ?? key;
 }
 
-// Aclaración del hallazgo compuesto, que se muestra junto a su nombre.
+// Aclaración del hallazgo compuesto, que se muestra junto a su nombre cuando se listan los doce.
 export const COMPOSITE_NOTE = "al menos uno de los otros once";
+
+// Qué abarca el compuesto cuando es lo único que se muestra (pantalla del estudio): se nombran los grupos de
+// hallazgos que el modelo estima, sin mostrar sus valores.
+export const COMPOSITE_DESCRIPTION =
+  "Probabilidad estimada de que haya al menos un posible hallazgo estructural del corazón: fracción de eyección del ventrículo izquierdo reducida, engrosamiento de su pared, alteraciones moderadas o mayores de las válvulas, derrame pericárdico, función reducida del ventrículo derecho o presión pulmonar elevada.";

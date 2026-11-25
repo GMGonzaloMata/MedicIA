@@ -3,7 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { enterClinicAs } from "../support/e2e-accounts";
 import { createE2eDatabase, uniqueName, type E2eDatabase } from "../support/e2e-database";
 import { buildNpz } from "../support/npz-builder";
-import { selectNpzEcg } from "./fixtures/npz-upload";
+import { closeUploadDialog, selectNpzEcg } from "./fixtures/npz-upload";
 
 // Las tres pantallas de estudios se prueban en los tres anchos y los dos esquemas de color dentro de una sola
 // ejecución (el viewport se fija acá), así que corre solo en el proyecto de escritorio.
@@ -74,10 +74,11 @@ test("las pantallas del paciente y del médico se adaptan a tres anchos y a los 
     createdByUserId: doctor.user.id,
   });
 
-  const screens: { name: string; page: Page; path: string }[] = [
-    { name: "Mis estudios", page: patientPage, path: "/studies" },
-    { name: "Mis pacientes", page, path: "/patients" },
-    { name: "Estudios del paciente", page, path: `/patients/${patient.relationshipId}` },
+  // «Mis pacientes» usa tarjetas en todos los anchos; las listas de estudios pasan de tarjetas a tabla.
+  const screens: { name: string; page: Page; path: string; hasTable: boolean }[] = [
+    { name: "Mis estudios", page: patientPage, path: "/studies", hasTable: true },
+    { name: "Mis pacientes", page, path: "/patients", hasTable: false },
+    { name: "Estudios del paciente", page, path: `/patients/${patient.relationshipId}`, hasTable: true },
   ];
 
   for (const screen of screens) {
@@ -93,7 +94,7 @@ test("las pantallas del paciente y del médico se adaptan a tres anchos y a los 
 
         // La lista pasa de tarjetas a tabla desde el ancho de tablet.
         const table = screen.page.getByRole("table");
-        if (width >= TABLE_BREAKPOINT) {
+        if (screen.hasTable && width >= TABLE_BREAKPOINT) {
           await expect(table, label).toBeVisible();
         } else {
           await expect(table, label).toBeHidden();
@@ -153,6 +154,7 @@ test("el envío NPZ y la eliminación se completan con teclado, con foco visible
   expect(await focusedOutlineIsVisible(page)).toBe(true);
   await page.keyboard.press("Enter");
   await expect(page.getByText("Estudio 1 guardado.")).toBeVisible();
+  await closeUploadDialog(page);
 
   // Tabulación hasta «Eliminar», abrir con Enter, cerrar con Escape y recuperar el foco.
   await tabTo(page, "button[aria-label^='Eliminar el estudio']");

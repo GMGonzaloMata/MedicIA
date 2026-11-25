@@ -54,6 +54,8 @@ model Tenant {
   assignments DoctorPatientAssignment[]
   studies     Study[]
   analyses    Analysis[]
+  invitations      StaffInvitation[]
+  patientLinkCodes PatientLinkCode[]
 
   @@map("tenants")
 }
@@ -76,6 +78,12 @@ model User {
   sessions           Session[]
   studiesUploaded    Study[]
   analysesRequested  Analysis[]
+  invitationsCreated      StaffInvitation[]    @relation("InvitationCreatedBy")
+  invitationsAccepted     StaffInvitation[]    @relation("InvitationAcceptedBy")
+  invitationsRevoked      StaffInvitation[]    @relation("InvitationRevokedBy")
+  patientLinkCodesCreated PatientLinkCode[]    @relation("PatientLinkCodeCreatedBy")
+  patientLinkAttempts     PatientLinkAttempt[]
+  membershipsDeactivated  StaffMembership[]    @relation("MembershipDeactivatedBy")
 
   @@map("users")
 }
@@ -90,13 +98,17 @@ model StaffMembership {
   specialty     String?
   licenseNumber String?          @map("license_number")
   status        MembershipStatus @default(ACTIVE)
+  // Última desactivación vigente: se llenan al desactivar y se limpian al reactivar (spec 012).
+  deactivatedAt       DateTime? @map("deactivated_at") @db.Timestamptz(3)
+  deactivatedByUserId String?   @map("deactivated_by_user_id") @db.Uuid
   createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  tenant      Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
-  user        User                      @relation(fields: [userId], references: [id], onDelete: Restrict)
-  assignments DoctorPatientAssignment[]
-  sessions    Session[]
+  tenant        Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  user          User                      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  deactivatedBy User?                     @relation("MembershipDeactivatedBy", fields: [deactivatedByUserId], references: [id], onDelete: Restrict)
+  assignments   DoctorPatientAssignment[]
+  sessions      Session[]
 
   @@unique([tenantId, userId])
   @@unique([tenantId, licenseNumber])
@@ -127,6 +139,7 @@ model Patient {
   sessions     Session[]
   studies      Study[]
   studyCounter StudyCounter?
+  linkCodes    PatientLinkCode[]
 
   @@unique([tenantId, documentType, documentNumber])
   @@unique([tenantId, userId])
@@ -305,4 +318,91 @@ model Analysis {
   @@index([tenantId, studyId, requestedAt(sort: Desc)])
   @@index([requestedByUserId])
   @@map("analyses")
+}
+
+// Estado de una invitación del personal. «Vencida» no se guarda: se deduce de `expiresAt` (spec 012).
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+
+  @@map("invitation_status")
+}
+
+// Estado de un código de vinculación del paciente. «Vencido» tampoco se guarda (spec 012).
+enum PatientCodeStatus {
+  ACTIVE
+  USED
+  REPLACED
+  LOCKED
+
+  @@map("patient_code_status")
+}
+
+// Invitación por correo para sumar a una persona al personal de una clínica. Guarda solo el hash del token:
+// el token en claro viaja únicamente en el correo. Los CHECK y los índices únicos parciales se agregan a mano
+// en la migración (ver specs/012-vinculacion-clinica/data-model.md).
+model StaffInvitation {
+  id               String           @id @default(uuid(7)) @db.Uuid
+  tenantId         String           @map("tenant_id") @db.Uuid
+  email            String
+  isClinicAdmin    Boolean          @default(false) @map("is_clinic_admin")
+  isDoctor         Boolean          @default(false) @map("is_doctor")
+  // Datos del médico: obligatorios si la invitación incluye el rol de médico y ausentes si no (como en
+  // `staff_memberships`, ver `staff_memberships_doctor_fields`). Los carga el administrador al invitar.
+  specialty        String?
+  licenseNumber    String?          @map("license_number")
+  tokenHash        String           @unique @map("token_hash")
+  status           InvitationStatus @default(PENDING)
+  expiresAt        DateTime         @map("expires_at") @db.Timestamptz(3)
+  createdByUserId  String           @map("created_by_user_id") @db.Uuid
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  acceptedAt       DateTime?        @map("accepted_at") @db.Timestamptz(3)
+  acceptedByUserId String?          @map("accepted_by_user_id") @db.Uuid
+  revokedAt        DateTime?        @map("revoked_at") @db.Timestamptz(3)
+  revokedByUserId  String?          @map("revoked_by_user_id") @db.Uuid
+
+  tenant     Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  createdBy  User   @relation("InvitationCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  acceptedBy User?  @relation("InvitationAcceptedBy", fields: [acceptedByUserId], references: [id], onDelete: Restrict)
+  revokedBy  User?  @relation("InvitationRevokedBy", fields: [revokedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, status, createdAt])
+  @@map("staff_invitations")
+}
+
+// Código de un solo uso con el que un paciente vincula su cuenta a su registro. Guarda solo el hash. La clave
+// foránea compuesta impide que apunte a un paciente de otra clínica.
+model PatientLinkCode {
+  id              String            @id @default(uuid(7)) @db.Uuid
+  tenantId        String            @map("tenant_id") @db.Uuid
+  patientId       String            @map("patient_id") @db.Uuid
+  codeHash        String            @map("code_hash")
+  status          PatientCodeStatus @default(ACTIVE)
+  expiresAt       DateTime          @map("expires_at") @db.Timestamptz(3)
+  failedAttempts  Int               @default(0) @map("failed_attempts")
+  createdByUserId String            @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  closedAt        DateTime?         @map("closed_at") @db.Timestamptz(3)
+
+  tenant    Tenant  @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  patient   Patient @relation(fields: [tenantId, patientId], references: [tenantId, id], onDelete: Restrict)
+  createdBy User    @relation("PatientLinkCodeCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@index([codeHash])
+  @@index([patientId])
+  @@map("patient_link_codes")
+}
+
+// Intentos de vincular un paciente, por cuenta, para limitar la frecuencia (se reservan antes de evaluar). No guarda documentos,
+// códigos ni clínica.
+model PatientLinkAttempt {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  attemptedAt DateTime @default(now()) @map("attempted_at") @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId, attemptedAt])
+  @@map("patient_link_attempts")
 }

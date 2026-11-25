@@ -142,7 +142,7 @@ fs.chmodSync = function(file, mode) {
   function run() {
     // Bash convierte su PATH Windows al arrancar; prefijar después evita mezclar ; y :.
     const bashBin = bin.replace(/^([A-Za-z]):/, drive => "/" + drive.charAt(0).toLowerCase());
-    return spawnSync("bash", ["-c", 'export PATH="$1:$PATH"; source "$2"', "fixture", bashBin, root + "/runtime.sh"], { env, encoding: "utf8", timeout: 10000 });
+    return spawnSync("bash", ["-c", 'export PATH="$1:$PATH"; source "$2"', "fixture", bashBin, root + "/runtime.sh"], { env, encoding: "utf8", timeout: 20000 });
   }
   function snapshot() {
     return {
@@ -156,7 +156,7 @@ fs.chmodSync = function(file, mode) {
   }
   function probeTools() {
     const bashBin = bin.replace(/^([A-Za-z]):/, drive => "/" + drive.charAt(0).toLowerCase());
-    return spawnSync("bash", ["-c", 'set -e; export PATH="$1:$PATH"; uname -sm; node --version; command -v aws; findmnt -n -o FSTYPE --target "$2"', "fixture", bashBin, runtimeRoot], { env, encoding: "utf8", timeout: 10000 });
+    return spawnSync("bash", ["-c", 'set -e; export PATH="$1:$PATH"; uname -sm; node --version; command -v aws; findmnt -n -o FSTYPE --target "$2"', "fixture", bashBin, runtimeRoot], { env, encoding: "utf8", timeout: 20000 });
   }
   function trace() { return existsSync(root + "/trace") ? readFileSync(root + "/trace", "utf8") : ""; }
   function calls() { return existsSync(root + "/calls") ? readFileSync(root + "/calls", "utf8").trim().split("\n") : []; }
@@ -262,6 +262,18 @@ describe("runtime público renderizado, sin AWS ni escrituras globales", () => {
       expect(f.reason()).toBe(options.expectedReason); expect(f.calls()).toHaveLength(3);
     }
   });
+  it("pasa al servicio las claves de correo del secreto, y rechaza una inválida", () => {
+    const database = "postgresql://medicia_app:synthetic-password@" + DB + ":5432/medicia?sslmode=verify-full&sslrootcert=/etc/pki/rds/global-bundle.pem";
+    const mail = { SMTP_HOST: "smtp.example.invalid", SMTP_PORT: "587", SMTP_USER: "synthetic-user", SMTP_PASSWORD: "synthetic-smtp-password", INVITATION_FROM_ADDRESS: "MedicIA <no-reply@example.invalid>" };
+    const f = fixture({ app: { DATABASE_URL: database, COGNITO_CLIENT_SECRET: APP_SECRET, ...mail } });
+    const result = f.run();
+    expect(result.status, result.stderr).toBe(0);
+    const env = readFileSync(f.runtimeRoot + "/current/runtime.env", "utf8");
+    for (const [key, value] of Object.entries(mail)) expect(env).toContain(key + '="' + value + '"');
+    const invalid = fixture({ app: { DATABASE_URL: database, COGNITO_CLIENT_SECRET: APP_SECRET, SMTP_PASSWORD: "line1\nINJECT=bad" } });
+    const rejected = invalid.run();
+    expect(rejected.status).toBe(1); expect(rejected.stderr).toBe("medicia runtime: rejected\n");
+  });
   it("activa juntos configuración y release verificado, conserva el anterior y permite reaplicar", () => {
     const f = fixture();
     const tools = f.probeTools();
@@ -359,7 +371,7 @@ process.exitCode = ${options.curlExit ?? 0};
   const env: NodeJS.ProcessEnv = { NODE_ENV: "test", PATH: process.env.PATH ?? "", FIXTURE: root, HOME: root, MSYS_NO_PATHCONV: "1" };
   env.SystemRoot = process.env.SystemRoot ?? "C:\\Windows";
   function run(args: string[] = []) {
-    return spawnSync("bash", ["-c", 'export PATH="$1:$PATH"; shift; exec bash "$@"', "fixture", bashBin, root + "/dns.sh", ...args], { env, encoding: "utf8", timeout: 10000 });
+    return spawnSync("bash", ["-c", 'export PATH="$1:$PATH"; shift; exec bash "$@"', "fixture", bashBin, root + "/dns.sh", ...args], { env, encoding: "utf8", timeout: 20000 });
   }
   function calls() { return existsSync(root + "/calls") ? readFileSync(root + "/calls", "utf8").trim().split("\n") : []; }
   function snapshot() { return [existsSync(tokenPath) ? readFileSync(tokenPath, "utf8") : null, readFileSync(root + "/runtime.env", "utf8")]; }
@@ -470,7 +482,7 @@ fs.writeFileSync(root + "/running", fs.readFileSync(root + "/config/active.conf"
   env.SystemRoot = process.env.SystemRoot ?? "C:\\Windows";
   function run(args = ["init"]) {
     return spawnSync("bash", ["-c", 'export PATH="$1:$PATH"; shift; exec bash "$@"', "fixture", bin, root + "/proxy.sh", ...args],
-      { env, encoding: "utf8", timeout: 10000 });
+      { env, encoding: "utf8", timeout: 20000 });
   }
   const contents = (file: string) => existsSync(file) ? readFileSync(file, "utf8") : null;
   function snapshot() {

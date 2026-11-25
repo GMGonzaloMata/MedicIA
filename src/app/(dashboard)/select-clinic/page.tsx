@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: "Elegir clínica" };
 export default function SelectClinicPage() {
   return (
     <>
-      <h1 className="text-[28px] font-semibold leading-tight sm:text-4xl">Elegí una clínica</h1>
+      <h1 className="clinical-page-title">Elegí una clínica</h1>
       {/* Leer la sesión ocurre en cada solicitud, así que va dentro de Suspense. */}
       <Suspense fallback={<p className="text-muted">Cargando…</p>}>
         <ClinicChoices />

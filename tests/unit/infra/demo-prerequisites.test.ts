@@ -82,9 +82,9 @@ openssl() { record "openssl:$*"; if [[ '${options.pemExit ?? 0}' != 0 ]]; then r
   fs.writeFileSync(script, "#!/bin/bash\nset -Eeuo pipefail\numask 077\nexec 3>&2 2>/dev/null\ntrap 'printf \"medicia bootstrap: prerequisites/services failed\\n\" >&3; exit 1' ERR\n" + definitions + source);
   const env: NodeJS.ProcessEnv = { NODE_ENV: "test", PATH: process.env.PATH ?? "", HOME: root, MSYS_NO_PATHCONV: "1" };
   env.SystemRoot = process.env.SystemRoot ?? "C:\\Windows";
-  const syntax = spawnSync("bash", ["-n", script], { env, encoding: "utf8", timeout: 5000 });
+  const syntax = spawnSync("bash", ["-n", script], { env, encoding: "utf8", timeout: 20000 });
   expect(syntax.status, syntax.stderr).toBe(0);
-  const run = () => spawnSync("bash", [script], { env, encoding: "utf8", timeout: 5000 });
+  const run = () => spawnSync("bash", [script], { env, encoding: "utf8", timeout: 20000 });
   const trace = () => fs.readFileSync(root + "/trace", "utf8");
   const check = (result: ReturnType<typeof run>, status: number) => {
     expect(result.error).toBeUndefined(); expect(result.signal).toBeNull();

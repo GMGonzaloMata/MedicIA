@@ -235,10 +235,10 @@ describe("matriz de acceso a estudios (US4)", () => {
 
     expect(await actorFromSession(session.tokenHash, w.sessions.doctor1.id)).toMatchObject({ kind: "DOCTOR" });
 
-    await prismaClient.staffMembership.update({ where: { id: w.ids.doctor1.id }, data: { status: "DEACTIVATED" } });
+    await prismaClient.staffMembership.update({ where: { id: w.ids.doctor1.id }, data: { status: "DEACTIVATED", deactivatedAt: new Date() } });
     expect(await actorFromSession(session.tokenHash, w.sessions.doctor1.id)).toBeNull();
 
-    await prismaClient.staffMembership.update({ where: { id: w.ids.doctor1.id }, data: { status: "ACTIVE" } });
+    await prismaClient.staffMembership.update({ where: { id: w.ids.doctor1.id }, data: { status: "ACTIVE", deactivatedAt: null } });
     await prismaClient.tenant.update({ where: { id: w.ids.tenantA.id }, data: { status: "SUSPENDED" } });
     expect(await actorFromSession(session.tokenHash, w.sessions.doctor1.id)).toBeNull();
   });

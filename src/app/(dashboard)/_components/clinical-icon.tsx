@@ -15,7 +15,27 @@ const icons = {
   ),
   switch: <path d="M4 8h15m-3-3 3 3-3 3M20 16H5m3-3-3 3 3 3" />,
   clinic: <path d="M4 20h16M6 20V5h12v15m-8 0v-4h4v4m-2-12v5m-2.5-2.5h5" />,
+  mail: (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="m4 7 8 6 8-6" />
+    </>
+  ),
+  check: <path d="m5 12.5 4.5 4.5L19 7.5" />,
+  info: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 11v5m0-8.25v.01" />
+    </>
+  ),
   arrow: <path d="M4.5 12h14m-5-5 5 5-5 5" />,
+  trash: <path d="M4.5 7h15M9.5 7V4.5h5V7m-8 0 .8 12.5h9.4L17.5 7M10.25 10.5v6m3.5-6v6" />,
+  search: (
+    <>
+      <circle cx="10.5" cy="10.5" r="6" />
+      <path d="m15 15 5 5" />
+    </>
+  ),
 };
 
 export function ClinicalIcon({ name }: { name: keyof typeof icons }) {

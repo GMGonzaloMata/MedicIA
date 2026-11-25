@@ -1,19 +1,25 @@
-/* Tinta, papel y salvia para el marco y el inicio, sin reemplazar los colores de los estudios. */
+/*
+  Marco protegido e Inicio. Usan la identidad de memory/design.md (teal, Plus Jakarta Sans e Inter) con la
+  paleta clara y oscura; los tonos de teal son los de globals.css, ajustados para mantener el contraste de texto.
+  Los formularios, tablas e informes conservan sus superficies.
+*/
 .clinical-shell {
-  --clinical-paper: light-dark(#f8f7f2, #222a2c);
-  --clinical-rail: light-dark(#efeee7, #1c2325);
-  --clinical-sheet: light-dark(#fffdf8, #2a3335);
-  --clinical-ink: light-dark(#242e2b, #f0f0e7);
-  --clinical-muted: light-dark(#4d5d55, #b7c2bc);
-  --clinical-rule: light-dark(#d2d8cd, #45524e);
-  --clinical-accent: light-dark(#385747, #bfd3c2);
-  --clinical-selected: light-dark(#dfe7dc, #34443c);
-  --clinical-plate: light-dark(#e8ede3, #303d38);
-  --clinical-focus: light-dark(#486953, #b8cdbb);
-  --clinical-action: light-dark(#385747, #bbd1bf);
-  --clinical-action-hover: light-dark(#2a4739, #d2e1d4);
-  --clinical-action-ink: light-dark(#fffdf8, #1b2921);
-  --clinical-serif: var(--font-clinical-literata), Georgia, serif;
+  --clinical-paper: light-dark(#f8fafc, #0b0f15);
+  --clinical-rail: light-dark(#ffffff, #111722);
+  --clinical-sheet: light-dark(#ffffff, #18202f);
+  --clinical-ink: light-dark(#0f172a, #f1f5f9);
+  --clinical-muted: light-dark(#475569, #94a3b8);
+  --clinical-rule: light-dark(#e2e8f0, rgb(255 255 255 / 0.09));
+  --clinical-accent: light-dark(#0f766e, #2dd4bf);
+  --clinical-selected: light-dark(#e6f4f2, rgb(45 212 191 / 0.13));
+  --clinical-plate: light-dark(#f1f5f9, #1e293b);
+  --clinical-tint: light-dark(#e6f4f2, rgb(45 212 191 / 0.12));
+  --clinical-focus: light-dark(#0f766e, #2dd4bf);
+  --clinical-action: light-dark(#0f766e, #2dd4bf);
+  --clinical-action-hover: light-dark(#115e59, #5eead4);
+  --clinical-action-ink: light-dark(#ffffff, #042f2e);
+  --clinical-shadow: light-dark(0 1px 2px rgb(15 23 42 / 0.05), none);
+  --clinical-heading: var(--font-plus-jakarta-sans), system-ui, sans-serif;
   --clinical-label: var(--font-inter), system-ui, sans-serif;
 }
 
@@ -23,22 +29,23 @@
   overflow-wrap: anywhere;
 }
 
+/* Barra superior en pantallas chicas; pasa a barra lateral desde 64rem. */
 .clinical-sidebar {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   column-gap: 0.75rem;
-  row-gap: 0.875rem;
+  row-gap: 0.75rem;
   min-width: 0;
-  padding: 1rem clamp(1rem, 4vw, 1.75rem);
+  padding: 0.875rem clamp(1rem, 4vw, 1.75rem);
   background: var(--clinical-rail);
   border-block-end: 1px solid var(--clinical-rule);
 }
 
 .clinical-brand {
-  grid-column: 1 / -1;
-  font: 650 1.625rem/1.2 var(--clinical-serif);
-  letter-spacing: -0.045em;
+  grid-column: 1;
+  font: 800 1.375rem/1.2 var(--clinical-heading);
+  letter-spacing: -0.04em;
 }
 
 .clinical-brand span {
@@ -60,6 +67,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.25rem;
+  order: 3;
 }
 
 .clinical-nav-link {
@@ -69,11 +77,12 @@
   gap: 0.5rem;
   min-height: 2.75rem;
   max-width: 100%;
-  padding: 0.5625rem 0.6875rem;
-  border-radius: var(--radius-control);
+  padding: 0.5625rem 0.75rem;
+  border-radius: var(--radius-card);
   color: var(--clinical-muted);
   font: 500 0.875rem/1.4 var(--clinical-label);
   text-decoration: none;
+  transition: background-color 120ms ease, color 120ms ease;
 }
 
 .clinical-icon {
@@ -89,17 +98,17 @@
 
 .clinical-nav-link[aria-current="page"] {
   background: var(--clinical-selected);
-  color: var(--clinical-ink);
+  color: var(--clinical-accent);
   font-weight: 650;
 }
 
 .clinical-nav-link[aria-current="page"]::before {
   content: "";
   position: absolute;
-  inset-block: 0.6875rem;
+  inset-block: 0.625rem;
   inset-inline-start: 0;
-  border-inline-start: 2px solid var(--clinical-accent);
-  border-radius: 2px;
+  border-inline-start: 3px solid var(--clinical-accent);
+  border-radius: 3px;
 }
 
 .clinical-shell :is(.clinical-sidebar, .clinical-home) :is(a, button):focus-visible {
@@ -108,99 +117,193 @@
 }
 
 .clinical-clinic {
+  display: none;
   min-width: 0;
-  grid-column: 1;
 }
 
 .clinical-kicker {
   color: var(--clinical-accent);
   font: 650 0.6875rem/1.4 var(--clinical-label);
-  letter-spacing: 0.105em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 .clinical-clinic-name {
-  margin-block-start: 0.3125rem;
-  font: 600 1rem/1.3 var(--clinical-serif);
+  margin-block-start: 0.25rem;
+  font: 700 0.9375rem/1.3 var(--clinical-heading);
 }
 
 .clinical-clinic-role {
-  margin-block-start: 0.25rem;
+  margin-block-start: 0.1875rem;
   color: var(--clinical-muted);
   font: 400 0.8125rem/1.45 var(--clinical-label);
 }
 
 .clinical-session {
   grid-column: 2;
+  grid-row: 1;
 }
 
 .clinical-session button {
   padding-inline: 0.625rem;
-  border-color: transparent;
+  border-color: var(--clinical-rule);
   background: transparent;
   color: var(--clinical-muted);
   font: 550 0.8125rem/1.4 var(--clinical-label);
   cursor: pointer;
-  transition: none;
+  transition: background-color 120ms ease, color 120ms ease;
 }
 
 .clinical-session button:hover {
   background: var(--clinical-plate);
   color: var(--clinical-ink);
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
 }
 
-/* Solo Inicio cambia el lienzo; los formularios, tablas e informes conservan sus superficies. */
-.clinical-shell > .dashboard-main:has(> .clinical-home) {
-  max-width: none;
-  padding: 0;
+/* Lienzo común de las pantallas protegidas (Inicio incluido): fondo, ancho máximo y márgenes. No depende de qué
+   pantalla esté montada: al navegar, Next conserva oculta la anterior y un selector con :has la seguiría viendo. */
+.dashboard-shell.clinical-shell {
+  grid-template-rows: auto auto 1fr;
   background: var(--clinical-paper);
 }
 
-.clinical-home {
-  width: min(100%, 70rem);
-  margin-inline: auto;
-  padding: clamp(1.75rem, 5vw, 4.5rem) clamp(1rem, 5vw, 4.5rem) 3rem;
+/* Barra superior: la persona que ingresó y, en pantallas chicas, la clínica activa. */
+.clinical-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-width: 0;
+  min-height: 3.5rem;
+  padding: 0.5rem clamp(1rem, 4vw, 3rem);
+  border-block-end: 1px solid var(--clinical-rule);
+  background: var(--clinical-rail);
+  color: var(--clinical-ink);
+}
+
+.clinical-topbar-clinic {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  border: 1px solid var(--clinical-rule);
+  border-radius: 999px;
+  background: var(--clinical-paper);
+  font: 600 0.8125rem/1.3 var(--clinical-label);
+}
+
+.clinical-topbar-clinic .clinical-icon {
+  color: var(--clinical-accent);
+}
+
+.clinical-topbar-clinic span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clinical-topbar-user {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.625rem;
+  margin-inline-start: auto;
+}
+
+.clinical-topbar-avatar {
+  display: grid;
+  flex: none;
+  inline-size: 2.25rem;
+  block-size: 2.25rem;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--clinical-tint);
+  color: var(--clinical-accent);
+  font: 700 0.75rem/1 var(--clinical-label);
+}
+
+.clinical-topbar-identity {
+  min-width: 0;
+}
+
+.clinical-topbar-name {
+  overflow: hidden;
+  font: 650 0.875rem/1.3 var(--clinical-label);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clinical-topbar-role {
+  overflow: hidden;
+  color: var(--clinical-muted);
+  font: 400 0.75rem/1.3 var(--clinical-label);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* En pantallas muy chicas queda solo el avatar para que entren la clínica y la persona. */
+@media (max-width: 29.99rem) {
+  .clinical-topbar-identity {
+    display: none;
+  }
+}
+
+.clinical-shell > .dashboard-main {
+  max-width: 72rem;
+  padding: clamp(1.5rem, 4vw, 3rem) clamp(1rem, 4vw, 3rem) 3rem;
+}
+
+.clinical-page-lead {
+  max-width: 60ch;
+  color: var(--clinical-muted);
+  font: 400 0.9375rem/1.6 var(--clinical-label);
+}
+
+.clinical-page-title {
+  font: 800 clamp(1.75rem, 3.4vw, 2.25rem)/1.15 var(--clinical-heading);
+  letter-spacing: -0.03em;
 }
 
 .clinical-home-title {
-  margin-block-start: 0.5rem;
-  font: 620 clamp(2.625rem, 5vw, 4.125rem)/1.08 var(--clinical-serif);
-  letter-spacing: -0.045em;
+  margin-block-start: 0.25rem;
+  font: 800 clamp(1.75rem, 3.4vw, 2.25rem)/1.15 var(--clinical-heading);
+  letter-spacing: -0.03em;
 }
 
 .clinical-home-dateline {
-  padding-block-end: clamp(0.875rem, 3vw, 1.5rem);
-  margin-block-start: 0.625rem;
-  border-block-end: 1px solid var(--clinical-rule);
+  margin-block-start: 0.375rem;
   color: var(--clinical-muted);
-  font: italic 460 clamp(1rem, 1.75vw, 1.1875rem)/1.5 var(--clinical-serif);
+  font: 400 0.9375rem/1.5 var(--clinical-label);
+}
+
+/* Tarjetas del inicio: superficie, borde discreto y sombra suave en el tema claro. */
+.clinical-workspace {
+  border: 1px solid var(--clinical-rule);
+  border-radius: var(--radius-panel);
+  background: var(--clinical-sheet);
+  box-shadow: var(--clinical-shadow);
 }
 
 .clinical-workspace {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  margin-block-start: clamp(1.25rem, 4vw, 2.625rem);
-  border: 1px solid var(--clinical-rule);
-  border-radius: var(--radius-card);
-  background: var(--clinical-sheet);
+  margin-block-start: clamp(1.25rem, 3vw, 2rem);
 }
 
 .clinical-workspace-body {
   align-self: center;
-  padding: clamp(1.25rem, 4vw, 3rem);
+  padding: clamp(1.25rem, 4vw, 2.5rem);
 }
 
 .clinical-workspace-body h2 {
-  font: 590 clamp(1.625rem, 3.2vw, 2.625rem)/1.18 var(--clinical-serif);
-  letter-spacing: -0.035em;
+  font: 700 clamp(1.25rem, 2.4vw, 1.625rem)/1.25 var(--clinical-heading);
+  letter-spacing: -0.02em;
   text-wrap: balance;
 }
 
 .clinical-workspace-body p {
-  max-width: 44ch;
-  margin-block-start: 0.75rem;
+  max-width: 48ch;
+  margin-block-start: 0.5rem;
   color: var(--clinical-muted);
   font-size: 0.9375rem;
   line-height: 1.65;
@@ -211,14 +314,15 @@
   max-width: 100%;
   min-height: 2.75rem;
   align-items: center;
-  gap: 0.6875rem;
-  margin-block-start: 1.375rem;
-  padding: 0.625rem 0.875rem;
-  border-radius: var(--radius-control);
+  gap: 0.625rem;
+  margin-block-start: 1.25rem;
+  padding: 0.625rem 1rem;
+  border-radius: var(--radius-card);
   background: var(--clinical-action);
   color: var(--clinical-action-ink);
   font: 600 0.875rem/1.4 var(--clinical-label);
   text-decoration: none;
+  transition: background-color 120ms ease;
 }
 
 .clinical-home-action:hover {
@@ -229,121 +333,7 @@
   display: none;
 }
 
-.clinical-overview {
-  display: grid;
-  gap: 1rem;
-  margin-block-start: clamp(1.25rem, 4vw, 2.625rem);
-}
-
-.clinical-overview h2 {
-  font: 590 clamp(1.625rem, 3.2vw, 2.625rem)/1.18 var(--clinical-serif);
-  letter-spacing: -0.035em;
-}
-
-.clinical-overview-note {
-  margin-block-start: 0.25rem;
-  color: var(--clinical-muted);
-  font: 400 0.875rem/1.5 var(--clinical-label);
-}
-
-.clinical-overview-metrics {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9.5rem), 1fr));
-  gap: 0.75rem;
-}
-
-.clinical-overview-metric,
-.clinical-overview-recent,
-.clinical-overview-empty {
-  padding: clamp(1rem, 3vw, 1.5rem);
-  border: 1px solid var(--clinical-rule);
-  border-radius: var(--radius-card);
-  background: var(--clinical-sheet);
-}
-
-.clinical-overview-metric {
-  display: grid;
-  align-content: space-between;
-}
-
-.clinical-overview-metric dt {
-  color: var(--clinical-muted);
-  font: 550 0.875rem/1.4 var(--clinical-label);
-}
-
-.clinical-overview-metric dd {
-  margin: 0.25rem 0 0;
-  font: 580 clamp(1.875rem, 4vw, 2.75rem)/1.15 var(--clinical-serif);
-  font-variant-numeric: tabular-nums;
-}
-
-.clinical-overview-recent h3 {
-  font: 590 clamp(1.1875rem, 2vw, 1.5rem)/1.3 var(--clinical-serif);
-}
-
-.clinical-overview-list {
-  margin-block: 0.75rem 0;
-  padding: 0;
-  list-style: none;
-}
-
-.clinical-overview-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  column-gap: 0.75rem;
-  row-gap: 0.125rem;
-  padding-block: 0.625rem;
-  border-block-start: 1px solid var(--clinical-rule);
-}
-
-.clinical-overview-row:last-child {
-  padding-block-end: 0;
-}
-
-.clinical-overview-patient {
-  font: 570 1rem/1.35 var(--clinical-label);
-}
-
-.clinical-overview-row time {
-  grid-column: 1;
-  color: var(--clinical-muted);
-  font: 400 0.8125rem/1.4 var(--clinical-label);
-  font-variant-numeric: tabular-nums;
-}
-
-.clinical-overview-link {
-  display: inline-flex;
-  justify-self: start;
-  align-items: center;
-  gap: 0.375rem;
-  min-height: 2.75rem;
-  color: var(--clinical-accent);
-  font: 600 0.875rem/1.4 var(--clinical-label);
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
-}
-
-.clinical-overview-link:hover {
-  color: var(--clinical-ink);
-}
-
-.clinical-overview-row .clinical-overview-link {
-  grid-column: 2;
-  grid-row: 1 / 3;
-}
-
 @media (min-width: 44rem) {
-  .clinical-overview-row {
-    grid-template-columns: minmax(0, 1fr) minmax(8rem, auto) auto;
-    column-gap: 1.25rem;
-  }
-
-  .clinical-overview-row time,
-  .clinical-overview-row .clinical-overview-link {
-    grid-area: auto;
-  }
-
   .clinical-workspace {
     grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr);
   }
@@ -352,14 +342,14 @@
     display: grid;
     place-items: center;
     border-inline-start: 1px solid var(--clinical-rule);
-    border-start-end-radius: calc(var(--radius-card) - 1px);
-    border-end-end-radius: calc(var(--radius-card) - 1px);
-    background: var(--clinical-plate);
+    border-start-end-radius: calc(var(--radius-panel) - 1px);
+    border-end-end-radius: calc(var(--radius-panel) - 1px);
+    background: var(--clinical-tint);
     color: var(--clinical-accent);
   }
 
   .clinical-workspace-plate .clinical-icon {
-    inline-size: clamp(3.75rem, 7vw, 6rem);
+    inline-size: clamp(3.75rem, 7vw, 5.5rem);
     block-size: auto;
     stroke-width: 0.8;
   }
@@ -368,35 +358,39 @@
 @media (min-width: 64rem) {
   .dashboard-shell.clinical-shell {
     grid-template-columns: 16rem minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
   }
 
   .clinical-sidebar {
+    grid-row: 1 / span 2;
     position: sticky;
     inset-block-start: 0;
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    gap: 1rem;
+    gap: 0.5rem;
     height: 100dvh;
     overflow-y: auto;
-    padding: 1.75rem 1.125rem 1.125rem;
+    padding: 1.5rem 1rem 1rem;
     border-block-end: 0;
     border-inline-end: 1px solid var(--clinical-rule);
   }
 
   .clinical-brand {
-    padding-inline: 0.6875rem;
+    padding-inline: 0.75rem;
+    font-size: 1.5rem;
   }
 
   .clinical-nav {
     flex-direction: column;
     flex-wrap: nowrap;
-    margin-block-start: 1rem;
+    margin-block-start: 1.25rem;
+    order: 0;
   }
 
   .clinical-nav-link {
     flex-shrink: 0;
-    gap: 0.6875rem;
+    gap: 0.75rem;
   }
 
   .clinical-clinic,
@@ -404,18 +398,49 @@
     margin-block-start: auto;
   }
 
+  /* Tarjeta de la clínica activa al pie de la barra. */
   .clinical-clinic {
-    padding: 1rem 0.6875rem 0;
-    border-block-start: 1px solid var(--clinical-rule);
+    display: block;
+    padding: 0.875rem;
+    border: 1px solid var(--clinical-rule);
+    border-radius: var(--radius-panel);
+    background: var(--clinical-paper);
   }
 
   .clinical-clinic + .clinical-session {
-    margin-block-start: 0;
+    margin-block-start: 0.25rem;
+  }
+
+  .clinical-session button {
+    inline-size: 100%;
+    justify-content: flex-start;
+    border-color: transparent;
+  }
+}
+
+/* En escritorio la clínica activa ya está en la barra lateral. */
+@media (min-width: 64rem) {
+  .clinical-topbar-clinic {
+    display: none;
+  }
+
+  .clinical-topbar {
+    justify-content: flex-end;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .clinical-shell * {
+    transition: none !important;
   }
 }
 
 @media (forced-colors: active) {
   .clinical-home-action {
     border: 1px solid LinkText;
+  }
+
+  .clinical-nav-link[aria-current="page"] {
+    border: 1px solid Highlight;
   }
 }

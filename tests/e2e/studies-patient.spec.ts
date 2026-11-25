@@ -3,7 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { enterClinicAs } from "../support/e2e-accounts";
 import { createE2eDatabase, uniqueName, type E2eDatabase } from "../support/e2e-database";
 import { buildNpz } from "../support/npz-builder";
-import { selectNpzEcg } from "./fixtures/npz-upload";
+import { closeUploadDialog, selectNpzEcg } from "./fixtures/npz-upload";
 
 let database: E2eDatabase;
 
@@ -39,10 +39,12 @@ test("el paciente sube estudios, ve su lista numerada y otro paciente no los ve"
 
   await uploadValidStudy(page);
   await expect(page.getByText("Estudio 1 guardado.")).toBeVisible();
+  await closeUploadDialog(page);
   await expect(visibleRows(page)).toHaveCount(1);
 
   await uploadValidStudy(page);
   await expect(page.getByText("Estudio 2 guardado.")).toBeVisible();
+  await closeUploadDialog(page);
   await expect(visibleRows(page)).toHaveCount(2);
 
   // El nombre del archivo subido no se guarda ni se muestra.

@@ -84,6 +84,7 @@ a los pacientes y a las instituciones.
 - **Datos:** Prisma con PostgreSQL en Amazon RDS, con un `PrismaClient` compartido por proceso.
 - **Autenticación:** Amazon Cognito. La aplicación DEBE validar los JWT y autorizar cada operación.
 - **Archivos:** Amazon S3 con acceso privado.
+- **Correo transaccional:** servidor SMTP configurable detrás de un puerto (Gmail en desarrollo y demo), sustituible por otro servicio sin tocar el negocio. Las credenciales viven solo en variables de entorno o en el secreto de la aplicación, nunca en el repositorio.
 - **Inferencia:** Amazon SageMaker AI, consumido mediante un adaptador.
 - **Infraestructura:** Terraform, en la carpeta `infra/` de este repositorio. El estado vive en un backend remoto cifrado y con bloqueo, nunca en git; los comandos que modifican infraestructura real (`terraform apply`, `destroy`, `import` y `state`) los ejecuta solo el responsable del proyecto.
 
@@ -127,4 +128,4 @@ aprobación del responsable del proyecto y actualizar los documentos de `memory/
 **Cumplimiento.** Toda revisión de planes y cambios DEBE verificar el cumplimiento de esta
 constitución. La complejidad adicional DEBE justificarse.
 
-**Version**: 1.6.1 | **Ratified**: 2026-11-04 | **Last Amended**: 2026-11-09
+**Version**: 1.7.0 | **Ratified**: 2026-11-04 | **Last Amended**: 2026-11-23

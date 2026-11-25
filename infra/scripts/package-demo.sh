@@ -29,7 +29,9 @@ function safeName(name) {
   const parts = name.split('/');
   if (!name || /[^\x20-\x7e]|[\\:]/.test(name) || parts.some(part =>
     !part || part === '.' || part === '..' || part.startsWith('.env') ||
-    ['.aws', '.git', 'credentials', 'tests', 'patients', 'studies', 'secrets', '.cache', 'cache'].includes(part) ||
+    ['.aws', '.git', 'credentials', 'tests', 'secrets', '.cache', 'cache'].includes(part) ||
+    // `patients` y `studies` son rutas de la app: solo se aceptan dentro del build de Next, nunca como datos sueltos.
+    (['patients', 'studies'].includes(part) && parts[0] !== '.next') ||
     part.includes('.tfstate') || part.endsWith('.tfvars') || /\.(pem|key|p12|pfx|dcm|dicom|csv|sqlite|db)$/i.test(part))) reject();
   ustarPath(name);
 }

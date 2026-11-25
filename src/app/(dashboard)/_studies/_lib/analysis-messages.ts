@@ -3,6 +3,7 @@ import type { AnalysisFailureCode, AnalysisStatus } from "@/modules/analyses/dom
 // Textos de la sección de análisis. Sin lenguaje de diagnóstico y sin detalles internos de las fallas.
 export const ANALYSIS_MESSAGES = {
   sectionTitle: "Análisis",
+  sectionLead: "Estimación con inteligencia artificial a partir de la señal. Es apoyo clínico, no un diagnóstico.",
   resultTitle: "Resultado del análisis",
   historyTitle: "Historial de análisis",
   empty: "Todavía no hay análisis de este estudio.",

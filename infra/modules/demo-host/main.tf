@@ -24,6 +24,8 @@ locals {
       IDENTITY_PROVIDER       = "cognito"
       STUDY_STORAGE           = "s3"
       MODEL_INFERENCE         = "sagemaker"
+      INVITATION_MAILER       = "smtp"
+      APP_BASE_URL            = "https://${var.public_hostname}"
       AWS_REGION              = var.region
       COGNITO_REGION          = var.region
       COGNITO_USER_POOL_ID    = split("/", var.runtime_references.user_pool_arn)[1]
@@ -250,10 +252,18 @@ resource "aws_instance" "web" {
     volume_size = 20
     volume_type = "gp3"
     encrypted   = true
-    tags        = local.tags
   }
-  tags       = local.tags
-  depends_on = [aws_iam_role_policy.runtime]
+  tags = local.tags
+  # Se aplica al crear (TagSpecifications de RunInstances). root_block_device.tags se escribe después con un
+  # CreateTags aparte, y el operador solo puede crear el disco si el pedido ya lleva la etiqueta Deployment.
+  volume_tags = local.tags
+  depends_on  = [aws_iam_role_policy.runtime]
+
+  lifecycle {
+    # Con la EIP asociada el proveedor lee associate_public_ip_address como true aunque la instancia nació sin IP
+    # efímera (la subred ya no la asigna). Sin esto cada plan reemplazaría la EC2 por un falso cambio de IP.
+    ignore_changes = [associate_public_ip_address]
+  }
 }
 
 resource "aws_eip" "web" {

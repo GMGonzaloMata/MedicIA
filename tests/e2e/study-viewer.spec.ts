@@ -3,7 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { enterClinicAs } from "../support/e2e-accounts";
 import { createE2eDatabase, uniqueName, type E2eDatabase } from "../support/e2e-database";
 import { buildNpz } from "../support/npz-builder";
-import { selectNpzEcg } from "./fixtures/npz-upload";
+import { closeUploadDialog, selectNpzEcg } from "./fixtures/npz-upload";
 
 let database: E2eDatabase;
 
@@ -26,11 +26,12 @@ async function uploadValidStudy(page: Page) {
   });
   await page.getByRole("button", { name: "Subir estudio" }).click();
   await expect(page.getByText("Estudio 1 guardado.")).toBeVisible();
+  await closeUploadDialog(page);
 }
 
 // En pantallas anchas la lista es una tabla y en el móvil son tarjetas: solo uno de los dos vínculos es visible.
 async function openWaveform(page: Page, number: number) {
-  await page.getByRole("link", { name: `Ver onda del estudio ${number}` }).filter({ visible: true }).click();
+  await page.getByRole("link", { name: `Ver estudio ${number}`, exact: true }).filter({ visible: true }).click();
   await expect(page.getByRole("heading", { name: `Estudio ${number}`, level: 1 })).toBeVisible();
 }
 
